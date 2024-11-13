@@ -1,0 +1,119 @@
+Papamakarios et al. (2021)
+Title: Normalizing Flows for Probabilistic Modeling and Inference
+Importance: High
+Relevance: Highly Relevant
+Explanation:
+
+Content: Diese Arbeit ist ein umfassender Überblick über Normalizing Flows, behandelt theoretische Grundlagen, verschiedene Architekturen und Anwendungen in der probabilistischen Modellierung und Inferenz.
+Relevance:
+Bietet ein tiefes Verständnis von Normalizing Flows, entscheidend für die Implementierung in multivariater Dichteschätzung.
+Diskutiert, wie Normalizing Flows komplexe kontinuierliche Verteilungen modellieren können, was sich mit dem Fokus auf kontinuierliche Daten deckt.
+Erörtert Faktorisierungsansätze innerhalb von Normalizing Flows, direkt relevant für die Methode der Faktorisierung gemeinsamer Dichten.
+
+
+
+Hothorn & Zeileis (2021)
+Title: Distributional Regression Forests for Probabilistic Forest Predictions
+Importance: High
+Relevance: Highly Relevant
+Explanation:
+
+Content: Diese Arbeit erweitert Transformation Forests auf distributionelle Regression und ermöglicht die Schätzung ganzer bedingter Verteilungen anstelle von Mittelwertvorhersagen.
+Relevance:
+Kernressource zum Verständnis, wie Transformation Forests zur Schätzung univariater bedingter Dichten eingesetzt werden können.
+Bietet Methoden und Beispiele, die direkt auf die Arbeit mit kontinuierlichen multivariaten Daten anwendbar sind.
+Liefert Einblicke in theoretische und praktische Aspekte der Nutzung von Transformation Forests zur Dichteschätzung.
+
+
+
+
+Durkan et al. (2019)
+Title: Neural Spline Flows
+Importance: High
+Relevance: Highly Relevant
+Explanation:
+
+Content: Führt Neural Spline Flows ein, die Normalizing Flows mit spline-basierten Transformationen für größere Flexibilität bei der Modellierung komplexer Dichten erweitern.
+Relevance:
+Präsentiert fortschrittliche Techniken in Normalizing Flows, die die Modellierung kontinuierlicher multivariater Dichten verbessern können.
+Die Verwendung von Splines könnte mit der flexiblen Schätzung univariater bedingter Dichten im Faktorisierungsansatz übereinstimmen.
+Bietet potenzielle Methoden zur Verbesserung der Ausdruckskraft von Normalizing Flow-Implementierungen.
+
+
+
+
+Kobyzev et al. (2021)
+Title: Normalizing Flows: An Introduction and Review of Current Methods
+Importance: High
+Relevance: Highly Relevant
+Explanation:
+
+Content: Gibt eine gründliche Übersicht über Normalizing Flows, behandelt verschiedene Architekturen, praktische Überlegungen und Anwendungen.
+Relevance:
+Bietet eine breite Perspektive auf den aktuellen Stand der Technik bei Normalizing Flows bis 2021.
+Hilft, verschiedene Flow-Modelle zu verstehen, die für Dichteschätzungsaufgaben geeignet sein könnten.
+Geht auf Herausforderungen und Lösungen ein, die für die Modellierung kontinuierlicher multivariater Daten relevant sind.
+
+
+
+
+
+Rezende & Mohamed (2015)
+Title: Variational Inference with Normalizing Flows
+Importance: High
+Relevance: Highly Relevant
+Explanation:
+
+Content: Grundlegende Arbeit, die das Konzept von Normalizing Flows innerhalb der variationalen Inferenz einführt.
+Relevance:
+Essentiell zum Verständnis der theoretischen Grundlagen von Normalizing Flows.
+Liefert die Grundlage, auf der spätere Fortschritte (wie in den Arbeiten von Papamakarios et al. und Durkan et al.) aufbauen.
+Trotz des älteren Datums unverzichtbar für ein tiefes Verständnis der Anwendung von Normalizing Flows auf kontinuierliche Daten.
+
+
+
+
+
+Grathwohl et al. (2019)
+Title: FFJORD: Free-form Continuous Dynamics for Scalable Reversible Generative Models
+Importance: Medium
+Relevance: Relevant
+Explanation:
+
+Content: Führt Continuous Normalizing Flows ein, die neuronale gewöhnliche Differentialgleichungen (Neural ODEs) für skalierbare Dichteschätzungen nutzen.
+Relevance:
+Bietet Methoden für den Umgang mit hochdimensionalen kontinuierlichen Daten, die auf die multivariate Dichteschätzung anwendbar sein könnten.
+Die kontinuierlichen Zeitdynamiken könnten nützlich sein, um komplexe Abhängigkeiten in den Daten zu modellieren.
+Stellt fortgeschrittene Techniken vor, die die Skalierbarkeit von Normalizing Flow-Implementierungen verbessern könnten.
+
+
+
+
+
+Cornish et al. (2020)
+Title: Relaxing the Bijectivity Constraint with Continuous Surjective Flows
+Importance: Medium
+Relevance: Somewhat Relevant
+Explanation:
+
+Content: Untersucht Methoden, um die Bijektivitätseinschränkung in Normalizing Flows zu lockern, wodurch eine flexiblere Modellierung von Wahrscheinlichkeitsverteilungen möglich wird.
+Relevance:
+Könnte Einblicke in die Verbesserung der Flexibilität von Normalizing Flows beim Erfassen komplexer Verteilungen bieten.
+Könnte anwendbar sein, wenn Einschränkungen mit Standard-Normalizing Flows bei der Modellierung kontinuierlicher Daten auftreten.
+Der Schwerpunkt liegt jedoch stärker auf theoretischen Fortschritten, die möglicherweise nicht im Zentrum der Arbeit stehen.
+
+
+
+
+
+Huang et al. (2018)
+Title: Neural Autoregressive Flows
+Importance: Medium
+Relevance: Relevant
+Explanation:
+
+Content: Führt Neural Autoregressive Flows ein, die autoregressive Modelle mit Normalizing Flows kombinieren, um die Modellierung hochdimensionaler Verteilungen zu verbessern.
+Relevance:
+Adressiert Faktorisierungsansätze in der Dichteschätzung, ähnlich der Methode zur Zerlegung gemeinsamer Dichten.
+Könnte alternative Normalizing Flow-Architekturen bieten, die für multivariate kontinuierliche Daten geeignet sind.
+Nützlich, wenn unterschiedliche Implementierungen der Faktorisierung in Normalizing Flows untersucht werden.
