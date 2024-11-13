@@ -1,2 +1,5 @@
-# multivariate-density-estimation
+#Title:
 Multivariate Density Estimation via Factorization into Univariate Conditional Densities Using Transformation Forests and Normalizing Flows
+
+#Abstract:
+This master's thesis explores flexible approaches to multivariate continuous density estimation by factorizing joint densities into products of marginal and univariate conditional densities. Utilizing the chain rule, complex multivariate distributions are decomposed into manageable components. Each univariate conditional density is estimated using advanced methods: Transformation Forests, which are non-parametric models capturing complex dependencies, and Normalizing Flows, a deep learning technique leveraging neural networks for flexible density modeling. By comparing these methods, the research aims to evaluate their effectiveness, efficiency, and applicability in modeling intricate multivariate distributions. The methods will be tested on both synthetic datasets and real-world data, providing practical insights and contributing to the field of statistical density estimation.
