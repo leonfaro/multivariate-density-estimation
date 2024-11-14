@@ -1,8 +1,12 @@
 #Title:
+
 Estimating Multivariate Continuous Densities via Factorization into Univariate Conditional Densities Using Transformation Forests and Comparison with Normalizing Flows
 
+
 #Abstract:
+
 This master's thesis explores methods for estimating multivariate continuous probability densities by factorizing them into products of univariate conditional densities. Utilizing the chain rule of probability, any multivariate density can be decomposed into a sequence of univariate conditional densities. Each univariate conditional density is estimated using flexible non-parametric models such as transformation forests and transformation boosting, known for their robustness and ability to capture complex dependencies without extensive hyperparameter tuning. By multiplying these estimated univariate conditional densities, the joint multivariate density is reconstructed. This approach is compared with joint density estimation methods like normalizing flows from the deep learning community, which estimate the multivariate density directly. The thesis aims to investigate whether estimating univariate conditional densities separately offers advantages in terms of flexibility, computational efficiency, and modeling capabilities compared to joint estimation methods. Benchmark datasets, both synthetic (e.g., two-dimensional spirals and higher-dimensional data) and real-world continuous multivariate datasets, will be used to evaluate and compare the methods. Through this comparative study, the thesis seeks to provide insights into the effectiveness of factorization approaches for multivariate density estimation and their practical applicability.
+
 
 #Summary:
 
