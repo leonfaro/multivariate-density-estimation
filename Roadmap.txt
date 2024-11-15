@@ -1,0 +1,34 @@
+1. Fokus auf numerische Daten:
+
+- Die Arbeit konzentriert sich zunächst auf kontinuierliche, multivariate numerische Daten, um die Methodik zu verfeinern und zu validieren.
+
+
+2. Faktorisation der multivariaten Dichte:
+
+- Jede multivariate Dichte wird als Produkt univariater bedingter Dichten dargestellt. Für jede Variable wird ein separates Modell geschätzt, das die Abhängigkeit von den vorherigen Variablen berücksichtigt.
+- Beispielsweise wird die gemeinsame Dichte von zwei Variablen als Produkt der marginalen Dichte der ersten Variable und der bedingten Dichte der zweiten Variable gegeben der ersten ausgedrückt.
+
+
+3. Verwendung flexibler Modelle:
+
+- Transformation Forests und Transformation Boosting werden als Hauptmethoden zur Schätzung der bedingten Dichten eingesetzt.
+- Diese Methoden bieten den Vorteil der Robustheit gegenüber Hyperparametern und ermöglichen eine effiziente Modellierung komplexer Dichteformen, wie etwa der "Half-Moon"-Struktur.
+
+
+4. Vergleich mit Normalizing Flows:
+
+- Normalizing Flows schätzen die multivariate Dichte gemeinsam, während der vorgestellte Ansatz die Dichte getrennt modelliert.
+- Es wird untersucht, ob die getrennte Schätzung genauso effektiv ist wie die gemeinsame Schätzung durch Flows.
+
+
+5. Praktisches Beispiel:
+
+- Ein Beispiel mit spiralförmigen Halbmonden zeigt die Fähigkeit der flexiblen Modelle, komplexe Dichteverteilungen besser abzubilden als klassische Methoden.
+
+
+6. Nächste Schritte:
+
+- Literaturrecherche: Umfangreiche Durchsicht der bestehenden Literatur zu Normalizing Flows und alternativen Methoden zur Dichteabschätzung.
+- Benchmarking: Auswahl und Sammlung von Benchmark-Datensätzen, sowohl einfach (2-3 Dimensionen) als auch höherdimensional, um die Methoden zu testen.
+- Implementierung: Erstellung eines Git-Repositories zur zentralen Verwaltung von Papers, DOIs, Kommentaren und Implementierungen (insbesondere R-Pakete von CRAN).
+- Empirische Evaluation: Vergleich der vorgeschlagenen Methode mit bestehenden Ansätzen anhand empirischer Daten, um die Effektivität zu validieren.
