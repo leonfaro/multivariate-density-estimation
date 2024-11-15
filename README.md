@@ -1,6 +1,6 @@
 #Title:
 
-Estimating Multivariate Continuous Densities via Factorization into Univariate Conditional Densities Using Transformation Forests and Comparison with Normalizing Flows
+Estimating Multivariate Continuous Densities via Factorization using Normalizing Flows and Transformation Forests
 
 
 #Abstract:
