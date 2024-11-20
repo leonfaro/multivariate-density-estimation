@@ -1,15 +1,16 @@
 Packages:
 
 Transformation Forests:
--trtf
--transforest
--tram
--party / partykit
+- tram::traforest
+- tbm::ctmboost
+- trtf
+- transforest
+- party / partykit
 
 
 Normalizing Flows:
--torch
--tensorflow
+- torch
+- tensorflow
 
 
 
