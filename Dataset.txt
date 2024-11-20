@@ -1,0 +1,18 @@
+The ideal kind of continuous data should have the following characteristics:
+
+1. Multivariate Continuous Data with Complex Dependencies: The data should be high-dimensional to test the scalability of the models. Complex, non-linear relationships among variables will challenge the models' ability to capture intricate dependencies.
+
+2. Known Underlying Distributions: Using synthetic data generated from known multivariate distributions (such as mixtures of Gaussians, copulas, or other complex distributions) allows for a quantitative assessment of how well each method estimates the true density.
+
+3. Non-Gaussian Marginals and Heavy Tails: Data with non-Gaussian marginals, skewness, or heavy tails can test the flexibility of the models in capturing a wide range of distributional shapes.
+
+4. Structured Real-World Data: Alternatively, real-world datasets that are continuous and multivariate—such as financial asset returns, environmental measurements, or sensor data—can provide practical insights. These datasets often exhibit complex dependencies and are relevant for real-world applications.
+
+5. Presence of Conditional Dependencies: Data where certain variables influence the distribution of others can help evaluate the models' ability to capture conditional relationships.
+
+
+Benefits of Using Financial Time Series Data:
+-Complex Dependencies: Captures real-world correlations and interactions.
+-Non-Stationarity: Models must handle trends and changing volatility.
+-Heavy Tails: Financial returns often exhibit fat-tailed distributions.
+-Practical Relevance: Findings can be applicable to risk management and portfolio optimization.
