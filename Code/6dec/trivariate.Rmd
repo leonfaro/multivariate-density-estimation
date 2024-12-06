@@ -1,0 +1,746 @@
+---
+title: "Trivariate Dichteanalyse mit Benchden-Verteilungen"
+author: "Léon Kia Faro"
+date: "2024-12-05"
+output:
+  html_document:
+    toc: yes
+    toc_float: yes
+    toc_depth: 3
+    number_sections: true
+    theme: united
+    highlight: tango
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  fig.width = 10,
+  fig.height = 6
+)
+
+# Benötigte Pakete
+library(benchden)    # Synthetische Verteilungen
+library(tram)        # Transformation Models
+library(hdrcde)      # High Density Regions
+library(np)          # Nichtparametrische Methoden
+library(ks)          # Kernel Smoothing
+library(kdensity)    # Kernel Density Estimation
+library(kedd)        # Kernel Estimation
+library(lpdensity)   # Lokale polynomiale Dichte
+library(plotly)      # 3D Visualisierung
+library(viridis)     # Farbpaletten
+library(parallel)    # Parallele Berechnung
+```
+
+# 1. Benchden-Verteilungen
+
+## 1.1 Verteilungsauswahl
+
+Wir fokussieren uns auf drei komplexe Verteilungen:
+
+1. Marronite (Nr. 21):
+   $$f_{21}(x) = \frac{1}{2}\phi(x) + \frac{1}{10}\sum_{i=1}^5 \phi(x-i)$$
+   - Asymmetrische multimodale Struktur
+   - Herausfordernd für bedingte Schätzung
+
+2. Claw (Nr. 23):
+   $$f_{23}(x) = \frac{1}{2}\phi(x) + \sum_{i=0}^4 \frac{1}{10}\phi(x-2+i)$$
+   - Multiple diskrete Peaks
+   - Test für Bandbreitenauswahl
+
+3. Sawtooth (Nr. 27):
+   $$f_{27}(x) = \sum_{i=1}^5 \frac{1}{5}\phi(x-i)$$
+   - Periodische Struktur
+   - Gleichmässige Peaks
+
+```{r data_generation}
+
+# Grundeinstellungen
+set.seed(42)
+n_samples <- 5000
+selected_dist <- c(21, 23, 27)
+
+# Generiere Daten für jede Verteilung
+generate_samples <- function(dist_id, n) {
+  data <- rberdev(n, dist_id)
+  attr(data, "dist_name") <- nberdev(dist_id)
+  return(data)
+}
+
+# Datengenerierung (vereinfacht ohne mclapply für Kompatibilität)
+data_list <- lapply(selected_dist, function(d) {
+  generate_samples(d, n_samples)
+})
+
+# Erstelle kombinierten Datensatz
+data_all <- data.frame(
+  x1 = data_list[[1]],
+  x2 = data_list[[2]],
+  x3 = data_list[[3]])
+
+# Grid für wahre Dichten
+x_grid <- seq(-4, 4, length.out = 200)
+true_densities <- lapply(selected_dist, function(d) {
+  dberdev(x_grid, d)
+})
+```
+
+## 1.2 Explorative Analyse
+
+```{r exploratory}
+# Grundlegende Statistiken
+basic_stats <- sapply(data_list, function(x) {
+  c(Mean = mean(x),
+    SD = sd(x),
+    Skewness = mean((x-mean(x))^3)/sd(x)^3,
+    Kurtosis = mean((x-mean(x))^4)/sd(x)^4,
+    Modes = length(density(x)$y[which(diff(sign(diff(density(x)$y)))==-2)]+1))
+})
+rownames(basic_stats) <- c("Mittelwert", "Std.Abw.", "Schiefe", "Kurtosis", "Modalitäten")
+colnames(basic_stats) <- sapply(selected_dist, nberdev)
+knitr::kable(basic_stats, digits = 3)
+
+# Visualisiere Marginalverteilungen
+par(mfrow=c(2,2))
+for(i in 1:3) {
+  hist(data_list[[i]], freq=FALSE, breaks=50,
+       main=paste("Verteilung:", nberdev(selected_dist[i])),
+       xlab="x", ylab="Dichte")
+  lines(x_grid, true_densities[[i]], col="red", lwd=2)
+  lines(density(data_list[[i]]), col="blue", lty=2)
+  legend("topright", c("Wahr", "KDE"), col=c("red", "blue"), lty=1:2)
+}
+
+# 3D Visualisierung
+plot_ly(as.data.frame(data_all), 
+        x = ~x1, 
+        y = ~x2, 
+        z = ~x3,
+        type = "scatter3d", 
+        mode = "markers",
+        marker = list(
+          size = 3,
+          color = ~(x1+x2+x3),
+          colorscale = "Viridis"
+        )) %>%
+  layout(scene = list(
+    xaxis = list(title = "Marronite"),
+    yaxis = list(title = "Claw"),
+    zaxis = list(title = "Sawtooth")
+  ))
+```
+
+
+# 2. Implementierung der Schätzmethoden
+
+## 2.1 Transformation Forest
+
+```{r transformation_forest}
+# Funktion für bedingte Dichteschätzung
+fit_transformation_forest <- function(data) {
+  # Ensure data is data.frame
+  data <- as.data.frame(data)
+  
+  models <- list(
+    m1 = tram::BoxCox(x1 ~ 1, data = data),
+    m2 = tram::BoxCox(x2 ~ x1, data = data),
+    m3 = tram::BoxCox(x3 ~ x1 + x2, data = data)
+  )
+  
+  predict_joint <- function(newdata, models) {
+    d1 <- predict(models$m1, newdata = newdata, type = "density")
+    d2 <- predict(models$m2, newdata = newdata, type = "density")
+    d3 <- predict(models$m3, newdata = newdata, type = "density")
+    return(d1 * d2 * d3)
+  }
+  
+  return(list(models = models, predict_joint = predict_joint))
+}
+
+# Fitte TF Modell
+tf_fit <- fit_transformation_forest(data_all)
+
+# Evaluiere marginale Dichten
+tf_marginals <- list(
+  x1 = predict(tf_fit$models$m1, 
+              newdata = data.frame(x1 = x_grid), 
+              type = "density"),
+  x2 = predict(tf_fit$models$m2, 
+              newdata = data.frame(x1 = median(data_all$x1), 
+                                 x2 = x_grid), 
+              type = "density"),
+  x3 = predict(tf_fit$models$m3, 
+              newdata = data.frame(x1 = median(data_all$x1), 
+                                 x2 = median(data_all$x2), 
+                                 x3 = x_grid), 
+              type = "density")
+)
+```
+
+## 2.2 HDR-basierte Schätzung
+
+```{r hdr_estimation}
+# Funktion für HDR-Schätzung
+fit_hdr <- function(data) {
+  # Univariate HDRs
+  hdr_univariate <- lapply(1:3, function(i) {
+    hdr.den(data[[i]], prob = c(50, 90, 95))
+  })
+  
+  # Multivariate HDR
+  hdr_multivariate <- hdr(as.matrix(data))
+  
+  return(list(
+    univariate = hdr_univariate,
+    multivariate = hdr_multivariate
+  ))
+}
+
+# Fitte HDR
+hdr_fit <- fit_hdr(data_all)
+
+# Extrahiere Dichten
+hdr_densities <- lapply(1:3, function(i) {
+  den <- density(data_all[[i]])
+  approx(den$x, den$y, xout = x_grid)$y
+})
+```
+
+
+
+## 2.3 NP Kernel Schätzung
+```{r np_estimation}
+# Funktion für NP-Schätzung
+fit_np <- function(data) {
+  # Stelle sicher, dass die Daten im richtigen Format sind
+  data_matrix <- as.matrix(data)
+  
+  # Univariate Schätzungen
+  np_univariate <- lapply(1:ncol(data_matrix), function(i) {
+    npudens(data_matrix[,i])
+  })
+  
+  # Multivariate Schätzung
+  bw <- npudensbw(data_matrix, bwmethod = "normal-reference")
+  np_multivariate <- npudens(bws = bw)
+  
+  return(list(
+    univariate = np_univariate,
+    multivariate = np_multivariate,
+    bw = bw
+  ))
+}
+
+# Fitte NP
+np_fit <- fit_np(data_all)
+
+# Extrahiere Dichten
+np_densities <- lapply(np_fit$univariate, function(fit) {
+  predict(fit, newdata = matrix(x_grid, ncol = 1))
+})
+```
+
+
+## 2.4 KS Kernel Smoothing
+```{r ks_estimation}
+# Funktion für KS-Schätzung
+fit_ks <- function(data) {
+  # Konvertiere Daten in Matrix-Format
+  data_matrix <- as.matrix(data)
+  
+  # Univariate Schätzungen mit optimaler Bandbreite
+  ks_univariate <- lapply(1:ncol(data_matrix), function(i) {
+    h <- hpi(data_matrix[,i])
+    kde(x = data_matrix[,i, drop = FALSE], h = h)
+  })
+  
+  # Multivariate Schätzung
+  H <- Hpi(data_matrix)
+  ks_multivariate <- kde(x = data_matrix, H = H)
+  
+  return(list(
+    univariate = ks_univariate,
+    multivariate = ks_multivariate,
+    H = H
+  ))
+}
+
+# Fitte KS
+ks_fit <- fit_ks(data_all)
+
+# Extrahiere Dichten
+ks_densities <- lapply(1:length(ks_fit$univariate), function(i) {
+  predict(ks_fit$univariate[[i]], x = matrix(x_grid, ncol = 1))
+})
+```
+## 2.5 Adaptive Kerndichte
+```{r kdensity_estimation}
+# Funktion für adaptive Kerndichteschätzung
+fit_kdensity <- function(data) {
+  # Univariate Schätzungen
+  kd_univariate <- lapply(1:ncol(as.data.frame(data)), function(i) {
+    estimate <- try({
+      kdensity(x = as.numeric(data[[i]]), 
+               kernel = "gaussian",
+               bw = "silverman")  # Verwende Silverman's Regel statt adjust/start
+    }, silent = TRUE)
+    
+    if(inherits(estimate, "try-error")) {
+      warning(paste("Fehler bei Schätzung für Variable", i))
+      return(NULL)
+    }
+    return(estimate)
+  })
+  
+  return(list(univariate = kd_univariate))
+}
+
+# Fitte kdensity
+kd_fit <- fit_kdensity(data_all)
+
+# Extrahiere Dichten (mit Fehlerprüfung)
+kd_densities <- lapply(kd_fit$univariate, function(fit) {
+  if(!is.null(fit)) {
+    predict(fit, x = x_grid)
+  } else {
+    rep(NA, length(x_grid))
+  }
+})
+```
+
+
+
+
+## 2.6 KEDD Schätzung
+```{r kedd_estimation}
+# Funktion für KEDD-Schätzung
+fit_kedd <- function(data) {
+  data_matrix <- as.matrix(data)
+  
+  # Univariate Schätzungen
+  kedd_univariate <- lapply(1:ncol(data_matrix), function(i) {
+    x <- as.numeric(data_matrix[,i])
+    
+    # Berechne Bandbreite mit Silverman's Regel
+    n <- length(x)
+    sigma <- sd(x)
+    h <- 1.06 * sigma * n^(-1/5)
+    
+    # Verwende kde statt dkde
+    tryCatch({
+      kde(x = x, h = h, kernel = "gaussian")
+    }, error = function(e) {
+      warning(paste("Fehler bei KEDD-Schätzung für Variable", i, ":", e$message))
+      NULL
+    })
+  })
+  
+  return(list(
+    univariate = kedd_univariate,
+    bandwidths = sapply(1:ncol(data_matrix), function(i) {
+      x <- as.numeric(data_matrix[,i])
+      1.06 * sd(x) * length(x)^(-1/5)
+    })
+  ))
+}
+
+# Fitte KEDD
+kedd_fit <- fit_kedd(data_all)
+
+# Extrahiere Dichten (mit Fehlerprüfung)
+kedd_densities <- lapply(1:length(kedd_fit$univariate), function(i) {
+  fit <- kedd_fit$univariate[[i]]
+  if(!is.null(fit)) {
+    evaluate(fit, x_grid)
+  } else {
+    rep(NA, length(x_grid))
+  }
+})
+```
+
+# 3. Vergleichende Analyse
+
+## 3.1 Marginale Dichtevergleiche
+
+```{r marginal_comparison}
+# Vergleichsplot-Funktion für marginale Dichten
+plot_density_comparison <- function(dim_idx) {
+  # Sammle alle Schätzungen und stelle sicher, dass sie die gleiche Länge haben
+  estimates <- list(
+    "Wahr" = true_densities[[dim_idx]]
+  )
+  
+  # Füge weitere Schätzungen nur hinzu, wenn sie die richtige Länge haben
+  if(length(tf_marginals[[dim_idx]]) == length(x_grid)) {
+    estimates[["TF"]] <- tf_marginals[[dim_idx]]
+  }
+  if(length(hdr_densities[[dim_idx]]) == length(x_grid)) {
+    estimates[["HDR"]] <- hdr_densities[[dim_idx]]
+  }
+  if(length(np_densities[[dim_idx]]) == length(x_grid)) {
+    estimates[["NP"]] <- np_densities[[dim_idx]]
+  }
+  if(length(ks_densities[[dim_idx]]) == length(x_grid)) {
+    estimates[["KS"]] <- ks_densities[[dim_idx]]
+  }
+  if(length(kd_densities[[dim_idx]]) == length(x_grid)) {
+    estimates[["KDensity"]] <- kd_densities[[dim_idx]]
+  }
+  if(length(kedd_densities[[dim_idx]]) == length(x_grid)) {
+    estimates[["KEDD"]] <- kedd_densities[[dim_idx]]
+  }
+  
+  # Überprüfe die Längen und entferne NAs
+  estimates <- lapply(estimates, function(x) {
+    if(length(x) != length(x_grid) || any(is.na(x))) {
+      return(NULL)
+    }
+    return(x)
+  })
+  estimates <- estimates[!sapply(estimates, is.null)]
+  
+  # Berechne Fehlermetriken für verfügbare Schätzungen
+  if(length(estimates) > 1) {
+    metrics <- sapply(estimates[-1], function(est) {
+      if(!is.null(est)) {
+        c(
+          RMSE = sqrt(mean((est - estimates$Wahr)^2, na.rm = TRUE)),
+          MAE = mean(abs(est - estimates$Wahr), na.rm = TRUE),
+          KL = mean(estimates$Wahr * log(pmax(estimates$Wahr/pmax(est, 1e-10), 1e-10)), na.rm = TRUE)
+        )
+      } else {
+        c(RMSE = NA, MAE = NA, KL = NA)
+      }
+    })
+  } else {
+    metrics <- matrix(NA, nrow = 3, ncol = 0)
+    rownames(metrics) <- c("RMSE", "MAE", "KL")
+  }
+  
+  # Plot 1: Dichtevergleich
+  par(mfrow = c(2,2))
+  matplot(x_grid, do.call(cbind, estimates), type = "l",
+          col = viridis(length(estimates)), lty = 1:length(estimates),
+          main = paste("Marginale Dichte", c("Marronite", "Claw", "Sawtooth")[dim_idx]),
+          xlab = "x", ylab = "Dichte")
+  legend("topright", names(estimates), col = viridis(length(estimates)),
+         lty = 1:length(estimates), cex = 0.7)
+  
+  # Plot 2: Fehlermetriken (nur wenn Metriken verfügbar)
+  if(ncol(metrics) > 0) {
+    barplot(metrics["RMSE",], main = "RMSE", las = 2,
+            col = viridis(ncol(metrics)))
+  }
+  
+  # Plot 3: Detail der Peaks
+  peak_region <- x_grid > -2 & x_grid < 2
+  matplot(x_grid[peak_region], 
+          do.call(cbind, lapply(estimates, function(d) d[peak_region])),
+          type = "l", col = viridis(length(estimates)), lty = 1:length(estimates),
+          main = "Detailansicht der Peaks",
+          xlab = "x", ylab = "Dichte")
+  
+  # Plot 4: Absolute Fehler (nur wenn mehr als eine Schätzung verfügbar)
+  if(length(estimates) > 1) {
+    abs_errors <- sapply(estimates[-1], function(est) abs(est - estimates$Wahr))
+    matplot(x_grid, abs_errors, type = "l",
+            col = viridis(ncol(abs_errors)), lty = 1:ncol(abs_errors),
+            main = "Absolute Fehler",
+            xlab = "x", ylab = "Absoluter Fehler")
+  }
+  
+  return(metrics)
+}
+
+# Erstelle Vergleiche für alle drei Dimensionen
+metrics_list <- lapply(1:3, plot_density_comparison)
+```
+
+## 3.2 Trivariate Analyse
+
+```{r trivariate_analysis}
+# Berechne trivariate Dichten auf einem Gitter
+grid_3d <- expand.grid(
+  x1 = seq(-4, 4, length.out = 20),
+  x2 = seq(-4, 4, length.out = 20),
+  x3 = seq(-4, 4, length.out = 20)
+)
+
+# Schätze trivariate Dichten
+densities_3d <- list(
+  TF = apply(grid_3d, 1, function(p) {
+    tf_fit$predict_joint(data.frame(t(p)), tf_fit$models)
+  }),
+  NP = predict(np_fit$multivariate, newdata = grid_3d),
+  KS = predict(ks_fit$multivariate, x = as.matrix(grid_3d))
+)
+
+# Visualisiere 3D-Dichten auf verschiedenen Schnitten
+plot_3d_slices <- function(densities_3d, grid_3d) {
+  # Wähle einen mittleren Schnitt für jede Dimension
+  mid_idx <- round(length(unique(grid_3d$x1))/2)
+  
+  for(method in names(densities_3d)) {
+    # Reshape Dichten für Plotting
+    density_matrix <- array(densities_3d[[method]], 
+                          dim = c(20, 20, 20))
+    
+    # Erstelle Heatmaps für verschiedene Schnitte
+    par(mfrow = c(2,2))
+    # xy-Schnitt
+    image(density_matrix[,,mid_idx], 
+          main = paste(method, "- xy-Schnitt"),
+          col = viridis(100))
+    # xz-Schnitt
+    image(density_matrix[,mid_idx,], 
+          main = paste(method, "- xz-Schnitt"),
+          col = viridis(100))
+    # yz-Schnitt
+    image(density_matrix[mid_idx,,], 
+          main = paste(method, "- yz-Schnitt"),
+          col = viridis(100))
+  }
+}
+
+plot_3d_slices(densities_3d, grid_3d)
+```
+## 3.3 Vergleich der bedingten Dichten
+```{r conditional_densities}
+# Berechne bedingte Dichten für verschiedene Werte der Bedingung
+calculate_conditional_densities <- function(data, x1_val, x2_val) {
+  # TF bedingte Dichten
+  tf_cond <- predict(tf_fit$models$m3, 
+                    newdata = data.frame(x1 = x1_val, 
+                                       x2 = x2_val, 
+                                       x3 = x_grid),
+                    type = "density")
+  
+  # KS bedingte Dichte mit kde
+  data_matrix <- cbind(data$x3, data$x1, data$x2)
+  H <- Hpi(data_matrix)
+  ks_fit <- kde(x = data_matrix, H = H)
+  
+  eval_points <- cbind(x_grid,
+                      matrix(rep(c(x1_val, x2_val), 
+                               each = length(x_grid)), 
+                           ncol = 2))
+  
+  ks_cond <- predict(ks_fit, x = eval_points) /
+             predict(kde(x = cbind(data$x1, data$x2), H = H[2:3, 2:3]),
+                    x = matrix(c(x1_val, x2_val), ncol = 2))
+  
+  # NP bedingte Dichte
+  np_cond <- npcdens(ydat = data$x3,
+                     cdat = cbind(data$x1, data$x2),
+                     ceval = matrix(c(x1_val, x2_val), ncol = 2))
+  
+  return(list(
+    TF = tf_cond,
+    KS = ks_cond,
+    NP = fitted(np_cond)
+  ))
+}
+
+# Berechne bedingte Dichten für verschiedene Bedingungen
+conditional_points <- expand.grid(
+  x1 = quantile(data_all$x1, probs = c(0.25, 0.5, 0.75)),
+  x2 = quantile(data_all$x2, probs = c(0.25, 0.5, 0.75))
+)
+
+# Berechne die bedingten Dichten mit Fehlerbehandlung
+conditional_densities <- lapply(1:nrow(conditional_points), function(i) {
+  p <- conditional_points[i,]
+  tryCatch({
+    calculate_conditional_densities(data_all, p$x1, p$x2)
+  }, error = function(e) {
+    warning(paste("Fehler bei Punkt", i, ":", e$message))
+    return(NULL)
+  })
+})
+
+# Visualisiere die bedingten Dichten
+plot_conditional_densities <- function(densities, point_idx) {
+  if(is.null(densities[[point_idx]])) return()
+  
+  dens <- densities[[point_idx]]
+  point <- conditional_points[point_idx,]
+  
+  plot(x_grid, dens$TF, type = "l", col = "blue",
+       main = sprintf("Bedingte Dichte bei x1=%.2f, x2=%.2f", 
+                     point$x1, point$x2),
+       xlab = "x3", ylab = "Dichte")
+  lines(x_grid, dens$KS, col = "red")
+  lines(x_grid, dens$NP, col = "green")
+  legend("topright", c("TF", "KS", "NP"),
+         col = c("blue", "red", "green"), lty = 1)
+}
+
+# Erstelle Plot-Grid für alle bedingten Dichten
+par(mfrow = c(3,3))
+for(i in 1:nrow(conditional_points)) {
+  plot_conditional_densities(conditional_densities, i)
+}
+```
+
+
+# 4. Performance-Analyse 
+
+## 4.1 Quantitative Performance-Metriken
+
+```{r performance_metrics}
+# Berechne Performance-Metriken für alle Methoden
+calculate_performance <- function(data, true_densities, estimates) {
+  # Sammle alle Metriken
+  metrics <- data.frame(
+    Methode = character(),
+    RMSE = numeric(),
+    LogLik = numeric(),
+    KL_Div = numeric(),
+    Runtime = numeric(),
+    stringsAsFactors = FALSE
+  )
+  
+  # Zeitmessung und Metrikberechnung für jede Methode
+  for(method in names(estimates)) {
+    start_time <- Sys.time()
+    
+    # Berechne Metriken
+    rmse <- sqrt(mean((estimates[[method]] - true_densities)^2))
+    loglik <- sum(log(estimates[[method]] + 1e-10))
+    kl_div <- mean(true_densities * log(true_densities/(estimates[[method]] + 1e-10)))
+    runtime <- as.numeric(difftime(Sys.time(), start_time, units = "secs"))
+    
+    metrics <- rbind(metrics, data.frame(
+      Methode = method,
+      RMSE = rmse,
+      LogLik = loglik,
+      KL_Div = kl_div,
+      Runtime = runtime
+    ))
+  }
+  
+  return(metrics)
+}
+
+# Berechne Performance für alle Dimensionen
+performance_results <- lapply(1:3, function(i) {
+  estimates <- list(
+    TF = tf_marginals[[i]],
+    HDR = hdr_densities[[i]],
+    NP = np_densities[[i]],
+    KS = ks_densities[[i]],
+    KDensity = kd_densities[[i]],
+    KEDD = kedd_densities[[i]]
+  )
+  
+  perf <- calculate_performance(data_all[[i]], true_densities[[i]], estimates)
+  perf$Dimension <- c("Marronite", "Claw", "Sawtooth")[i]
+  return(perf)
+})
+
+# Kombiniere Ergebnisse
+all_results <- do.call(rbind, performance_results)
+
+# Visualisiere Performance
+plots <- list()
+metrics <- c("RMSE", "LogLik", "KL_Div", "Runtime")
+
+par(mfrow=c(2,2))
+for(metric in metrics) {
+  boxplot(as.formula(paste0(metric, " ~ Methode")), data = all_results,
+          main = metric, las = 2, col = viridis(length(unique(all_results$Methode))))
+}
+```
+
+## 4.2 Peak-Detection-Analyse
+
+```{r peak_detection}
+# Analyse der Peak-Erkennung
+analyze_peaks <- function(density_values, threshold = 0.1) {
+  # Finde lokale Maxima
+  peaks <- which(diff(sign(diff(density_values))) == -2) + 1
+  peak_heights <- density_values[peaks]
+  
+  # Filtere signifikante Peaks
+  significant_peaks <- peaks[peak_heights > threshold * max(peak_heights)]
+  
+  return(list(
+    n_peaks = length(significant_peaks),
+    peak_locations = x_grid[significant_peaks],
+    peak_heights = peak_heights[peak_heights > threshold * max(peak_heights)]
+  ))
+}
+
+# Vergleiche Peak-Erkennung für alle Methoden
+peak_comparison <- lapply(1:3, function(i) {
+  estimates <- list(
+    True = true_densities[[i]],
+    TF = tf_marginals[[i]],
+    HDR = hdr_densities[[i]],
+    NP = np_densities[[i]],
+    KS = ks_densities[[i]],
+    KDensity = kd_densities[[i]],
+    KEDD = kedd_densities[[i]]
+  )
+  
+  peaks <- lapply(estimates, analyze_peaks)
+  
+  # Erstelle Vergleichsplot
+  plot(x_grid, estimates$True, type = "l", lwd = 2,
+       main = paste("Peak-Vergleich -", c("Marronite", "Claw", "Sawtooth")[i]),
+       xlab = "x", ylab = "Dichte")
+  
+  for(method in names(peaks)) {
+    points(peaks[[method]]$peak_locations, 
+           peaks[[method]]$peak_heights,
+           col = which(names(peaks) == method),
+           pch = 19)
+  }
+  
+  legend("topright", names(peaks),
+         col = 1:length(peaks),
+         pch = 19)
+  
+  return(sapply(peaks, function(p) p$n_peaks))
+})
+
+# Tabellarische Zusammenfassung der Peak-Erkennung
+peak_summary <- data.frame(
+  Methode = names(peak_comparison[[1]]),
+  Marronite = peak_comparison[[1]],
+  Claw = peak_comparison[[2]],
+  Sawtooth = peak_comparison[[3]]
+)
+
+knitr::kable(peak_summary, caption = "Anzahl erkannter Peaks pro Methode")
+```
+
+## 4.3 Bandbreitenanalyse
+
+```{r bandwidth_analysis}
+# Vergleiche Bandbreitenauswahl der verschiedenen Methoden
+bandwidth_comparison <- data.frame(
+  Dimension = rep(c("Marronite", "Claw", "Sawtooth"), each = 4),
+  Methode = rep(c("NP", "KS", "KDensity", "KEDD"), 3),
+  Bandbreite = c(
+    np_fit$bw$xbw[1], ks_fit$univariate[[1]]$h, 
+    kd_fit$univariate[[1]]$bw, kedd_fit$univariate[[1]]$h,
+    np_fit$bw$xbw[2], ks_fit$univariate[[2]]$h,
+    kd_fit$univariate[[2]]$bw, kedd_fit$univariate[[2]]$h,
+    np_fit$bw$xbw[3], ks_fit$univariate[[3]]$h,
+    kd_fit$univariate[[3]]$bw, kedd_fit$univariate[[3]]$h
+  )
+)
+
+# Visualisiere Bandbreitenvergleich
+ggplot(bandwidth_comparison, 
+       aes(x = Methode, y = Bandbreite, fill = Dimension)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  theme_minimal() +
+  labs(title = "Vergleich der gewählten Bandbreiten",
+       x = "Methode", y = "Bandbreite") +
+  scale_fill_viridis_d()
+```
