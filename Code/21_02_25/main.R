@@ -9,10 +9,10 @@ source("03_models.R")
 source("04_analyze.R")       
 
 
-all_data <- my_dgp_d(N=50, d=3, models=models, cond=cond,
+all_data <- my_dgp_d(N=100, d=3, models=models, cond=cond,
                      chunk_size=NULL, parallel=FALSE, debug=FALSE)
 
-idx <- sample(nrow(all_data), 30)
+idx <- sample(nrow(all_data), 70)
 trainD <- all_data[idx, ]
 testD  <- all_data[-idx, ]
 

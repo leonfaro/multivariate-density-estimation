@@ -94,17 +94,13 @@ logLik_on_data <- function(dvals) sum(log(dvals))
 
 calc_kl_divergence <- function(N, dgp_fun, model_predict) {
   samp <- dgp_fun(N)
-  # Falls dgp_fun nur matrix zurückgibt => data.frame
+
   if(!is.data.frame(samp)) samp <- as.data.frame(samp)
-  # Hier Annahme: wir haben true_logdens oder wir rechnen selbst
-  # => wir rufen calc_true_dens nicht? Oder wir haben's separat.
-  # Vereinfachung: Erstellen wir quickly die true log-density:
+
   if("true_logdens" %in% names(samp)) {
     ftrue <- exp(samp$true_logdens)
   } else {
-    # falls nicht vorhanden -> dummy:
-    # oder wir rufen calc_true_dens(samp, models, cond)
-    #   wenn wir das in diesem scope haben
+
     ftrue <- calc_true_dens(samp, models, cond)
   }
   fhat  <- pmax(model_predict(samp), 1e-15)

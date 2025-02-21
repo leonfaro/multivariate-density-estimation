@@ -13,7 +13,7 @@ analyze_models <- function(dtrain, dtest=NULL) {
   kd_ll <- logLik_on_data(kd_dtrain)
   pm_ll <- logLik_on_data(pm_dtrain)
   
-  cat("\n[Train] TF  LogLik =", tf_ll,
+  cat("\n[Train] TRFT  LogLik =", tf_ll,
       "\n[Train] KDE LogLik=", kd_ll,
       "\n[Train] PM  LogLik =", pm_ll, "\n")
   
@@ -21,7 +21,7 @@ analyze_models <- function(dtrain, dtest=NULL) {
     tf_dtest <- tf$predict_joint(dtest)
     kd_dtest <- kd$predict_kde(dtest)
     pm_dtest <- pm$predict_joint(dtest)
-    cat("\n[Test ] TF  LogLik =", logLik_on_data(tf_dtest),
+    cat("\n[Test ] TRFT  LogLik =", logLik_on_data(tf_dtest),
         "\n[Test ] KDE LogLik=", logLik_on_data(kd_dtest),
         "\n[Test ] PM  LogLik =", logLik_on_data(pm_dtest), "\n")
   }
