@@ -94,13 +94,13 @@ logLik_on_data <- function(dvals) sum(log(dvals))
 
 calc_kl_divergence <- function(N, dgp_fun, model_predict) {
   samp <- dgp_fun(N)
-
+  
   if(!is.data.frame(samp)) samp <- as.data.frame(samp)
-
+  
   if("true_logdens" %in% names(samp)) {
     ftrue <- exp(samp$true_logdens)
   } else {
-
+    
     ftrue <- calc_true_dens(samp, models, cond)
   }
   fhat  <- pmax(model_predict(samp), 1e-15)

@@ -11,3 +11,4 @@ library(doParallel)
 
 set.seed(123)
 options(digits=4)
+
