@@ -26,9 +26,9 @@ analyze_models <- function(dtrain, dtest=NULL) {
         "\n[Test ] PM  LogLik =", logLik_on_data(pm_dtest), "\n")
   }
   
-  kl_tf <- calc_kl_divergence(500, function(n) my_dgp_d(N=n, d=3, models=models, cond=cond), tf$predict_joint)
-  kl_kd <- calc_kl_divergence(500, function(n) my_dgp_d(N=n, d=3, models=models, cond=cond), function(dd) kd$predict_kde(dd))
-  kl_pm <- calc_kl_divergence(500, function(n) my_dgp_d(N=n, d=3, models=models, cond=cond), pm$predict_joint)
+  kl_tf <- calc_kl_divergence(100, function(n) my_dgp_d(N=n, d=3, models=models, cond=cond), tf$predict_joint)
+  kl_kd <- calc_kl_divergence(100, function(n) my_dgp_d(N=n, d=3, models=models, cond=cond), function(dd) kd$predict_kde(dd))
+  kl_pm <- calc_kl_divergence(100, function(n) my_dgp_d(N=n, d=3, models=models, cond=cond), pm$predict_joint)
   
   cat("\nApprox KL Divergence:\n",
       "TF =", kl_tf, "\n",
@@ -40,7 +40,6 @@ analyze_models <- function(dtrain, dtest=NULL) {
     LLtrain = c(TF = tf_ll, KDE = kd_ll, PM = pm_ll)
   ))
 }
-
 
 
 
