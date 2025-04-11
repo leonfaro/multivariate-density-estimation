@@ -1,6 +1,6 @@
 # main.R
 
-setwd("/Users/leonkiafaro/Documents/multivariate-density-estimation/Code/21_02_25")
+setwd("/Users/leonkiafaro/Documents/multivariate-density-estimation/Code/2025_02_21")
 
 source("00_setup.R")
 source("01_distribution.R")  
@@ -9,7 +9,7 @@ source("03_models.R")
 source("04_analyze.R")       
 
 
-all_data <- my_dgp_d(N=100, d=3, models=models, cond=cond,
+all_data <- my_dgp_d(N=50, d=3, models=models, cond=cond,
                      chunk_size=NULL, parallel=FALSE, debug=FALSE)
 
 idx <- sample(nrow(all_data), 70)
