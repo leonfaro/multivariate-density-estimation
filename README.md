@@ -117,3 +117,16 @@
 ##Transformation Forests:
 * trtf
 * tram::traforest
+
+## Reference
+
+The triangular transport methodology is described in the preprint  
+**arXiv:2503.21673v1 [stat.CO], 27 Mar 2025**.  
+<https://arxiv.org/abs/2503.21673>
+
+Our \(S_k(x_1,\ldots,x_k)\) functions are simply transformation forests for
+the regression \(x_k \sim x_1,\ldots,x_{k-1}\). Monotonicity in \(x_k\) is
+therefore automatically ensured.
+
+The repository no longer stores the large PDF artifacts. Download the preprint
+from the arXiv link above if needed.
