@@ -1,3 +1,1 @@
-if (requireNamespace('renv', quietly = TRUE)) {
-  renv::activate()
-}
+source("renv/activate.R", local = TRUE)

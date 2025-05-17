@@ -1,13 +1,12 @@
 {
   "R": {
-    "Version": "4.3.0"
+    "Version": "4.3.2"
   },
   "Packages": {
-    "trtf": {"Version": "0.0.0", "Source": "local"},
-    "tram": {"Version": "0.0.0", "Source": "local"},
-    "ggplot2": {"Version": "0.0.0", "Source": "local"},
-    "extraDistr": {"Version": "0.0.0", "Source": "local"},
-    "renv": {"Version": "0.17.3", "Source": "local"}
+    "trtf": {"Version": "0.1.0", "Source": "local"},
+    "tram": {"Version": "0.1.0", "Source": "local"},
+    "ggplot2": {"Version": "0.1.0", "Source": "local"},
+    "extraDistr": {"Version": "0.1.0", "Source": "local"},
+    "renv": {"Version": "0.1.0", "Source": "local"}
   }
 }
-
