@@ -1,5 +1,6 @@
 # PhD Thesis in Multivariate Conditional Density Estimation with Likelihood Inference and Regression Analysis: Comparing Transformation Forest Models, Copulas and Normalizing Flows
 
+**Important:** Read `AGENTS.md` before running any scripts or using the assistant. It explains how to keep this README in mind when analyzing outputs or generating code.
 ## Motivation
 * **Goal:** Estimate a flexible conditional density \$p(y \mid x)\$ for multivariate continuous outcomes \$Y \in \mathbb{R}^d\$ given features \$X \in \mathbb{R}^p\$, with full likelihood inference (not just point predictions).
 * **Context:** Distributional regression - interest in the entire outcome distribution (beyond mean or variance). Relevant for heteroscedastic or multi-modal responses.
