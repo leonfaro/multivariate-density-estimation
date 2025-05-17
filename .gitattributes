@@ -1,1 +1,2 @@
+triangular_transport*.pdf filter=lfs diff=lfs merge=lfs -text
 data_power/*.csv filter=lfs diff=lfs merge=lfs -text
