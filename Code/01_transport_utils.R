@@ -12,6 +12,7 @@ pdf_k <- function(k, xk, x_prev, cfg, log = TRUE) {
   pars <- get_pars(k, x_prev, cfg)
   dens <- do.call(dist_fun("d", cfg[[k]]$distr),
                   c(list(x = xk), pars, list(log = FALSE)))
+  dens[!is.finite(dens)] <- 1 / EPS
   if (log) safe_logpdf(dens) else dens
 }
 
