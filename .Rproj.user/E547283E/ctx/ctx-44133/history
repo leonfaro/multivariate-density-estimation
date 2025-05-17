@@ -1,0 +1,512 @@
+}
+return(densities)
+}
+# Berechne Log-Likelihood für die Faktorisierung
+ll_factorized <- sum(
+log(get_conditional_density(tf_model1, data.frame(y1=eval_data$y1))) +
+log(get_conditional_density(tf_model2, eval_data[,c("y1","y2")])) +
+log(get_conditional_density(tf_model3, eval_data))
+)
+# Verbesserte Funktion zur Berechnung der bedingten Dichte
+get_conditional_density <- function(model, newdata, grid_size=100) {
+# Finde die Response-Variable
+response_var <- all.vars(model$call)[1]
+# Berechne Range aus den Daten
+y_range <- range(model.frame(model)[[response_var]])
+y_grid <- seq(y_range[1], y_range[2], length.out=grid_size)
+# Matrix für Dichten
+densities <- matrix(NA, nrow=nrow(newdata), ncol=length(y_grid))
+# Berechne Dichten für jeden Grid-Punkt
+for(i in 1:nrow(newdata)) {
+current_data <- newdata[i,, drop=FALSE]
+densities[i,] <- predict(model,
+newdata=current_data,
+type="density",
+q=y_grid)
+}
+# Mittelwert der Dichten
+return(colMeans(densities))
+}
+# Berechne Log-Likelihood für die Faktorisierung
+ll_fact <- try({
+ll1 <- sum(log(get_conditional_density(tf_model1,
+data.frame(y1=eval_data$y1))))
+ll2 <- sum(log(get_conditional_density(tf_model2,
+eval_data[,c("y1","y2")])))
+ll3 <- sum(log(get_conditional_density(tf_model3,
+eval_data)))
+ll1 + ll2 + ll3
+})
+# Berechne direkte multivariate Dichten
+# np package
+np_bw <- npudensbw(eval_data)
+np_est <- npudens(np_bw)
+ll_np <- sum(log(fitted(np_est)))
+# ks package
+H <- Hpi(as.matrix(eval_data))
+ks_est <- kde(as.matrix(eval_data), H=H)
+ll_ks <- sum(log(predict(ks_est, x=as.matrix(eval_data))))
+# Sammle Ergebnisse
+results <- data.frame(
+Method = c("Factorized (TF)", "Direct (NP)", "Direct (KS)"),
+LogLik = c(if(inherits(ll_fact, "try-error")) NA else ll_fact,
+ll_np,
+ll_ks)
+)
+# ---- 7. Visualisierung ----
+par(mfrow=c(2,2), mar=c(4,4,3,1))
+# 7.1 Plots der geschätzten Dichten
+plot(density(eval_data$y1),
+main="p(y1)", xlab="y1", ylab="Dichte",
+type="l")
+# Bedingte Dichte für y2|y1=median(y1)
+med_y1 <- median(eval_data$y1)
+plot(density(eval_data$y2[abs(eval_data$y1 - med_y1) < sd(eval_data$y1)/2]),
+main=paste0("p(y2|y1≈", round(med_y1,2), ")"),
+xlab="y2", ylab="Dichte")
+# Bedingte Dichte für y3|y1,y2=median
+med_y2 <- median(eval_data$y2)
+plot(density(eval_data$y3[abs(eval_data$y1 - med_y1) < sd(eval_data$y1)/2 &
+abs(eval_data$y2 - med_y2) < sd(eval_data$y2)/2]),
+main="p(y3|y1,y2≈median)",
+xlab="y3", ylab="Dichte")
+# 7.2 Vergleich der Log-Likelihoods
+barplot(results$LogLik,
+names.arg=results$Method,
+main="Log-Likelihood Vergleich",
+ylab="Log-Likelihood",
+las=2)
+# Drucke finale Ergebnisse
+print("Finale Ergebnisse:")
+print(results)
+par(mfrow=c(1,1))
+# 7.2 Vergleich der Log-Likelihoods
+barplot(results$LogLik,
+names.arg=results$Method,
+main="Log-Likelihood Vergleich",
+ylab="Log-Likelihood",
+las=2)
+# ---- 7. Visualisierung ----
+par(mfrow=c(2,2), mar=c(8,4,3,1))
+barplot(results$LogLik,
+names.arg=results$Method,
+main="Log-Likelihood Vergleich",
+ylab="Log-Likelihood",
+las=2)  # Vertikale Beschriftung der x-Achse
+# 7.1 Plots der geschätzten Dichten
+plot(density(eval_data$y1),
+main="p(y1)", xlab="y1", ylab="Dichte",
+type="l")
+# Bedingte Dichte für y2|y1=median(y1)
+med_y1 <- median(eval_data$y1)
+plot(density(eval_data$y2[abs(eval_data$y1 - med_y1) < sd(eval_data$y1)/2]),
+main=paste0("p(y2|y1≈", round(med_y1,2), ")"),
+xlab="y2", ylab="Dichte")
+# Bedingte Dichte für y3|y1,y2=median
+med_y2 <- median(eval_data$y2)
+plot(density(eval_data$y3[abs(eval_data$y1 - med_y1) < sd(eval_data$y1)/2 &
+abs(eval_data$y2 - med_y2) < sd(eval_data$y2)/2]),
+main="p(y3|y1,y2≈median)",
+xlab="y3", ylab="Dichte")
+# Lade Pakete
+library(benchden)
+library(np)
+library(ks)
+library(hdrcde)
+library(kdensity)
+library(kedd)
+library(lpdensity)
+library(ggplot2)
+library(gridExtra)
+library(viridis)
+library(reshape2)
+library(tram)        # Für Transformation Models
+library(party)       # Für Conditional Inference Trees/Forests
+# ---- 2. Exploration der verfügbaren benchden Verteilungen ----
+# Zeige alle verfügbaren Verteilungen in benchden
+cat("Verfügbare Verteilungen in benchden:\n")
+for(i in 1:28) {
+cat(sprintf("%2d: %s\n", i, nberdev(i)))
+}
+# ---- 3. Datengenerierung und explorative Analyse ----
+n <- 1000
+set.seed(123)
+# Generiere Daten aus verschiedenen interessanten Verteilungen
+verteilungen <- c(22, 23, 24, 25, 26, 27)  # Interessante Verteilungen
+namen <- sapply(verteilungen, nberdev)
+daten <- list()
+# Generiere Daten für jede Verteilung
+for(i in seq_along(verteilungen)) {
+daten[[i]] <- rberdev(n, verteilungen[i])
+}
+# ---- 4. Explorative Datenanalyse ----
+# 4.1 Univariate Statistiken für jede Verteilung
+stats <- data.frame(
+Verteilung = namen,
+Minimum = sapply(daten, min),
+Maximum = sapply(daten, max),
+Mittelwert = sapply(daten, mean),
+Median = sapply(daten, median),
+SD = sapply(daten, sd),
+Schiefe = sapply(daten, function(x) mean((x-mean(x))^3)/sd(x)^3),
+Kurtosis = sapply(daten, function(x) mean((x-mean(x))^4)/sd(x)^4)
+)
+print(stats)
+# 4.2 Visualisierung der einzelnen Verteilungen
+# Erstelle ein Grid für die wahren Dichten
+x <- seq(-4, 4, length=200)
+# Plot für jede Verteilung
+par(mfrow=c(2,3))
+for(i in seq_along(verteilungen)) {
+# Histogram der Daten
+hist(daten[[i]], breaks=30, freq=FALSE,
+main=paste("Verteilung:", namen[i]),
+xlab="Wert", ylab="Dichte")
+# Überlagere wahre Dichte
+lines(x, dberdev(x, verteilungen[i]), col="red", lwd=2)
+# Füge Kerndichteschätzung hinzu
+lines(density(daten[[i]]), col="blue", lty=2)
+# Legende
+legend("topright",
+c("True", "Estimate"),
+col=c("red", "blue"),
+lty=c(1,2))
+}
+# 4.3 HDR Analysis
+par(mfrow=c(2,3), mar=c(4,4,3,1))  # Angepasste Margins für besseres Layout
+for(i in seq_along(verteilungen)) {
+# Berechne Kerndichte
+den <- density(daten[[i]])
+# Berechne HDR
+hdr_result <- hdr.den(daten[[i]], prob=c(50, 90, 95))
+# Plot Kerndichte
+plot(den,
+main=namen[i],  # Nur den Namen der Verteilung
+xlab="x",
+ylab="Dichte",
+type="l")
+# Füge grauen Hintergrund hinzu
+polygon(den$x, den$y, col="gray90", border=NA)
+lines(den$x, den$y)
+# Füge HDR Markierungen hinzu
+for(j in 1:nrow(hdr_result$hdr)) {
+segments(x0=hdr_result$hdr[j,1],
+x1=hdr_result$hdr[j,2],
+y0=0,
+y1=0,
+col=c("red", "green", "blue")[j],
+lwd=3)
+}
+}
+# 4.4 Bivariate Beziehungen
+par(mfrow=c(2,2), mar=c(4,4,3,1))
+# Erstelle Scatterplots für verschiedene Kombinationen
+plot(daten[[1]], daten[[2]],
+main="Skewed Bimodal vs. Claw",
+xlab=namen[1], ylab=namen[2])
+plot(daten[[2]], daten[[3]],
+main="Claw vs. Smooth Comb",
+xlab=namen[2], ylab=namen[3])
+plot(daten[[1]], daten[[3]],
+main="Skewed Bimodal vs. Smooth Comb",
+xlab=namen[1], ylab=namen[3])
+# 4.5 Multivariate Analyse
+# Erstelle Korrelationsmatrix
+cor_matrix <- cor(do.call(cbind, daten[1:3]))
+print("Korrelationsmatrix der ersten drei Verteilungen:")
+print(cor_matrix)
+# ---- 5. Transformation Forest Ansatz ----
+# Erstelle Datensatz für alle Analysen
+data_all <- data.frame(
+y1 = daten[[1]],
+y2 = daten[[2]],
+y3 = daten[[3]]
+)
+# 5.1 Schätze die bedingte Dichte p(y1)
+tf_model1 <- tram::BoxCox(y1 ~ 1, data = data_all)
+# 5.2 Schätze die bedingte Dichte p(y2|y1)
+tf_model2 <- tram::BoxCox(y2 ~ y1, data = data_all)
+# 5.3 Schätze die bedingte Dichte p(y3|y1,y2)
+tf_model3 <- tram::BoxCox(y3 ~ y1 + y2, data = data_all)
+# ---- Korrektur: Definiere eval_data vor Verwendung ----
+# Erstelle Evaluierungsdatensatz
+eval_data <- data_all  # eval_data jetzt definiert
+# Test predict Funktion mit minimalen Beispiel
+print("Test Basic Prediction:")
+# Teste erste Beobachtung
+test_pred <- try(
+predict(tf_model1,
+newdata = data.frame(y1 = eval_data$y1[1]),
+type = "trafo")
+)
+print(test_pred)
+# Teste für gültigen 'type' Parameter
+print("\nTest Response Transformation:")
+resp_trafo <- try(
+predict(tf_model1,
+newdata = data.frame(y1 = eval_data$y1[1]),
+type = "distribution")  # 'distribution' statt 'response'
+)
+print(resp_trafo)
+# Erstelle Evaluierungsdatensatz
+eval_data <- data.frame(
+y1 = daten[[1]],
+y2 = daten[[2]],
+y3 = daten[[3]]
+)
+# Verbesserte Funktion zur Berechnung der bedingten Dichte
+get_conditional_density <- function(model, newdata, grid_size=100) {
+# Finde die Response-Variable
+response_var <- all.vars(model$call)[1]
+# Berechne Range aus den Daten
+y_range <- range(model.frame(model)[[response_var]])
+y_grid <- seq(y_range[1], y_range[2], length.out=grid_size)
+# Matrix für Dichten
+densities <- matrix(NA, nrow=nrow(newdata), ncol=length(y_grid))
+# Berechne Dichten für jeden Grid-Punkt
+for(i in 1:nrow(newdata)) {
+current_data <- newdata[i,, drop=FALSE]
+densities[i,] <- predict(model,
+newdata=current_data,
+type="density",
+q=y_grid)
+}
+# Mittelwert der Dichten
+return(colMeans(densities))
+}
+# Berechne Log-Likelihood für die Faktorisierung
+ll_fact <- try({
+ll1 <- sum(log(get_conditional_density(tf_model1,
+data.frame(y1=eval_data$y1))))
+ll2 <- sum(log(get_conditional_density(tf_model2,
+eval_data[,c("y1","y2")])))
+ll3 <- sum(log(get_conditional_density(tf_model3,
+eval_data)))
+ll1 + ll2 + ll3
+})
+# Berechne direkte multivariate Dichten
+# np package
+np_bw <- npudensbw(eval_data)
+np_est <- npudens(np_bw)
+ll_np <- sum(log(fitted(np_est)))
+# ks package
+H <- Hpi(as.matrix(eval_data))
+ks_est <- kde(as.matrix(eval_data), H=H)
+ll_ks <- sum(log(predict(ks_est, x=as.matrix(eval_data))))
+# Sammle Ergebnisse
+results <- data.frame(
+Method = c("Factorized (TF)", "Direct (NP)", "Direct (KS)"),
+LogLik = c(if(inherits(ll_fact, "try-error")) NA else ll_fact,
+ll_np,
+ll_ks)
+)
+# ---- 7. Visualisierung ----
+par(mfrow=c(2,2), mar=c(8,4,3,1))
+# 7.1 Plots der geschätzten Dichten
+plot(density(eval_data$y1),
+main="p(y1)", xlab="y1", ylab="Dichte",
+type="l")
+# Bedingte Dichte für y2|y1=median(y1)
+med_y1 <- median(eval_data$y1)
+plot(density(eval_data$y2[abs(eval_data$y1 - med_y1) < sd(eval_data$y1)/2]),
+main=paste0("p(y2|y1≈", round(med_y1,2), ")"),
+xlab="y2", ylab="Dichte")
+# Bedingte Dichte für y3|y1,y2=median
+med_y2 <- median(eval_data$y2)
+plot(density(eval_data$y3[abs(eval_data$y1 - med_y1) < sd(eval_data$y1)/2 &
+abs(eval_data$y2 - med_y2) < sd(eval_data$y2)/2]),
+main="p(y3|y1,y2≈median)",
+xlab="y3", ylab="Dichte")
+par(mfrow=c(1,1))
+# 7.2 Vergleich der Log-Likelihoods
+barplot(results$LogLik,
+names.arg=results$Method,
+main="Log-Likelihood Vergleich",
+ylab="Log-Likelihood",
+las=2)  # Vertikale Beschriftung der x-Achse
+# Drucke finale Ergebnisse
+print("Finale Ergebnisse:")
+print(results)
+# ---- 1. Pakete installieren und laden ----
+install.packages(c("benchden", "np", "ks", "hdrcde", "kdensity", "kedd", "lpdensity",
+"ggplot2", "gridExtra", "viridis", "reshape2", "tram", "party"))
+# Lade Pakete
+library(benchden)
+library(np)
+library(ks)
+library(hdrcde)
+library(kdensity)
+library(kedd)
+library(lpdensity)
+library(ggplot2)
+library(gridExtra)
+library(viridis)
+library(reshape2)
+library(tram)        # Für Transformation Models
+library(party)       # Für Conditional Inference Trees/Forests
+# ---- 2. Exploration der verfügbaren benchden Verteilungen ----
+# Zeige alle verfügbaren Verteilungen in benchden
+cat("Verfügbare Verteilungen in benchden:\n")
+for(i in 1:28) {
+cat(sprintf("%2d: %s\n", i, nberdev(i)))
+}
+# ---- 3. Datengenerierung und explorative Analyse ----
+n <- 1000
+set.seed(123)
+# Generiere Daten aus verschiedenen interessanten Verteilungen
+verteilungen <- c(22, 23, 24, 25, 26, 27)  # Interessante Verteilungen
+namen <- sapply(verteilungen, nberdev)
+daten <- list()
+# Generiere Daten für jede Verteilung
+for(i in seq_along(verteilungen)) {
+daten[[i]] <- rberdev(n, verteilungen[i])
+}
+# ---- 4. Explorative Datenanalyse ----
+# 4.1 Univariate Statistiken für jede Verteilung
+stats <- data.frame(
+Verteilung = namen,
+Minimum = sapply(daten, min),
+Maximum = sapply(daten, max),
+Mittelwert = sapply(daten, mean),
+Median = sapply(daten, median),
+SD = sapply(daten, sd),
+Schiefe = sapply(daten, function(x) mean((x-mean(x))^3)/sd(x)^3),
+Kurtosis = sapply(daten, function(x) mean((x-mean(x))^4)/sd(x)^4)
+)
+print(stats)
+# 4.2 Visualisierung der einzelnen Verteilungen
+# Erstelle ein Grid für die wahren Dichten
+x <- seq(-4, 4, length=200)
+# Plot für jede Verteilung
+par(mfrow=c(2,3))
+for(i in seq_along(verteilungen)) {
+# Histogram der Daten
+hist(daten[[i]], breaks=30, freq=FALSE,
+main=paste("Verteilung:", namen[i]),
+xlab="Wert", ylab="Dichte")
+# Überlagere wahre Dichte
+lines(x, dberdev(x, verteilungen[i]), col="red", lwd=2)
+# Füge Kerndichteschätzung hinzu
+lines(density(daten[[i]]), col="blue", lty=2)
+# Legende
+legend("topright",
+c("True", "Estimate"),
+col=c("red", "blue"),
+lty=c(1,2))
+}
+# 4.3 HDR Analysis
+par(mfrow=c(2,3), mar=c(4,4,3,1))  # Angepasste Margins für besseres Layout
+for(i in seq_along(verteilungen)) {
+# Berechne Kerndichte
+den <- density(daten[[i]])
+# Berechne HDR
+hdr_result <- hdr.den(daten[[i]], prob=c(50, 90, 95))
+# Plot Kerndichte
+plot(den,
+main=namen[i],  # Nur den Namen der Verteilung
+xlab="x",
+ylab="Dichte",
+type="l")
+# Füge grauen Hintergrund hinzu
+polygon(den$x, den$y, col="gray90", border=NA)
+lines(den$x, den$y)
+# Füge HDR Markierungen hinzu
+for(j in 1:nrow(hdr_result$hdr)) {
+segments(x0=hdr_result$hdr[j,1],
+x1=hdr_result$hdr[j,2],
+y0=0,
+y1=0,
+col=c("red", "green", "blue")[j],
+lwd=3)
+}
+}
+# 4.4 Bivariate Beziehungen
+par(mfrow=c(2,2), mar=c(4,4,3,1))
+# Erstelle Scatterplots für verschiedene Kombinationen
+plot(daten[[1]], daten[[2]],
+main="Skewed Bimodal vs. Claw",
+xlab=namen[1], ylab=namen[2])
+plot(daten[[2]], daten[[3]],
+main="Claw vs. Smooth Comb",
+xlab=namen[2], ylab=namen[3])
+plot(daten[[1]], daten[[3]],
+main="Skewed Bimodal vs. Smooth Comb",
+xlab=namen[1], ylab=namen[3])
+# 4.5 Multivariate Analyse
+# Erstelle Korrelationsmatrix
+cor_matrix <- cor(do.call(cbind, daten[1:3]))
+print("Korrelationsmatrix der ersten drei Verteilungen:")
+print(cor_matrix)
+# ---- 5. Transformation Forest Ansatz ----
+# Erstelle Datensatz für alle Analysen
+data_all <- data.frame(
+y1 = daten[[1]],
+y2 = daten[[2]],
+y3 = daten[[3]]
+)
+# 5.1 Schätze die bedingte Dichte p(y1)
+tf_model1 <- tram::BoxCox(y1 ~ 1, data = data_all)
+# 5.2 Schätze die bedingte Dichte p(y2|y1)
+tf_model2 <- tram::BoxCox(y2 ~ y1, data = data_all)
+# 5.3 Schätze die bedingte Dichte p(y3|y1,y2)
+tf_model3 <- tram::BoxCox(y3 ~ y1 + y2, data = data_all)
+# ---- Korrektur: Definiere eval_data vor Verwendung ----
+# Erstelle Evaluierungsdatensatz
+eval_data <- data_all  # eval_data jetzt definiert
+# Test predict Funktion mit minimalen Beispiel
+print("Test Basic Prediction:")
+# Teste erste Beobachtung
+test_pred <- try(
+predict(tf_model1,
+newdata = data.frame(y1 = eval_data$y1[1]),
+type = "trafo")
+)
+print(test_pred)
+# Teste für gültigen 'type' Parameter
+print("\nTest Response Transformation:")
+resp_trafo <- try(
+predict(tf_model1,
+newdata = data.frame(y1 = eval_data$y1[1]),
+type = "distribution")  # 'distribution' statt 'response'
+)
+print(resp_trafo)
+# ---- 6. Vergleich und Evaluation ----
+# Erstelle Evaluierungsdatensatz
+eval_data <- data.frame(
+y1 = daten[[1]],
+y2 = daten[[2]],
+y3 = daten[[3]]
+)
+# Verbesserte Funktion zur Berechnung der bedingten Dichte
+get_conditional_density <- function(model, newdata, grid_size=100) {
+# Finde die Response-Variable
+response_var <- all.vars(model$call)[1]
+# Berechne Range aus den Daten
+y_range <- range(model.frame(model)[[response_var]])
+y_grid <- seq(y_range[1], y_range[2], length.out=grid_size)
+# Matrix für Dichten
+densities <- matrix(NA, nrow=nrow(newdata), ncol=length(y_grid))
+# Berechne Dichten für jeden Grid-Punkt
+for(i in 1:nrow(newdata)) {
+current_data <- newdata[i,, drop=FALSE]
+densities[i,] <- predict(model,
+newdata=current_data,
+type="density",
+q=y_grid)
+}
+# Mittelwert der Dichten
+return(colMeans(densities))
+}
+# Berechne Log-Likelihood für die Faktorisierung
+ll_fact <- try({
+ll1 <- sum(log(get_conditional_density(tf_model1,
+data.frame(y1=eval_data$y1))))
+ll2 <- sum(log(get_conditional_density(tf_model2,
+eval_data[,c("y1","y2")])))
+ll3 <- sum(log(get_conditional_density(tf_model3,
+eval_data)))
+ll1 + ll2 + ll3
+})
+# Berechne direkte multivariate Dichten
+# np package
+np_bw <- npudensbw(eval_data)
