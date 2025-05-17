@@ -1,0 +1,5 @@
+- Use the provided Dockerfile to build an image that includes R.
+- Keep the setup script empty if the container already includes all dependencies.
+- Run R scripts using `Rscript`.
+- Execute any tests or lint checks inside this container if they exist.
+- For full build instructions, see the Docker section in [README.md](README.md).
