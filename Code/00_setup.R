@@ -16,7 +16,7 @@ safe_cdf    <- function(val, eps = EPS) pmax(eps, pmin(1 - eps, val))
 config3 <- list(
   list(distr = "norm",  parm = NULL),
   list(distr = "exp",   parm = function(d) list(rate = exp(d$X1))),
-  list(distr = "gamma", parm = function(d) list(shape = d$X2, rate = 1))
+  list(distr = "gamma", parm = function(d) list(shape = 1 + d$X2, rate = 1))
 )
 config <- config3
 K <- length(config)
