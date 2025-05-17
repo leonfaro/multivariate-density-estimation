@@ -1,3 +1,5 @@
+- Keep the entire README context in mind when analyzing outputs or generating code.
+- Provide precise answers with mathematical rigour.
 - Run R scripts using `Rscript`.
 - Execute any tests or lint checks inside this environment if they exist.
 - Follow the variable names and mathematical symbols in the [Notation](README.md#notation)
