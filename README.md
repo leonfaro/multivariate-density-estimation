@@ -130,3 +130,14 @@ therefore automatically ensured.
 
 The repository no longer stores the large PDF artifacts. Download the preprint
 from the arXiv link above if needed.
+
+## Docker image
+
+To build the analysis environment extend the universal base image:
+
+```bash
+docker build -t ghcr.io/yourname/mde-r:latest .
+docker push ghcr.io/yourname/mde-r:latest
+```
+
+Configure Codex by setting `Container-Bild` to `ghcr.io/yourname/mde-r:latest`. The setup script may remain empty.
