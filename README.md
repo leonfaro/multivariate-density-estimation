@@ -11,6 +11,14 @@
   * *Transformation forests* for nonparametric conditional distribution estimation.
   * *Normalizing flows* (neural invertible networks) for maximum flexibility.
 
+## Scientific approach
+This repository is a research notebook rather than a software project. We will
+never build an R package. All scripts are executed directly in R to study
+problems in mathematical statistics and probability theory. The focus is on
+precise and reproducible experiments with **Mathematical Rigour**, not on
+standard software engineering workflows or packaging. The choice of R reflects
+the statistical setting; Python is intentionally avoided.
+
 ## Theory
 * **Triangular factorization:** Model a joint or conditional density via sequential univariate factors. For target variables \$X\_1,\dots,X\_K\$ (components of \$Y\$) conditioned on external covariates \$x\_{\text{cov}}\$:
   $\pi(x_1,\dots,x_K \mid x_{\text{cov}}) = \prod_{k=1}^K f_{d_k}\!\big(x_k \mid x_{1:k-1},\,x_{\text{cov}}\big),$
