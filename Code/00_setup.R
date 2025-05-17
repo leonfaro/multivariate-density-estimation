@@ -2,7 +2,7 @@ suppressPackageStartupMessages({
   library(extraDistr)
   library(tram)
   library(trtf)
-  # library(ggplot2) # plots are disabled for non-interactive runs
+
 })
 
 clip <- function(x, lo = 1e-6, hi = 1e6) pmin(hi, pmax(lo, x))

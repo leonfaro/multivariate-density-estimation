@@ -1,24 +1,25 @@
 # PhD Thesis in Multivariate Conditional Density Estimation with Likelihood Inference and Regression Analysis: Comparing Transformation Forest Models, Copulas and Normalizing Flows
 
 **Important:** Read `AGENTS.md` before running any scripts or using the assistant. It explains how to keep this README in mind when analyzing outputs or generating code.
-## Motivation
-* **Goal:** Estimate a flexible conditional density \$p(y \mid x)\$ for multivariate continuous outcomes \$Y \in \mathbb{R}^d\$ given features \$X \in \mathbb{R}^p\$, with full likelihood inference (not just point predictions).
-* **Context:** Distributional regression - interest in the entire outcome distribution (beyond mean or variance). Relevant for heteroscedastic or multi-modal responses.
-* **Challenges:** High-dimensional \$Y\$ with complex interdependencies; \$p(y|x)\$ may be multi-modal, non-Gaussian, and vary strongly with \$x\$. Needs models that are both flexible (to fit complex distributions) and tractable (for likelihood evaluation and sampling).
-* **Approaches:** Consider both statistical and ML methods:
 
-  * *Structured invertible transformation* (triangular transport map) for exact likelihood modeling.
-  * *Copulas* for modular dependency modeling (with separate marginal fits).
-  * *Transformation forests* for nonparametric conditional distribution estimation.
-  * *Normalizing flows* (neural invertible networks) for maximum flexibility.
+
 
 ## Scientific approach
-This repository is a research notebook rather than a software project. We will
-never build an R package. All scripts are executed directly in R to study
+This repository is a research notebook rather than a software project. All scripts are executed directly in R to study
 problems in mathematical statistics and probability theory. The focus is on
 precise and reproducible experiments with **Mathematical Rigour**, not on
 standard software engineering workflows or packaging. The choice of R reflects
 the statistical setting; Python is intentionally avoided.
+
+The triangular transport methodology is described in the preprint  
+**arXiv:2503.21673v1 [stat.CO], 27 Mar 2025**.  
+<https://arxiv.org/abs/2503.21673>
+
+Our \(S_k(x_1,\ldots,x_k)\) functions are simply transformation forests for
+the regression \(x_k \sim x_1,\ldots,x_{k-1}\). Monotonicity in \(x_k\) is
+therefore automatically ensured.
+
+
 
 ## Theory
 * **Triangular factorization:** Model a joint or conditional density via sequential univariate factors. For target variables \$X\_1,\dots,X\_K\$ (components of \$Y\$) conditioned on external covariates \$x\_{\text{cov}}\$:
@@ -121,25 +122,3 @@ the statistical setting; Python is intentionally avoided.
 | $Z = \\Phi^{-1}(U)$ | Probit transform | `Z_probit` |
 | $\\mathrm{condSample}(\\cdot)$ | Draw from $\\pi(x_{k+1:K}\\mid x_{1:k}^*)$ | `cond_sample()` |
 
-#Packages:
-
-##Transformation Forests:
-* trtf
-* tram::traforest
-
-## Reference
-
-The triangular transport methodology is described in the preprint  
-**arXiv:2503.21673v1 [stat.CO], 27 Mar 2025**.  
-<https://arxiv.org/abs/2503.21673>
-
-Our \(S_k(x_1,\ldots,x_k)\) functions are simply transformation forests for
-the regression \(x_k \sim x_1,\ldots,x_{k-1}\). Monotonicity in \(x_k\) is
-therefore automatically ensured.
-
-The repository no longer stores the large PDF artifacts. Download the preprint
-from the arXiv link above if needed.
-
-## License
-
-This project is licensed under the [MIT License](LICENSE).
