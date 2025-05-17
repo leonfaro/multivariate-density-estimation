@@ -141,13 +141,22 @@ from the arXiv link above if needed.
 
 ## Docker image
 
-To build the analysis environment extend the universal base image:
+To build the analysis environment extend the universal base image. This can be
+done manually or via GitHub Actions.
 
-1. Run `docker build -t ghcr.io/<USERNAME>/mde-r:latest .`
-2. Push with `docker push ghcr.io/<USERNAME>/mde-r:latest`
-3. In Codex, set **Container-Bild** to `ghcr.io/<USERNAME>/mde-r:latest`; leave the setup script empty.
+### Manual build
 
-This preinstalls R and the packages listed above so subsequent tasks start faster.
+1. `docker build -t ghcr.io/<USERNAME>/mde-r:latest .`
+2. `docker push ghcr.io/<USERNAME>/mde-r:latest`
+
+### Automatic build with GitHub Actions
+
+1. Create repository secrets `GHCR_USERNAME` and `GHCR_TOKEN` (personal access token with **write:packages** scope).
+2. The workflow `.github/workflows/docker-image.yml` builds and pushes the image to `ghcr.io/<USERNAME>/mde-r:latest` whenever changes are pushed to `main` or the workflow is triggered manually.
+
+### Codex configuration
+
+Set **Container-Bild** in Codex to `ghcr.io/<USERNAME>/mde-r:latest` and leave the setup script empty. This preinstalls R and the required packages so subsequent tasks start faster.
 
 ## License
 
