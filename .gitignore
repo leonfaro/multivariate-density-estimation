@@ -2,3 +2,8 @@
 .Rhistory
 .RData
 .Ruserdata
+Code/results/
+.DS_Store
+renv/*
+!renv/library/
+Archive/13_05_2025/.Rapp.history
