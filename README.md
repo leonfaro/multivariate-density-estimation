@@ -141,3 +141,7 @@ docker push ghcr.io/yourname/mde-r:latest
 ```
 
 Configure Codex by setting `Container-Bild` to `ghcr.io/yourname/mde-r:latest`. The setup script may remain empty.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
