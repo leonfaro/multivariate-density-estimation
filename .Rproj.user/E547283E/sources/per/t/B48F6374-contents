@@ -1,0 +1,520 @@
+```yaml
+---
+title: "Trivariate und Bivariate Dichteanalyse mit Benchden-Verteilungen"
+author: "Léon Kia Faro"
+date: "2024-12-05"
+output:
+  html_document:
+    toc: yes
+    toc_float: yes
+    toc_depth: 3
+    number_sections: true
+    theme: united
+    highlight: tango
+---
+```
+
+# Einleitung
+
+- Ziel: Multivariate Dichteschätzung durch Faktorisierung in univariate bedingte Dichten.  
+- Vergleich mit klassischen Schätzern (np, ks) und Normalizing Flows.  
+- Fokus:  
+  - *Trivariate Daten* aus Benchden-Verteilungen (für einfache Demonstration).  
+  - *Bivariate Daten* (Half-Moon), um komplexe Strukturen zu testen.  
+- Verwendung von Transformation Forests (tram) und klassischen Kernel-Methoden.  
+- Schrittweiser Aufbau: Erst klassische Methoden, dann Fortgeschrittenes (Normalizing Flows).
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.width = 10,
+  fig.height = 6
+)
+
+# Pakete
+library(benchden)      # Synthetische Verteilungen
+library(tram)          # Transformation Models (für bedingte Dichten)
+library(np)            # Nichtparametrische Dichteschätzung
+library(ks)            # Kernel Smoothing für mehrdimensionale Dichten
+library(kdensity)      # Univariate Kernel Dichte
+library(kedd)          # Univariate Kernel Dichtebandweite
+library(lpdensity)     # Lokale polynomiale Dichte (univariat)
+library(hdrcde)        # High-Density Regions
+library(viridis)       # Farbpalette
+library(torch)         # Für Normalizing Flows (Deep Learning)
+library(corrplot)      # Korrelationen visualisieren
+```
+
+# 1. Benchden-Verteilungen
+
+## 1.1 Verteilungsauswahl
+
+- Benchmark-Verteilungen für Experimente.  
+- Erzeugung von synthetischen, teils komplexen Dichten.  
+- Beispiel: Skewed Bimodal, Claw, Smooth Comb.
+
+```{r}
+# Zeige alle verfügbaren Verteilungen aus dem benchden-Package
+cat("Alle verfügbaren Verteilungen aus benchden:\n")
+for(i in 1:28) {
+  cat(sprintf("%2d: %s\n", i, nberdev(i)))
+}
+```
+
+# 2. Datengenerierung (Trivariates Beispiel)
+
+- Generiere drei Variablen (y1,y2,y3) aus drei verschiedenen Verteilungen.
+- Idee: p(y1,y2,y3) faktorisieren.
+- Später: Vergleich mit np, ks und Transformation Forests.
+
+```{r}
+set.seed(123)
+n <- 1000
+verteilungen <- c(22, 23, 24) # Skewed bimodal, Claw, Smooth Comb
+namen <- sapply(verteilungen, nberdev)
+daten <- list()
+
+# Daten generieren
+for(i in seq_along(verteilungen)) {
+  daten[[i]] <- rberdev(n, verteilungen[i])
+}
+
+data_all <- data.frame(
+  y1 = daten[[1]],
+  y2 = daten[[2]],
+  y3 = daten[[3]]
+)
+```
+
+# 3. Explorative Analyse (Trivariat)
+
+- Univariate Statistiken  
+- Visualisierung wahre vs. geschätzte Dichte (Kerne)  
+- HDR-Analyse prüfen (Achtung: Manche Verteilungen liefern evtl. nicht mehrere HDR-Intervalle)
+
+```{r}
+stats <- data.frame(
+  Verteilung = namen,
+  Minimum = sapply(daten, min),
+  Maximum = sapply(daten, max),
+  Mittelwert = sapply(daten, mean),
+  Median = sapply(daten, median),
+  SD = sapply(daten, sd),
+  Schiefe = sapply(daten, function(x) mean((x-mean(x))^3)/sd(x)^3),
+  Kurtosis = sapply(daten, function(x) mean((x-mean(x))^4)/sd(x)^4)
+)
+stats
+```
+
+```{r}
+# Vergleich wahre Dichte vs. Kernel Estimate
+
+x_seq <- seq(-4,4,length=200)
+for(i in seq_along(verteilungen)) {
+  hist(daten[[i]], breaks=30, freq=FALSE,
+       main=paste("Verteilung:", namen[i]),
+       xlab="Wert", ylab="Dichte")
+  # Wahre Dichte
+  lines(x_seq, dberdev(x_seq, verteilungen[i]), col="red", lwd=2)
+  # Kernel Estimate
+  lines(density(daten[[i]]), col="blue", lty=2)
+  legend("topright", c("True", "Estimate"), col=c("red","blue"), lty=c(1,2))
+}
+```
+
+```{r}
+# HDR-Analyse (High Density Regions)
+hdr_test <- hdr.den(daten[[1]], prob=c(50, 90, 95))
+# Prüfen ob hdr vorhanden
+if(!is.null(hdr_test$hdr)) {
+  hdr_test$hdr
+} else {
+  cat("Keine HDR-Intervalle gefunden.\n")
+}
+```
+
+## Korrelationen (Trivariat)
+
+- Korrelationen zwischen y1,y2,y3 untersuchen.
+- 2D-Heatmap per corrplot.
+- 3D-Darstellung als Höhenfeld.
+
+```{r}
+cor_matrix <- cor(data_all)
+cor_matrix
+```
+
+```{r}
+# 2D-Korrelationsheatmap
+corrplot(cor_matrix, method="color", addCoef.col="black",
+         tl.col="black", tl.srt=45, main="2D Korrelationsübersicht")
+```
+
+```{r}
+# 3D-Darstellung der Korrelationsmatrix
+x_grid <- 1:nrow(cor_matrix)
+y_grid <- 1:ncol(cor_matrix)
+z_mat <- cor_matrix
+persp(x_grid, y_grid, z_mat, theta=30, phi=30, expand=0.5, col="lightblue",
+      ltheta=120, shade=0.75, ticktype="detailed", main="3D Darstellung der Korrelationsmatrix")
+```
+
+# 4. Transformation Forest Faktorisierung
+
+- Modellierung: p(y1), p(y2|y1), p(y3|y1,y2) mit tram.  
+- Jede bedingte Dichte separat schätzbar.  
+- Anschließend Multiplikation zur Gesamtverteilung.
+
+```{r}
+tf_model1 <- tram::BoxCox(y1 ~ 1, data = data_all)
+tf_model2 <- tram::BoxCox(y2 ~ y1, data = data_all)
+tf_model3 <- tram::BoxCox(y3 ~ y1 + y2, data = data_all)
+
+get_conditional_density <- function(model, newdata, grid_size=100) {
+  # Modellierte bedingte Dichte via grid von y-Werten
+  response_var <- names(model$data)[1]
+  y_range <- range(model$data[[response_var]])
+  y_grid <- seq(y_range[1], y_range[2], length.out=grid_size)
+  newdata <- as.data.frame(newdata)
+  densities <- matrix(NA, nrow=nrow(newdata), ncol=length(y_grid))
+  for(i in 1:nrow(newdata)) {
+    extended_data <- newdata[rep(i, grid_size), , drop=FALSE]
+    extended_data[[response_var]] <- y_grid
+    dens_vals <- predict(model, newdata=extended_data, type="density")
+    densities[i, ] <- dens_vals
+  }
+  rowMeans(densities)
+}
+```
+
+# 5. Vergleich Faktorisierung vs. Direkte Schätzung (np, ks)
+
+- np-Paket: npudens für multivariate Kernel-Schätzung.  
+- ks-Paket: kde für multivariate Kernel-Schätzung.  
+- Faktorisiertes Modell: p(y1,y2,y3) = p(y1)*p(y2|y1)*p(y3|y1,y2).  
+- Log-Likelihood Vergleich als Performance-Indikator.
+
+```{r}
+eval_data <- data_all
+
+ll_factorized <- sum(
+  log(get_conditional_density(tf_model1, data.frame(y1=eval_data$y1))) +
+  log(get_conditional_density(tf_model2, eval_data["y1"])) +
+  log(get_conditional_density(tf_model3, eval_data[c("y1","y2")]))
+)
+
+# Direct (NP)
+np_bw <- npudensbw(eval_data)
+np_est <- npudens(np_bw)
+ll_np <- sum(log(fitted(np_est)))
+
+# Direct (KS)
+H <- Hpi(as.matrix(eval_data))
+ks_est <- kde(as.matrix(eval_data), H=H)
+ll_ks <- sum(log(predict(ks_est, x=as.matrix(eval_data))))
+
+results <- data.frame(
+  Method = c("Factorized (TF)", "Direct (NP)", "Direct (KS)"),
+  LogLik = c(ll_factorized, ll_np, ll_ks)
+)
+results
+```
+
+```{r}
+par(mfrow=c(2,2))
+plot(tf_model1, main="p(y1)", xlab="y1", ylab="Dichte")
+plot(tf_model2, main="p(y2|y1=median)", xlab="y2", ylab="Dichte")
+plot(tf_model3, main="p(y3|y1=y2=median)", xlab="y3", ylab="Dichte")
+
+barplot(results$LogLik,
+        names.arg=results$Method,
+        main="Log-Likelihood Vergleich",
+        ylab="Log-Likelihood",
+        las=2, cex.names=0.9, cex.axis=0.9)
+```
+
+# 6. Normalizing Flows (simple)
+
+- Nutzung von torch, einfacher Flow ohne vollständige Korrektur des Jacobians.  
+- Nur Demonstration.
+
+```{r}
+NormalizingFlow <- nn_module(
+  "NormalizingFlow",
+  initialize = function(dim = 3, hidden = 32) {
+    self$net <- nn_sequential(
+      nn_linear(dim, hidden),
+      nn_relu(),
+      nn_linear(hidden, hidden),
+      nn_relu(),
+      nn_linear(hidden, dim)
+    )
+  },
+  forward = function(x) {
+    transformed <- self$net(x)
+    log_det <- torch_zeros(x$size(1))
+    list(transformed, log_det)
+  }
+)
+
+flow <- NormalizingFlow(dim=3)
+optimizer <- optim_adam(flow$parameters, lr=0.01)
+data_tensor <- torch_tensor(as.matrix(eval_data))
+
+# Training NF (vereinfachtes Training, wenige Epochen)
+for(epoch in 1:100) {
+  optimizer$zero_grad()
+  out <- flow(data_tensor)
+  z <- out[[1]]
+  log_det <- out[[2]]
+  loss <- -torch_mean(torch_sum(-0.5 * z^2 - 0.5 * log(2*pi), dim=2) + log_det)
+  loss$backward()
+  optimizer$step()
+}
+
+nf_log_density <- function(x_mat) {
+  x_tensor <- torch_tensor(as.matrix(x_mat))
+  out <- flow(x_tensor)
+  z <- out[[1]]
+  logpdf_z <- -0.5*torch_sum(z^2, dim=2)-0.5*ncol(x_mat)*log(2*pi)
+  as.numeric(logpdf_z)
+}
+
+ll_nf <- sum(nf_log_density(eval_data))
+results_nf <- rbind(results, data.frame(Method="Normalizing Flow (NF)", LogLik=ll_nf))
+results_nf
+```
+
+```{r}
+barplot(results_nf$LogLik,
+        names.arg=results_nf$Method,
+        main="Log-Likelihood Vergleich (inkl. NF)",
+        ylab="Log-Likelihood",
+        las=2, cex.names=0.9, cex.axis=0.9)
+```
+
+# 7. Bivariates Half-Moon Problem
+
+- Half-Moon Daten für komplexere Strukturen.  
+- Vergleich von TF, NP, KS, NF.  
+- Marginale Dichten mit kdensity, kedd, lpdensity.
+
+```{r, error=FALSE}
+
+
+set.seed(42)
+n <- 1000
+sigma <- 0.1
+
+# Erster Halbmond
+t1 <- seq(-pi/2, pi/2, length.out = n/2)
+x1 <- cbind(cos(t1), sin(t1))*1.2
+x1[,2] <- x1[,2] + 0.8
+x1 <- x1 + matrix(rnorm(n,0,sigma), ncol=2)
+
+# Zweiter Halbmond
+t2 <- seq(pi/2, 3*pi/2, length.out = n/2)
+x2 <- cbind(cos(t2), sin(t2))*1.2
+x2[,2] <- x2[,2] - 0.8
+x2 <- x2 + matrix(rnorm(n,0,sigma), ncol=2)
+
+# Rotation der Halbmonde
+rotation <- function(x, angle) {
+  theta <- angle*pi/180
+  R <- matrix(c(cos(theta),-sin(theta),
+                sin(theta),cos(theta)), 2,2)
+  t(apply(x,1,function(p) R%*%p))
+}
+
+angle <- 45
+x1_rot <- rotation(x1, angle)
+x2_rot <- rotation(x2, angle)
+x1_rot[,1] <- x1_rot[,1] + 0.5
+x2_rot[,1] <- x2_rot[,1] + 0.5
+
+data_hm <- data.frame(
+  x = c(x1_rot[,1], x2_rot[,1]),
+  y = c(x1_rot[,2], x2_rot[,2]),
+  class = factor(rep(c("C1","C2"), each=n/2))
+)
+
+grid_size <- 50
+x_range <- range(data_hm$x)
+y_range <- range(data_hm$y)
+
+grid_hm <- expand.grid(
+  x = seq(x_range[1], x_range[2], length.out=grid_size),
+  y = seq(y_range[1], y_range[2], length.out=grid_size)
+)
+
+# Transformation Forest
+tf_fit_hm <- tram::BoxCox(y ~ x, data = data_hm)
+tf_density_hm_vals <- predict(tf_fit_hm, newdata=grid_hm, type="density")
+tf_density_hm <- matrix(tf_density_hm_vals, grid_size, grid_size)
+
+# NP Schätzung
+np_fit_hm <- npudens(bws=npudensbw(data_hm[,c("x","y")]))
+np_pred_hm <- predict(np_fit_hm, newdata=grid_hm)
+np_density_hm <- matrix(np_pred_hm, grid_size, grid_size)
+
+# KS Schätzung
+H_hm <- Hpi(as.matrix(data_hm[,c("x","y")]))
+ks_fit_hm <- kde(x=as.matrix(data_hm[,c("x","y")]), H=H_hm)
+ks_density_hm <- matrix(predict(ks_fit_hm, x=as.matrix(grid_hm[,c("x","y")])), grid_size, grid_size)
+
+# Univariate Dichten für x
+kd_fit_x <- kdensity(data_hm$x)
+
+# Bandweite mit h.ucv aus kedd
+bw_hm_obj <- h.ucv(data_hm$x, deriv.order=0, kernel="gaussian")
+bw_hm <- bw_hm_obj$h
+
+# dkde statt dkernel aus kedd
+res_kedd <- dkde(x = data_hm$x, deriv.order=0, kernel="gaussian",
+                 eval.points = seq(x_range[1], x_range[2], length.out=100))
+kedd_dens <- res_kedd$est.fx
+
+# lpdensity
+lp_res <- lpdensity(data_hm$x, grid=seq(x_range[1], x_range[2], length.out=100), bwselect="imse-dpi")
+
+# Normalizing Flow
+NormalizingFlow2D <- nn_module(
+  "NormalizingFlow2D",
+  initialize = function(dim=2, hidden=32) {
+    self$net <- nn_sequential(
+      nn_linear(dim,hidden),
+      nn_relu(),
+      nn_linear(hidden,hidden),
+      nn_relu(),
+      nn_linear(hidden,dim)
+    )
+  },
+  forward = function(x) {
+    transformed <- self$net(x)
+    log_det <- torch_zeros(x$size(1))
+    list(transformed, log_det)
+  }
+)
+
+flow_hm <- NormalizingFlow2D(dim=2)
+optimizer_hm <- optim_adam(flow_hm$parameters, lr=0.01)
+data_tensor_hm <- torch_tensor(as.matrix(data_hm[,c("x","y")]))
+
+for(epoch in 1:100) {
+  optimizer_hm$zero_grad()
+  out_hm <- flow_hm(data_tensor_hm)
+  z_hm <- out_hm[[1]]
+  log_det_hm <- out_hm[[2]]
+  loss_hm <- -torch_mean(torch_sum(-0.5*z_hm^2 -0.5*log(2*pi), dim=2)+log_det_hm)
+  loss_hm$backward()
+  optimizer_hm$step()
+}
+
+nf_log_density_hm <- function(x_mat) {
+  x_tensor <- torch_tensor(as.matrix(x_mat))
+  out <- flow_hm(x_tensor)
+  z <- out[[1]]
+  logpdf_z <- -0.5*torch_sum(z^2, dim=2)-0.5*ncol(x_mat)*log(2*pi)
+  as.numeric(logpdf_z)
+}
+
+# Log-Likelihood Berechnungen
+ll_tf_hm <- sum(log(tf_density_hm_vals+1e-12))
+ll_np_hm <- sum(log(np_pred_hm+1e-12))
+# Wichtig: predict(ks_fit_hm,...) nur mit passender Dimension:
+ll_ks_hm <- sum(log(predict(ks_fit_hm, x=as.matrix(data_hm[,c("x","y")]))+1e-12))
+ll_nf_hm <- sum(nf_log_density_hm(data_hm[,c("x","y")]))
+
+results_hm <- data.frame(
+  Method=c("TF","NP","KS","NF"),
+  LogLik=c(ll_tf_hm, ll_np_hm, ll_ks_hm, ll_nf_hm)
+)
+
+par(mfrow=c(2,3))
+plot(data_hm$x, data_hm$y,
+     pch=ifelse(data_hm$class=="C1",4,16),
+     col=ifelse(data_hm$class=="C1","blue","red"),
+     main="1. Half-Moon Data",
+     xlab="x", ylab="y", xlim=c(-1,2), ylim=c(-1.5,1.5))
+
+plot_density_hm <- function(density, title) {
+  image(seq(x_range[1], x_range[2], length.out=grid_size),
+        seq(y_range[1], y_range[2], length.out=grid_size),
+        density,
+        col=viridis(50),
+        main=title, xlab="x", ylab="y")
+  points(data_hm$x, data_hm$y,
+         pch=ifelse(data_hm$class=="C1",4,16),
+         col="white", cex=0.5)
+}
+
+plot_density_hm(tf_density_hm, "2. TF Density")
+plot_density_hm(np_density_hm, "3. NP Density")
+plot_density_hm(ks_density_hm, "4. KS Density")
+
+nf_grid_vals <- nf_log_density_hm(grid_hm[,c("x","y")])
+nf_density_hm <- matrix(exp(nf_grid_vals), grid_size, grid_size)
+plot_density_hm(nf_density_hm, "5. NF Density")
+
+par(mfrow=c(1,1), mar=c(7,4,3,2))
+barplot(results_hm$LogLik, names.arg=results_hm$Method,
+        las=2, main="Log-Likelihood Vergleich (Half-Moon)",
+        ylab="Log-Likelihood", cex.names=0.9)
+
+x_seq_hm <- seq(x_range[1], x_range[2], length.out=100)
+kd_x_vals <- kd_fit_x(x_seq_hm)
+plot(x_seq_hm, kd_x_vals, type="l", col="red",
+     main="Marginale Dichten x (Half-Moon)",
+     xlab="x", ylab="Dichte")
+
+```
+
+
+# 8. Visualisierung Half-Moon
+
+- Original Daten plotten.  
+- Dichten von TF, NP, KS, NF.  
+- Marginale Dichte von x: kdensity, kedd, lpdensity.
+
+```{r, error=FALSE}
+par(mfrow=c(2,3))
+plot(data_hm$x, data_hm$y,
+     pch=ifelse(data_hm$class=="C1",4,16),
+     col=ifelse(data_hm$class=="C1","blue","red"),
+     main="1. Half-Moon Data",
+     xlab="x", ylab="y", xlim=c(-1,2), ylim=c(-1.5,1.5))
+
+plot_density_hm <- function(density, title) {
+  image(seq(x_range[1], x_range[2], length.out=grid_size),
+        seq(y_range[1], y_range[2], length.out=grid_size),
+        density,
+        col=viridis(50),
+        main=title, xlab="x", ylab="y")
+  points(data_hm$x, data_hm$y,
+         pch=ifelse(data_hm$class=="C1",4,16),
+         col="white", cex=0.5)
+}
+
+plot_density_hm(tf_density_hm, "2. TF Density")
+plot_density_hm(np_density_hm, "3. NP Density")
+plot_density_hm(ks_density_hm, "4. KS Density")
+
+nf_grid_vals <- nf_log_density_hm(grid_hm)
+nf_density_hm <- matrix(exp(nf_grid_vals), grid_size, grid_size)
+plot_density_hm(nf_density_hm, "5. NF Density")
+
+par(mfrow=c(1,1), mar=c(7,4,3,2))
+barplot(results_hm$LogLik, names.arg=results_hm$Method,
+        las=2, main="Log-Likelihood Vergleich (Half-Moon)",
+        ylab="Log-Likelihood", cex.names=0.9)
+
+x_seq_hm <- seq(x_range[1], x_range[2], length.out=100)
+kd_x_vals <- kd_fit_x(x_seq_hm)
+plot(x_seq_hm, kd_x_vals, type="l", col="red",
+     main="Marginale Dichten x (Half-Moon)",
+     xlab="x", ylab="Dichte")
+
+```
+
