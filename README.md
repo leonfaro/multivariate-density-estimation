@@ -150,7 +150,7 @@ Run `./scripts/build_image.sh` to build and push `ghcr.io/<USERNAME>/mde-r:lates
 The script logs in to the GitHub Container Registry using the environment
 variables `GHCR_USERNAME` and `GHCR_TOKEN` before building the image.  For
 example,
-`GHCR_USERNAME=leonfaro GHCR_TOKEN=<personal-access-token> ./scripts/build_image.sh`.
+`GHCR_USERNAME=leonfaro GHCR_TOKEN = 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 ./scripts/build_image.sh`.
 
 ### Automatic build with GitHub Actions
 
