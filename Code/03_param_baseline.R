@@ -1,9 +1,15 @@
 source("02_generate_data.R")
 
 nll_funs <- list(
-  function(p,xs,Xprev) -sum(dnorm(xs, mean = p[1], sd = exp(p[2]), log = TRUE)),
-  function(p,xs,Xprev) -sum(dexp(xs, rate = exp(p[1] + p[2] * Xprev[,1]), log = TRUE)),
-  function(p,xs,Xprev) -sum(dgamma(xs, shape = exp(p[1]) * Xprev[,2], rate = exp(p[2]), log = TRUE))
+
+  function(p, xs, Xprev)
+    -sum(safe_logdens(dnorm(xs, mean = p[1], sd = exp(p[2])))),
+  function(p, xs, Xprev)
+    -sum(safe_logdens(dexp(xs, rate = exp(p[1] + p[2] * Xprev[, 1])))),
+  function(p, xs, Xprev)
+    -sum(safe_logdens(dgamma(xs, shape = exp(p[1]) * Xprev[, 2],
+                              rate = exp(p[2]))))
+
 )
 init_vals <- list(c(0,0), c(0,0), c(0,0))
 param_est <- vector("list", K)
@@ -22,13 +28,17 @@ true_ll_mat_test  <- sapply(seq_len(K), function(k)
         config, log = TRUE)
 )
 param_ll_mat_test <- sapply(seq_len(K), function(k) {
-  xs    <- X_pi_test[,k]
-  Xprev <- if (k > 1) X_pi_test[,1:(k-1), drop = FALSE] else numeric(0)
+
+  xs    <- X_pi_test[, k]
+  Xprev <- if (k > 1) X_pi_test[, 1:(k - 1), drop = FALSE] else NULL
   p     <- param_est[[k]]
   switch(k,
-    dnorm(xs, mean = p$mean, sd = p$sd, log = TRUE),
-    dexp(xs, rate = exp(p$a + p$b * Xprev[,1]), log = TRUE),
-    dgamma(xs, shape = exp(p$a) * Xprev[,2], rate = exp(p$b), log = TRUE)
+    safe_logdens(dnorm(xs, mean = p$mean, sd = p$sd)),
+    safe_logdens(dexp(xs, rate = exp(p$a + p$b * Xprev[, 1]))),
+    safe_logdens(dgamma(xs, shape = exp(p$a) * Xprev[, 2],
+                        rate = exp(p$b)))
+
+
   )
 })
 ll_delta_df_test <- data.frame(
