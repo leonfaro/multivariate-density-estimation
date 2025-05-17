@@ -121,6 +121,14 @@ the statistical setting; Python is intentionally avoided.
 | $Z = \\Phi^{-1}(U)$ | Probit transform | `Z_probit` |
 | $\\mathrm{condSample}(\\cdot)$ | Draw from $\\pi(x_{k+1:K}\\mid x_{1:k}^*)$ | `cond_sample()` |
 
+## Testing and linting
+
+Run `./run_checks.sh` to execute basic consistency tests and a simple lint check.
+The script sources the R files with `Rscript`, checks that sampled matrices
+contain no missing values and that log-likelihood computations return finite
+numbers. It also searches all R code for trailing whitespace or tab characters.
+The checks terminate with an error if any issue is detected.
+
 #Packages:
 
 ##Transformation Forests:
