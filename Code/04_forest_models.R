@@ -3,6 +3,9 @@ source("02_generate_data.R")
 library(trtf)
 library(tram)
 
+## reproducibility for the forest fit
+set.seed(2046)
+
 fit_forest <- function(data) {
   ymod <- lapply(names(data), function(y)
     BoxCox(as.formula(paste0(y, "~1")), data = data)
@@ -15,9 +18,9 @@ fit_forest <- function(data) {
   )
   forests <- lapply(seq_along(fm), function(j)
     traforest(
-      ymod[[j+1]], formula = fm[[j]], data = data,
+      ymod[[j + 1L]], formula = fm[[j]], data = data,
       ntree = 200,
-      mtry = ceiling((j-1)/3),
+      mtry = ceiling((j - 1) / 3),
       minbucket = 20,
       trace = TRUE
     )
@@ -26,11 +29,17 @@ fit_forest <- function(data) {
 }
 
 predict.mytrtf <- function(object, newdata, type = "logdensity") {
-  ld1 <- predict(object$ymod[[1]], newdata = newdata, type = "logdensity")
-  ldf <- sapply(object$forests, function(frst)
-    predict(frst, newdata = newdata, type = type)
-  )
-  cbind(ld1, ldf)
+  ld1 <- predict(object$ymod[[1]], newdata = newdata, type = type)
+  ldf <- lapply(object$forests, function(frst) {
+    resp <- variable.names(frst$model)[1]
+    q    <- newdata[[resp]]
+    pr   <- predict(frst, newdata = newdata, q = q,
+                    type = type, simplify = FALSE)
+    diag(do.call(cbind, pr))
+  })
+  ld_mat <- cbind(ld1, do.call(cbind, ldf))
+  stopifnot(all(is.finite(ld_mat)))
+  ld_mat
 }
 
 model  <- fit_forest(as.data.frame(X_pi_train))
