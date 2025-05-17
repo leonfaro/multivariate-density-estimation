@@ -1,0 +1,29 @@
+---
+title: "Script Run"
+output: html_document
+---
+
+# Setup
+
+```{r setup, echo=FALSE, message=FALSE, warning=FALSE}
+source("00_setup.R")
+```
+
+# Transport Utilities
+
+```{r transport-utils, echo=FALSE, message=FALSE, warning=FALSE}
+source("01_transport_utils.R")
+```
+
+# Generate Data
+
+```{r generate-data, echo=FALSE, message=FALSE, warning=FALSE}
+source("02_generate_data.R")
+```
+
+# Parametric Baseline
+
+```{r param-baseline, echo=FALSE, message=FALSE, warning=FALSE}
+source("03_param_baseline.R")
+```
+
