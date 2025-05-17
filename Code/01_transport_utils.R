@@ -17,8 +17,8 @@ get_pars <- function(k, x_prev, cfg) {
 pdf_k <- function(k, xk, x_prev, cfg, log = TRUE) {
   pars <- get_pars(k, x_prev, cfg)
   dens <- do.call(dist_fun("d", cfg[[k]]$distr),
-                  c(list(x = xk), pars, list(log = FALSE)))
-  if (log) safe_logdens(dens) else dens
+                  c(list(x = xk), pars, list(log = log)))
+  dens
 }
 
 cdf_k <- function(k, xk, x_prev, cfg, log = TRUE) {
@@ -32,23 +32,22 @@ cdf_k <- function(k, xk, x_prev, cfg, log = TRUE) {
   if (log) log(cdfv) else cdfv
 }
 
-qtf_k <- function(k, u, x_prev, cfg, eps = EPS) {
-  u <- pmin(1 - eps, pmax(eps, u))
+qtf_k <- function(k, u, x_prev, cfg, log.p = FALSE) {
   dname <- cfg[[k]]$distr
   pars <- get_pars(k, x_prev, cfg)
   if (dname == "sn") {
     res <- tryCatch(
       do.call(dist_fun("q", dname),
-              list(p = u, dp = c(unlist(pars), tau = 0), solver = "RFB")),
+              list(p = u, dp = c(unlist(pars), tau = 0), solver = "RFB",
+                   log.p = log.p)),
       error = function(e)
         do.call(dist_fun("q", dname),
-                list(p = u, dp = c(unlist(pars), tau = 0), solver = "NR"))
+                list(p = u, dp = c(unlist(pars), tau = 0), solver = "NR",
+                     log.p = log.p))
     )
   } else {
-    res <- do.call(dist_fun("q", dname), c(list(p = u), pars))
+    res <- do.call(dist_fun("q", dname), c(list(p = u, log.p = log.p), pars))
   }
-  res[is.infinite(res)] <- sign(res[is.infinite(res)]) * 1e6
-  res[is.na(res)] <- 0
   res
 }
 
@@ -61,25 +60,27 @@ eta_sample <- function(N) {
   U_eta <- pnorm(Z_eta)
   list(U_eta = U_eta, Z_eta = Z_eta)
 }
-S_inv <- function(U_eta, cfg = config) {
-  U_eta <- apply(U_eta, 2, function(u) pmin(1 - EPS, pmax(EPS, u)))
+S_inv <- function(U_eta, cfg = config, Z_eta = qnorm(U_eta)) {
   n <- nrow(U_eta)
   X_pi <- matrix(NA_real_, n, K)
   logd <- matrix(NA_real_, n, K)
   for (i in seq_len(n)) {
     x_prev <- numeric(0)
-    for (k in seq_len(K)) x_prev[k] <- qtf_k(k, U_eta[i, k], x_prev, cfg)
+    for (k in seq_len(K)) {
+      logu <- pnorm(Z_eta[i, k], log.p = TRUE)
+      x_prev[k] <- qtf_k(k, logu, x_prev, cfg, log.p = TRUE)
+    }
     X_pi[i, ] <- x_prev
     for (k in seq_len(K)) {
       logd[i, k] <- pdf_k(k, X_pi[i, k], X_pi[i, seq_len(k-1)], cfg, log = TRUE) -
-                    dnorm(qnorm(U_eta[i, k]), log = TRUE)
+                    dnorm(Z_eta[i, k], log = TRUE)
     }
   }
-  list(X_pi = X_pi, U_eta = U_eta, Z_eta = qnorm(U_eta), logd = logd)
+  list(X_pi = X_pi, U_eta = U_eta, Z_eta = Z_eta, logd = logd)
 }
 pi_sample <- function(N, cfg = config) {
   ref <- eta_sample(N)
-  inv <- S_inv(ref$U_eta, cfg)
+  inv <- S_inv(ref$U_eta, cfg, ref$Z_eta)
   list(X_pi = inv$X_pi, U_eta = ref$U_eta,
        Z_eta = inv$Z_eta, logd = inv$logd)
 }
