@@ -139,31 +139,6 @@ therefore automatically ensured.
 The repository no longer stores the large PDF artifacts. Download the preprint
 from the arXiv link above if needed.
 
-## Docker image
-
-To build the analysis environment extend the universal base image. This can be
-done manually or via GitHub Actions.
-
-### Manual build
-
-Run `./scripts/build_image.sh` to build and push `ghcr.io/<USERNAME>/mde-r:latest`.
-The script logs in to the GitHub Container Registry using the environment
-variables `GHCR_USERNAME` and `GHCR_TOKEN` before building the image.  For
-example,
-`GHCR_USERNAME=leonfaro GHCR_TOKEN=<personal-access-token> ./scripts/build_image.sh`.
-
-### Automatic build with GitHub Actions
-
-1. Create repository secrets `GHCR_USERNAME` and `GHCR_TOKEN` (personal access token with **write:packages** scope).
-2. The workflow [`docker-image.yml`](.github/workflows/docker-image.yml) builds
-   and pushes the image to `ghcr.io/<USERNAME>/mde-r:latest` whenever changes are
-   pushed to `main` or the workflow is triggered manually. Use this as an
-   alternative to the manual script if you prefer automatic builds.
-
-### Codex configuration
-
-Set **Container-Bild** in Codex to `ghcr.io/<USERNAME>/mde-r:latest` and leave the setup script empty. This preinstalls R and the required packages so subsequent tasks start faster.
-
 ## License
 
 This project is licensed under the [MIT License](LICENSE).

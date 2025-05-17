@@ -1,11 +1,5 @@
-- Use the provided Dockerfile to build an image that includes R.
-- Keep the setup script empty if the container already includes all dependencies.
 - Run R scripts using `Rscript`.
-- Execute any tests or lint checks inside this container if they exist.
-- For full build instructions, see the Docker section in [README.md](README.md).
-- A GitHub Actions workflow (`.github/workflows/docker-image.yml`) can
-  automatically build and push the Docker image. Configure the `GHCR_USERNAME`
-  and `GHCR_TOKEN` secrets as described in the README.
+- Execute any tests or lint checks inside this environment if they exist.
 - Follow the variable names and mathematical symbols in the [Notation](README.md#notation)
   tables of the README when writing new code.
 - Check new numeric results for unexpected `NaN` or `NA` values and inspect the
