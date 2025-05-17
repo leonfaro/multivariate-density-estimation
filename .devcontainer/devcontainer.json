@@ -1,5 +1,0 @@
-{
-  "image": "r-base:latest",
-  "runArgs": ["--network", "none"],
-  "postCreateCommand": "./setup_env.sh"
-}
