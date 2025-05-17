@@ -1,0 +1,174 @@
+Institut für Epidemiologie Biostatistik und Prävention 3
+May 8, 2025, 6:08 PM
+Institut für Epidemiologie Biostatistik und Prävention 3
+Play
+
+
+00:00
+20:28
+Mute
+
+Settings
+Speaker 1
+Ich habe das so gestaltet, dass der ganze Code vorläufig in zwei Blöcke aufgeteilt sein soll. Beim ersten Block geht es eigentlich nur darum, dass wir den gesamten Data Generating Prozess und die Art und Weise, wie wir mit dem Mapping umgehen, also der Transport Map, dass das definiert ist. Da habe ich zwölf Schritte gemacht, noch bevor wir überhaupt über Transformation gehen.
+Das sind die zwölf Schritte, die ich hier aufgebaut habe. Dann habe ich den gesamten Code geschrieben und unterteilt in zwölf Blöcke. Ich habe dann auch eine Demo daraus gemacht.
+Dann können wir das hier durchgehen. Bei jedem Schritt habe ich dann auch das äquivalente Stück, wo im Paper das gemacht wird. Der Prozess wird beschrieben, was wird in einem Schritt gemacht.
+Beim ersten Schritt gibt es den Input, der Output und um was es geht. Man sieht zuerst immer den Code und dann auch gleich eine Demo. Dann können wir da so iterativ durchgehen.
+Bevor ich das mache, noch ganz kurz zum Schluss. Ich habe mir sehr viel Mühe gegeben. Das ist wirklich die gesamte Notation aus dem Paper, die Bedeutung aus dem Paper und wie das in unserem Englisch definiert wird.
+Was ich noch nicht gemacht habe, ist zuerst einmal die Modelle weglassen. Ich habe aber auch schon einen Roadmap gemacht für sofort Anschluss mit Transformation usw.
+Speaker 2
+Wichtig ist, dass wir das Zeug haben, was das Richtige ist, damit wir es dann vergleichen können mit dem, was wir geschätzt haben.
+Speaker 1
+Bevor wir zur Schätzung der Modelle kommen, habe ich dann auch noch einen Querschnitt gemacht zwischen dem ersten Block, einfach nur das Mapping an sich, welches definiert ist über die Schritte 1 bis 12 und inwiefern sie dann reingreift in den zweiten Block. Aber das ist dann mehr so zum Schluss. Wollen Sie zuerst einfach nur die Schritte an sich ansehen oder soll ich gleich zum Code gehen?
+Speaker 2
+Ja, können wir ruhig in den Code reinhüpfen. Ah, ok.
+Speaker 1
+Da müsste man vielleicht noch auf Share drücken. Das hoffe ich zumindest.
+Speaker 2
+Ja, wie du willst, wir können ja auf dem Computer drücken.
+Speaker 1
+Ok, das geht auch. In Ordnung, dann fange ich mal an mit dem Code. Ich zoome noch ein bisschen rein, damit man es besser sieht.
+Im Moment habe ich einfach nur das N ist 3. Das ist bloß für die Stabilität, für die Ränder. Ich habe die 3 Verteilung genommen für den Anfang.
+Ich habe einen ganzen Code zugeschrieben, dass man es hochskalieren kann auf 25 Dimensionen. Das sind bloß Helperfunktionen. Jetzt für den Anfang, wir haben 3 Dimensionen und das sind unsere 3 Verteilungen.
+Dann geht es weiter zu einer Funktion, die wir später immer wieder brauchen. Nämlich können wir hier... Das sind diese 3 Funktionen.
+Speaker 2
+Das haben wir ja schon gehabt.
+Speaker 1
+Dann gehen wir weiter zur Zieldichte. Das wird auch im Paper ziemlich einfach erklärt, was die Idee dahinter ist. Wir benutzen einfach unseren Config-File.
+Standardmässig wird kein Log rausgegeben. Wir iterieren eigentlich nur durch unseren Config-File. Für den Anfang habe ich jetzt einfach mal ein Sample gemacht mit unserem N gleich 3.
+Und da wird einfach die Dichte hier rausgegeben. Auch nichts besonderes. Der nächste Schritt sieht schon ein bisschen interessanter aus.
+Wir brauchen das Eta, damit wir eine Referenz haben. Und die ist im Paper zumindest standardgemacht. Das reicht doch zu erstmal.
+Speaker 2
+Da braucht man nichts anderes.
+Speaker 1
+Das habe ich jetzt einfach auch mal so genommen. Das wird hier definiert. Wir ziehen ein Sample mit der Dimension und Länge von unserem Config-File.
+Wir erstellen ein Matrix. Das ist, damit man dann samplen kann mit der Daten. Ich muss eben diesen ganzen Data-Generating-Prozess anpassen, weil mit der alten Version konnten wir keine Inventive haben.
+Speaker 2
+Ist schon klappt.
+Speaker 1
+Da habe ich das auch als Demo gemacht. Das ist einfach uniform. Dann machen wir das eins ins Z.
+Da kommen unsere Daten raus. Dann der nächste Schritt. Wir machen ein Forward.
+Ich habe jetzt das deutsche Forward gemacht. Und hier auch wieder die Referenz zum Paper. Wir nehmen hier als Matrix die X, die wir generiert haben.
+Das ist unser H, oder? Im Paper S. Im Paper, soweit ich weiß, ist es unser H.
+Ich habe jetzt hier noch eine Sicherheitslinie.
+Speaker 2
+Und das machen wir über die CDF?
+Speaker 1
+Das machen wir über die CDF, ja.
+Speaker 2
+Ich würde hier Folgendes machen. Ich würde die CDF immer auf der Log-Skala ausrechnen. Und dann hier unten Q-Norm sagen LogPayTrue.
+Wenn da Werte zwischen 0 und 1 kommen, hat der hier Probleme. Also ich würde das auf der Log-Skala ausrechnen. Und hier Log-Wahrscheinlichkeiten reinstecken.
+Das ist viel stabiler. Das ist mir schon ein paar Mal auf die Schnauze gefallen. In Ordnung.
+Und dann braucht man nämlich das auch nicht machen. Das, was eben... Das fällt dann weg.
+Oder einfach hier der CDF ein Argument mitgeben auf der Log-Skala. Alle diese Funktionen können LogPayTrue. Und dem das auch mitgeben.
+Und dann ist gut. Dann ist das U kein Us oder ein P. Aber es ist wurscht.
+Oder ein LogPay. Und das LogPay geht dann hier rein. Und dann muss man dem auch ein LogTrue geben.
+Und dann ist gut. Und das ist viel stabiler. Dann braucht man diese Rumtuerei mit dem Toll.
+Speaker 1
+Ich muss mich immer wieder abklemmen.
+Speaker 2
+Nein, das brauchen wir nicht.
+Speaker 1
+Schreiben Sie es auf.
+Speaker 2
+Ah, das haben Sie.
+Speaker 1
+Das ist eben der Punkt. Ich bin während Sie reden so darauf fokussiert, was Sie sagen. Das ist gut.
+Der nächste Schritt ist auch nicht wirklich kompliziert. Wir haben ja vorhin diesen Forward. Das müssen wir jetzt invertieren.
+Damit wir eine Rücktransformation machen können. Vom Z zurück zum X. Wir nehmen als Input das U.
+Wir benutzen wieder die CFG. Wir ziehen aus dem. Wir benutzen ein Probit.
+Weil wir die Inverse der Normalverteilung nehmen. Und das wird auch ausgegeben. Wir brauchen später im PaperStand, dass wir die Determinante brauchen.
+Der logarithmischen Jacobi Matrix. Und das wird hier auch ausgerechnet. Das ist die Log-Determinante.
+Mit unserem N und dem K. Und wir iterieren. Es gibt sicher bessere Algorithmen, als ein doppelter Loop.
+Aber ich habe es jetzt einfach mal so gemacht.
+Speaker 2
+Ja, weil Sie es im Moment rüber spüren.
+Speaker 1
+Es ist eigentlich sehr gross. Ich habe mir auch überlegt, es sollte nicht so gross rüber spüren. Sie haben gesagt, die N brauchen das Maximum.
+Das wird 100 sein. Und die Dimension maximal 25. Auf jeden Fall, was hier ausgegeben wird, ist eine Liste.
+Die brauchen wir dann, damit wir später die Likelihood und die Log-Likelihood ausbrechen können. Ich habe dann auch eine Demo hier kurz gemacht. Mit den Daten, die wir vorher hatten.
+Und das wird auch hier ausgegeben. Als nächstes wird dann effektiv die Determinante, der Jacobi, benutzt. Und auch gleich die Log-Likelihood ausgerechnet.
+Das ist auch einfach, die Log-Determinante hatten wir vorher bereits ausgerechnet. Jetzt können wir das zusammenrechnen. Und dann haben wir das hier als Wert für jeden einzelnen unserer Ns.
+Die Log-Likelihood habe ich auch ausgerechnet. Die ist hier drin. Genau, das sieht man hier unten.
+Das ist jeweils für jedes N ausgerechnet. Und was ich dann gesehen habe, ich bin mir aber nicht ganz sicher, was ich da verstanden habe im Paper. Die Idee ist, dass man eigentlich immer wieder hin und zurück gehen sollte können.
+Zwischen dem X und dem Z. Also dass wir das vorwärts erst machen, dann wieder zurück invertieren können. Und theoretisch sollte dann eigentlich eine Null herauskommen, weil wir das perfekt gemacht haben.
+Ich bin jetzt nicht auf Null gegangen. Und ich hoffe, dass die Art und Weise, wie ich das gemacht habe, richtig ist. Ich bin mir nicht ganz sicher, ob ich das richtig gemacht habe.
+Vieles von dem, was wir hier jetzt machen, ist ja ein Placeholder, weil wir später tatsächlich das benutzen, um später zu evaluieren. Das wird auch abgespeichert als Funktion. Wir benutzen das dann als beim nächsten Schritt, damit wir eine Formel haben können.
+Damit wir dieses P, das ist unsere Target-Funktion, dass wir aus dem dann die Dichte berechnen können. Wir brauchen dazu das X, das wir hatten, die Cumulative Density Functions und hier wird auch der Log benutzt. Und es wird auch der logarithmierte Target Distribution wird dann für jedes einzelne N ausgerechnet und ausgegeben.
+Was ich dann hier gemacht habe, ist, ich habe ein Sample gezogen über alle unsere Zielverteilungen, also das Eta, das wir hatten. Zuerst habe ich das X gezogen aus dem P, dann wird das angewendet durch das invertierte Mapping, das S und das, was rausgegeben werden sollte, ist hier für jedes N, das wir haben, für jede einzelne Dimension ein Wert, der entspricht den logarithmierten Determinanten der Jacobi Matrix. Ich hoffe, ich habe das richtig gesagt.
+Also alles Abschritt 10 ist wirklich nur so ein Placeholder, weil es macht ja keinen Sinn, das alles zu machen, wenn man nicht ein Modell hat. Und hier, was ich gemacht habe, ist, ich habe all die Funktionen, die vorher benutzt werden, hier kommt sehr viel zusammen, nämlich wir brauchen unsere Mappingfunktion S, die wir haben, wir brauchen die logarithmierten Determinanten der Jacobi Matrix aus unserem Mapping S, und aus dem wird dann alles berechnet, und das ist sozusagen unsere logarithmierte Likelihood, die uns sagt,
+Speaker 2
+wie gut wir performt haben. Aber das ist die wahre Likelihood, oder?
+Also die Likelihood für das Wahre. Das ist für das Wahre, ja. Für das Wahre, genau.
+Und da könnte man dann nachher das kontrastieren mit dem, was wir beobachtet haben, also geschätzt haben.
+Speaker 1
+Mit den Modellen, die später kommen. Ich habe mir überlegt, dass wir das hier nicht als Funktion machen, sondern ob ich das storen soll im R selber als Element. Ich habe das selber noch nie gemacht, aber es gibt Möglichkeiten, da wird es nicht als Funktion gespeichert, sondern als Element.
+Wie heisst das, dass man das als 16-Bit-Element in einer nicht in einem Parameter, sondern anders, egal, das ist nicht so wichtig. Auf jeden Fall habe ich das nicht gemacht. Ich muss mir noch genau angucken, wie das geht.
+Ich dachte eben, es ist vielleicht effizienter, weil wir später ganz häufig iterieren mit größeren n und einem höheren k.
+Speaker 2
+Das sehen wir dann, diese Optimiererei, das kann man dann zum Schluss machen.
+Speaker 1
+Also im Moment ist es noch...
+Speaker 2
+Also, was mir jetzt hier nur auffällt, also wichtig ist das mit dem Log-Log, weil das macht wirklich Probleme, da haben wir schon mehrfach Schwierigkeiten gehabt. Und der Rest sieht mir okay aus, oder?
+Speaker 1
+Gut, ja, also das also ja.
+Speaker 2
+Also ich glaube, wichtig ist jetzt, dass wir jetzt mal einen Testlauf machen mit einem einfachen Modell, wo wir dann irgendwie das gegeneinander halten können, oder? Und da würde ich jetzt sogar das so machen, dass ich als erstes Mal die Modellformulierung übernehmen würde aus dem Config und nur die Parameter neu schätzen. Also wir haben ja oben, wenn wir unsere Konfiguration haben, oder?
+Also das heißt, der Transformation-Modell, der weiß, dass... Genau, ich würde jetzt mal, wo sind wir denn hier? Ich würde jetzt mal hier, wir wissen jetzt, okay, wir haben eine Normalverteilung, Exponentialverteilung, Gamma.
+Und jetzt das Einzige, was wir hier, was hier fehlt, ist das Zeug. So, und ich würde jetzt, damit wir mal, damit wir nicht auf die... Weil das Problem ist, wenn wir jetzt die Riesenmaschinerie draufhauen, dann haben wir Probleme festzustellen, was jetzt wirklich Fehler sind in der Implementation und was jetzt irgendwie Eigenschaften des Algorithmus sind.
+Ich würde mir jetzt folgenden Code schreiben. Ich würde mir jetzt Code schreiben, der da durchgeht, der einfach die korrespondierende Likelihood-Funktion als Funktion von diesem Alpha oder Lambda oder was auch immer ist, hinschreibt und dann Daten generieren, diese Parameter schätzen und dann damit versuchen zu evaluieren, ob ich das Richtige rauskriege. Weil dann kann ich nämlich gucken, ich habe die richtigen Lambdas oder Alpha oder was auch immer, die richtigen Koeffizienten geschätzt und dann kann ich gucken, ob mein Vergleich zwischen der theoretischen Likelihood und der richtigen Likelihood oder der geschätzten, also Sample- basierten Likelihood funktioniert.
+Verstehen Sie, wie ich es meine? Ja, ich weiß, aber sollte das nicht relativ einfach sein für das Modell, wenn es da ist? Ja, aber ich will ja, zum Codetesten.
+Statistisch ist es sinnlos, aber zum Codetesten einfach, damit man sieht, wo das bröselt. Weil wenn man es da nicht hinkriegt, bei den anderen sieht man das nicht mehr.
+Speaker 1
+Das ist das Problem. Aber dann müsste ich Folgendes anpassen, nämlich hier beim Informationsfluss, dann müsste ich, also ich habe das jetzt so gesagt, dass der zweite Block darf nicht folgende Funktionen kennen. Und ich müsse das dann anpassen, dass es...
+Speaker 2
+Aber das kann man ja extra schreiben, oder? Ich würde jetzt noch mal ein extra Teil machen, wo ich sage, also Evaluierung des Codes, ich sample aus dem Ding, aber ich habe auch die exakte Likelihood und da schätze ich jetzt die Korrespondenz, die schreibe ich hin, also können wir noch mal hochgehen? Da machen wir jetzt die Likelihood nicht als von allem möglichen Zeug abhängig, sondern halt nur von diesen Parametern.
+Speaker 1
+Wie sind denn auch die Modelle, dass x3 abhängig ist von x2?
+Speaker 2
+Würde ich nicht machen. Das würde ich jetzt so machen, dass die immer von allen vorher abhängen. Also der zum Beispiel würde von x1 und x2 abhängen.
+Aber wir schätzen nur ein. Weil dieses Alpha... Ja genau, das sind ja alles...
+Genau, das sind ja alles Lineare Funktionen. Ja genau, würde ich mal so machen.
+Speaker 1
+In Ordnung, gut, dann kann ich das machen.
+Speaker 2
+Weil dann können sie auch gucken, ob das Modell richtig geschätzt hat, weil die sehen ja, ob die Parameter richtig sind oder nicht.
+Speaker 1
+Ja, also ich stelle es mir relativ einfach vor, das sollte eigentlich schon...
+Speaker 2
+Aber man macht die Fehler da, wo es einfach ist, nicht da, wo es kompliziert wird. In Ordnung, dann kann ich das machen.
+Speaker 1
+Ich habe eben den Code schon ready gehabt für Transformation. Ja, das machen wir... Das ist ja super, aber ich will...
+Wir müssen erst mal das testen. Ich war mir extrem unsicher. Mir fehlt natürlich die Expertise, aber ich habe ziemlich lange gebraucht, um...
+Also hier ist es jetzt schön dargestellt.
+Speaker 2
+Ja, ja, genau. Aber in PayPal war das nicht ganz... Ja, ja, nee, nee, ist gut.
+Mir geht's jetzt nur darum, den Code, den sie jetzt gerade hergezeigt haben, einmal zu testen. Dass wir sagen, okay, jetzt schätzen wir das mal basierend auf Daten und dann gucken wir mal, ob da das Richtige rauskommt, weil dann können sie nämlich in dem Ding, können sie nämlich einfach die Anzahl der Beobachtungen nach oben geben und dann haben wir die Garantie, dass wir möglichst so nah wie wir wollen an die wahren Parameter rankommen. Das haben wir bei den Transformationsmodellen nicht.
+In Ordnung, und soll n begrenzt sein maximal auf 100? Nee, da können wir das n beliebig hochgeben.
+Speaker 1
+Okay, in Ordnung, gut, dann kann ich das machen. Angenommen, dass wir da funktionieren, soll ich dann auch gleich... Dann machen wir mit den Transformationsmodellen los.
+Soll ich, bevor ich jetzt mit, gleich zu den Transformationsmodellen, soll ich noch einen letzten Test machen, in dem ich auf 25 Dimensionen...
+Speaker 2
+Würde ich auch machen.
+Speaker 1
+Okay. Würde ich auch machen. In Ordnung, gut, ja, passt.
+Speaker 2
+Weil das ist, das ist immer, also man macht das ja auch lange, man ist natürlich immer dann interessiert, das gleich für das wahre Richtige auszuprobieren und dann kommt irgendwas raus und dann steht man da und denkt, ja, kann denn das sein? Und dann ist man wie der Mediziner, man findet, wenn man Daten sieht, immer eine Erklärung, warum die so ausschauen, wie sie ausschauen, und dann kommt man irgendwann nach Wochen drauf, dass aber irgendein blöder Programmierfehler einfach im datengeneren Prozess oder in der Evaluation oder sonst irgendwo ist, und dann macht das alles keinen Sinn, diese Rumgeheimserei. Deswegen immer erst mal Code schreiben und erst mal auch Sachen, die irgendwie einfach aussehen, testen.
+Weil das kostet wenig Zeit und nachher schläft man einfach besser. Macht alles Sinn.
+Speaker 1
+In Ordnung, da werde ich es so machen. Danke vielmals. Für mich ist es okay.
+Speaker 2
+Wir machen uns gleich mal im nächsten Termin aus, damit mal, weil das hier alles schon wieder voll läuft.
+Speaker 1
+Also, ich kann sonst wieder am Freitag vorbeikommen, wenn Sie möchten.
+Speaker 2
+Ist schon okay. Vielleicht bis auch. So.
+Wenn Sie lustig sind, können wir nächste Woche um 4 wieder am Dienstag machen.
+Speaker 1
+Das geht auch, ja. Also, Freitag oder Dienstag.
+Speaker 2
+Weil Sie sind ja eh da. Machen wir am Dienstag um 16 Uhr.
+Speaker 1
+In Ordnung. Gut. Passt.
+Perfekt.
