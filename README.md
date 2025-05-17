@@ -61,7 +61,7 @@ the statistical setting; Python is intentionally avoided.
       = \frac{\partial_{x_k}\hat F_k(x_k\mid x_{<k})}{\varphi\bigl(\Phi^{-1}(\hat F_k(x_k\mid x_{<k}))\bigr)}
       \;\ge\;0
   \]
-  almost everywhere, so each \(S_k\) is monotone in its last argument and \(S\) is invertible :contentReference[oaicite:0]{index=0}:contentReference[oaicite:1]{index=1}.
+  almost everywhere, so each \(S_k\) is monotone in its last argument and \(S\) is invertible.
 
 * **Copula method:** Two-stage fitting: (1) Estimate each marginal CDF \$\hat F\_j(y\_j \mid x)\$ for \$j=1,\dots,d\$ (e.g. using parametric models or empirical ranks). (2) Transform outputs to \$u\_{ij} = \hat F\_j(y\_{ij}\mid x\_i)\$ and fit a copula \$C(u\_{1},\dots,u\_{d})\$ on $\[0,1]^d\$ (e.g. a vine copula). Then approximate the joint CDF by
   $F(y_1,\dots,y_d \mid x) \approx C\!\big(\hat F_1(y_1|x),\,\dots,\,\hat F_d(y_d|x)\big).$
@@ -121,9 +121,9 @@ the statistical setting; Python is intentionally avoided.
 | $Z = \\Phi^{-1}(U)$ | Probit transform | `Z_probit` |
 | $\\mathrm{condSample}(\\cdot)$ | Draw from $\\pi(x_{k+1:K}\\mid x_{1:k}^*)$ | `cond_sample()` |
 
-#Packages:
+# Packages
 
-##Transformation Forests:
+## Transformation Forests
 * trtf
 * tram::traforest
 

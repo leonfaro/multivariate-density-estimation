@@ -3,7 +3,9 @@ source("04_forest_models.R")
 
 ell_forest <- -0.5 * rowSums(Z_eta_test^2) -
   (ncol(Z_eta_test)/2) * log(2*pi) + rowSums(LD_hat)
-all.equal(sum(ell_forest), sum(ll_test), tol = 1e-1)
+
+# Formal check of ell_forest vs ll_test resides in tests/test_joint_evaluation.R
+
 
 pdf("results/BlockE_scatterplots.pdf")
 par(mfrow = c(2,2))

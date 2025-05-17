@@ -2,7 +2,8 @@ suppressPackageStartupMessages({
   library(extraDistr)
   library(tram)
   library(trtf)
-  library(ggplot2)
+  if (requireNamespace("ggplot2", quietly = TRUE))
+    library(ggplot2)
 })
 
 clip <- function(x, lo = 1e-6, hi = 1e6) pmin(hi, pmax(lo, x))
