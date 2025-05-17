@@ -18,11 +18,12 @@ for (k in seq_len(K)) {
   )
 }
 true_ll_mat_test  <- sapply(seq_len(K), function(k)
-  pdf_k(k, X_pi_test[,k], if(k>1) X_pi_test[,1:(k-1),drop=FALSE] else NULL, config, log=TRUE)
+  pdf_k(k, X_pi_test[,k], if(k > 1) X_pi_test[,1:(k-1), drop = FALSE] else numeric(0),
+        config, log = TRUE)
 )
 param_ll_mat_test <- sapply(seq_len(K), function(k) {
   xs    <- X_pi_test[,k]
-  Xprev <- if(k>1) X_pi_test[,1:(k-1),drop=FALSE] else NULL
+  Xprev <- if (k > 1) X_pi_test[,1:(k-1), drop = FALSE] else numeric(0)
   p     <- param_est[[k]]
   switch(k,
     dnorm(xs, mean = p$mean, sd = p$sd, log = TRUE),
