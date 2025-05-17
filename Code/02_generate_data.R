@@ -1,7 +1,7 @@
 source("01_transport_utils.R")
 
 set.seed(2044)
-N_train <- 500
+N_train <- as.integer(Sys.getenv("N_train", "500"))
 samp_train <- pi_sample(N_train)
 X_pi_train <- samp_train$X_pi
 U_eta_train <- samp_train$U_eta
@@ -16,7 +16,7 @@ cat("- X_pi_train SD:   ", paste(round(apply(X_pi_train, 2, sd), 3), collapse = 
 cat("- det(J)_train Range: [", round(min(detJ_train), 3), ",", round(max(detJ_train), 3), "]\n\n")
 
 set.seed(2045)
-N_test <- 500
+N_test <- as.integer(Sys.getenv("N_test", "500"))
 samp_test <- pi_sample(N_test)
 X_pi_test <- samp_test$X_pi
 U_eta_test <- samp_test$U_eta

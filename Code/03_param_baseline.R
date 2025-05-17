@@ -3,12 +3,12 @@ source("02_generate_data.R")
 nll_funs <- list(
 
   function(p, xs, Xprev)
-    -sum(safe_logdens(dnorm(xs, mean = p[1], sd = exp(p[2])))),
+    -sum(dnorm(xs, mean = p[1], sd = exp(p[2]), log = TRUE)),
   function(p, xs, Xprev)
-    -sum(safe_logdens(dexp(xs, rate = exp(p[1] + p[2] * Xprev[, 1])))),
+    -sum(dexp(xs, rate = exp(p[1] + p[2] * Xprev[, 1]), log = TRUE)),
   function(p, xs, Xprev)
-    -sum(safe_logdens(dgamma(xs, shape = exp(p[1]) * Xprev[, 2],
-                              rate = exp(p[2]))))
+    -sum(dgamma(xs, shape = exp(p[1]) * Xprev[, 2],
+                rate = exp(p[2]), log = TRUE))
 
 )
 init_vals <- list(c(0,0), c(0,0), c(0,0))
@@ -33,10 +33,10 @@ param_ll_mat_test <- sapply(seq_len(K), function(k) {
   Xprev <- if (k > 1) X_pi_test[, 1:(k - 1), drop = FALSE] else NULL
   p     <- param_est[[k]]
   switch(k,
-    safe_logdens(dnorm(xs, mean = p$mean, sd = p$sd)),
-    safe_logdens(dexp(xs, rate = exp(p$a + p$b * Xprev[, 1]))),
-    safe_logdens(dgamma(xs, shape = exp(p$a) * Xprev[, 2],
-                        rate = exp(p$b)))
+    dnorm(xs, mean = p$mean, sd = p$sd, log = TRUE),
+    dexp(xs, rate = exp(p$a + p$b * Xprev[, 1]), log = TRUE),
+    dgamma(xs, shape = exp(p$a) * Xprev[, 2],
+           rate = exp(p$b), log = TRUE)
 
 
   )
