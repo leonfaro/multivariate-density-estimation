@@ -2,6 +2,7 @@
 - Provide precise answers with mathematical rigour.
 - Run R scripts using `Rscript`.
 - Execute any tests or lint checks inside this environment if they exist.
+  Use `./run_checks.sh` for the repository's built-in sanity tests and lint.
 - Follow the variable names and mathematical symbols in the [Notation](README.md#notation)
   tables of the README when writing new code.
 - Check new numeric results for unexpected `NaN` or `NA` values and inspect the

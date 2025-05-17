@@ -121,3 +121,4 @@ therefore automatically ensured.
 | $U$ | Rank variable $u_{ik}=\\text{rank}/(N+1)$ | `U` |
 | $Z = \\Phi^{-1}(U)$ | Probit transform | `Z_probit` |
 | $\\mathrm{condSample}(\\cdot)$ | Draw from $\\pi(x_{k+1:K}\\mid x_{1:k}^*)$ | `cond_sample()` |
+
