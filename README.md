@@ -135,12 +135,11 @@ from the arXiv link above if needed.
 
 To build the analysis environment extend the universal base image:
 
-```bash
-docker build -t ghcr.io/yourname/mde-r:latest .
-docker push ghcr.io/yourname/mde-r:latest
-```
+1. Run `docker build -t ghcr.io/<USERNAME>/mde-r:latest .`
+2. Push with `docker push ghcr.io/<USERNAME>/mde-r:latest`
+3. In Codex, set **Container-Bild** to `ghcr.io/<USERNAME>/mde-r:latest`; leave the setup script empty.
 
-Configure Codex by setting `Container-Bild` to `ghcr.io/yourname/mde-r:latest`. The setup script may remain empty.
+This preinstalls R and the packages listed above so subsequent tasks start faster.
 
 ## License
 
