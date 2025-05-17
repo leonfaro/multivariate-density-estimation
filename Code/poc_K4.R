@@ -32,8 +32,13 @@ pdf_k <- function(k, xk, x_prev, cfg, log = TRUE) {
   if (log) safe_logpdf(dens) else dens
 }
 cdf_k <- function(k, xk, x_prev, cfg, log = TRUE) {
-  dname <- cfg[[k]]$distr; pars <- get_pars(k, x_prev, cfg)
-  args <- c(if(dname=="sn") list(p = xk) else list(q = xk), pars, list(log.p = FALSE))
+  dname <- cfg[[k]]$distr
+  pars  <- get_pars(k, x_prev, cfg)
+  args  <- c(
+    if (dname == "sn") list(x = xk) else list(q = xk),
+    pars,
+    list(log.p = FALSE)
+  )
   cdfv <- do.call(dist_fun("p", dname), args)
   cdfv <- safe_cdf(cdfv)
   if (log) log(cdfv) else cdfv

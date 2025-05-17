@@ -70,10 +70,10 @@ mytrtf <- function(data) {
 
 ### compute contributions to joint log-density
 predict.mytrtf <- function(object, newdata, type = "logdensity") {
-    ld1 <- predict(object$ymod[[1]], newdata = newdata, type = "logdensity")
+    ld1 <- predict(object$ymod[[1]], newdata = newdata, type = type)
     ld <- lapply(object$forests, function(frst) {
-        q <- dt[, variable.names(frst$model)[1]]
-        pr <- predict(frst, newdata = newdata, type = "logdensity", q = q)
+        q  <- newdata[, variable.names(frst$model)[1]]
+        pr <- predict(frst, newdata = newdata, type = type, q = q)
         diag(do.call("cbind", pr))
     })
     Reduce("+", ld) + ld1
