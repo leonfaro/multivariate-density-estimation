@@ -1,8 +1,8 @@
-FROM ghcr.io/sourcegraph/universal:latest
+FROM rocker/r-ver:4.3.3
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        r-base r-base-dev && \
-    rm -rf /var/lib/apt/lists/*
-
-RUN R -q -e "install.packages(c('extraDistr','tram','trtf','ggplot2'), repos='https://cloud.r-project.org')"
+# install2.r ist im Rocker-Image enthalten und kompiliert parallel
+RUN install2.r --error \
+      extraDistr \
+      tram \
+      trtf \
+      ggplot2
