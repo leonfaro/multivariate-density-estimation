@@ -117,25 +117,3 @@
 ##Transformation Forests:
 * trtf
 * tram::traforest
-
-## Offline Installation
-This project relies on a fixed set of R packages. Place the corresponding source
-tarballs inside `renv/library/` and run
-
-```bash
-./setup_env.sh
-```
-
-The script restores the environment from `renv.lock` without contacting online
-repositories. Building the Docker image below also performs this step.
-
-To run the analysis, use the wrapper script
-
-```
-./run_all.sh
-```
-
-This script automatically skips the R-based steps when no `Rscript` binary is available.
-
-
-
