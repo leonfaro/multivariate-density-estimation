@@ -15,6 +15,12 @@ for (k in seq_len(ncol(LD_hat))) {
 }
 dev.off()
 
+## plot true vs estimated joint log-densities
+ld_hat  <- rowSums(LD_hat)
+ld_true <- rowSums(true_ll_mat_test)
+stopifnot(all(is.finite(ld_hat)))
+stopifnot(all(is.finite(ld_true)))
+
 delta_df <- data.frame(
   dim        = seq_len(ncol(LD_hat)),
   ell_true   = colSums(true_ll_mat_test),
@@ -35,3 +41,13 @@ eval_df <- data.frame(
 )
 if (!dir.exists("results")) dir.create("results")
 write.csv(eval_df, "results/evaluation_summary.csv", row.names = FALSE)
+
+png("results/joint_logdensity_scatterplot.png")
+plot(ld_hat, ld_true, xlab = "estimated", ylab = "true")
+abline(a = 0, b = 1)
+info_text <- sprintf(
+  "N = %d | sum(delta_param) = %.3f | sum(delta_forest) = %.3f",
+  N_test, sum(eval_df$delta_param), sum(eval_df$delta_forest)
+)
+mtext(info_text, side = 1, line = 3)
+dev.off()
