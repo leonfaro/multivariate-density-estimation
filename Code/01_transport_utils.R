@@ -11,8 +11,47 @@ safe_pars <- function(pars, dname) {
     if (!is.null(pars$shape)) pars$shape <- clip(pars$shape, lo, hi)
     if (!is.null(pars$rate))  pars$rate  <- clip(pars$rate, lo, hi)
   }
+
+  if (dname == "weibull") {
+    if (!is.null(pars$shape)) pars$shape <- clip(pars$shape, lo, hi)
+    if (!is.null(pars$scale)) pars$scale <- clip(pars$scale, lo, hi)
+  }
+  if (dname == "lnorm" && !is.null(pars$sdlog))
+    pars$sdlog <- clip(pars$sdlog, lo, hi)
+  if (dname == "pois" && !is.null(pars$lambda))
+    pars$lambda <- clip(pars$lambda, lo, hi)
+  if (dname %in% c("bern", "binom") && !is.null(pars$prob))
+    pars$prob <- pmin(1 - lo, pmax(lo, pars$prob))
+  if (dname == "binom" && !is.null(pars$size))
+    pars$size <- clip(pars$size, 1, hi)
+  if (dname == "beta") {
+    if (!is.null(pars$shape1)) pars$shape1 <- clip(pars$shape1, lo, hi)
+    if (!is.null(pars$shape2)) pars$shape2 <- clip(pars$shape2, lo, hi)
+  }
+  if (dname == "logis" && !is.null(pars$scale))
+    pars$scale <- clip(pars$scale, lo, hi)
   pars
 }
+
+safe_support <- function(x, dname, pars = list()) {
+  lo <- EPS
+  hi <- 1e6
+  switch(dname,
+    exp     = clip(x, lo, hi),
+    gamma   = clip(x, lo, hi),
+    weibull = clip(x, lo, hi),
+    lnorm   = clip(x, lo, hi),
+    beta    = pmin(1 - lo, pmax(lo, x)),
+    pois    = pmax(0, round(x)),
+    bern    = ifelse(x > 0.5, 1, 0),
+    binom   = {
+      size <- if (!is.null(pars$size)) pars$size else hi
+      pmin(size, pmax(0, round(x)))
+    },
+    x
+  )
+}
+
 
 dist_fun <- function(pref, name) get(paste0(pref, name))
 get_pars <- function(k, x_prev, cfg) {
@@ -31,6 +70,7 @@ get_pars <- function(k, x_prev, cfg) {
 
 pdf_k <- function(k, xk, x_prev, cfg, log = TRUE) {
   pars <- get_pars(k, x_prev, cfg)
+  xk   <- safe_support(xk, cfg[[k]]$distr, pars)
   dens <- do.call(dist_fun("d", cfg[[k]]$distr),
                   c(list(x = xk), pars, list(log = log)))
   dens
@@ -39,6 +79,7 @@ pdf_k <- function(k, xk, x_prev, cfg, log = TRUE) {
 cdf_k <- function(k, xk, x_prev, cfg, log = TRUE) {
   dname <- cfg[[k]]$distr
   pars  <- get_pars(k, x_prev, cfg)
+  xk    <- safe_support(xk, dname, pars)
   args  <- c(if (dname == "sn") list(x = xk) else list(q = xk),
              pars,
              list(log.p = FALSE))
@@ -63,7 +104,7 @@ qtf_k <- function(k, u, x_prev, cfg, log.p = FALSE) {
   } else {
     res <- do.call(dist_fun("q", dname), c(list(p = u, log.p = log.p), pars))
   }
-  res
+  safe_support(res, dname, pars)
 }
 
 det_J <- function(logd) rowSums(logd)
