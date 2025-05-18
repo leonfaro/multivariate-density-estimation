@@ -1,5 +1,19 @@
 source("00_setup.R")
 
+safe_pars <- function(pars, dname) {
+  lo <- EPS
+  hi <- 1e6
+  if (dname == "norm" && !is.null(pars$sd))
+    pars$sd <- clip(pars$sd, lo, hi)
+  if (dname == "exp" && !is.null(pars$rate))
+    pars$rate <- clip(pars$rate, lo, hi)
+  if (dname == "gamma") {
+    if (!is.null(pars$shape)) pars$shape <- clip(pars$shape, lo, hi)
+    if (!is.null(pars$rate))  pars$rate  <- clip(pars$rate, lo, hi)
+  }
+  pars
+}
+
 dist_fun <- function(pref, name) get(paste0(pref, name))
 get_pars <- function(k, x_prev, cfg) {
   ck <- cfg[[k]]
@@ -11,7 +25,8 @@ get_pars <- function(k, x_prev, cfg) {
     colnames(x_prev) <- paste0("X", seq_len(ncol(x_prev)))
     x_df <- as.data.frame(x_prev)
   }
-  ck$parm(x_df)
+  pars <- ck$parm(x_df)
+  safe_pars(pars, ck$distr)
 }
 
 pdf_k <- function(k, xk, x_prev, cfg, log = TRUE) {
