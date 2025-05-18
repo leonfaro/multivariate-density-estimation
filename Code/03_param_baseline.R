@@ -77,3 +77,7 @@ ll_delta_df_test <- data.frame(
 ll_delta_df_test$delta_ll <- ll_delta_df_test$ll_true_sum - ll_delta_df_test$ll_param_sum
 ll_delta_df_test[,3:5] <- round(ll_delta_df_test[,3:5], 3)
 print(ll_delta_df_test)
+
+cat("\nSafety counters:\n")
+cat("safe_pars calls requiring clipping:", SAFE_PAR_COUNT, "\n")
+cat("safe_support modifications:", SAFE_SUPPORT_COUNT, "\n")
