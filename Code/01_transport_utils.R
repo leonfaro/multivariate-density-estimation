@@ -11,6 +11,7 @@ safe_pars <- function(pars, dname) {
     if (!is.null(pars$shape)) pars$shape <- clip(pars$shape, lo, hi)
     if (!is.null(pars$rate))  pars$rate  <- clip(pars$rate, lo, hi)
   }
+
   if (dname == "weibull") {
     if (!is.null(pars$shape)) pars$shape <- clip(pars$shape, lo, hi)
     if (!is.null(pars$scale)) pars$scale <- clip(pars$scale, lo, hi)
@@ -50,6 +51,7 @@ safe_support <- function(x, dname, pars = list()) {
     x
   )
 }
+
 
 dist_fun <- function(pref, name) get(paste0(pref, name))
 get_pars <- function(k, x_prev, cfg) {
