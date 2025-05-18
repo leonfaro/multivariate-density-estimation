@@ -7,8 +7,9 @@ nll_funs <- list(
   function(p, xs, Xprev)
     -sum(dexp(xs, rate = exp(p[1] + p[2] * Xprev[, 1]), log = TRUE)),
   function(p, xs, Xprev)
-    -sum(dgamma(xs, shape = exp(p[1]) * Xprev[, 2],
-                rate = exp(p[2]), log = TRUE))
+    -sum(dgamma(xs,
+                shape = clip(exp(p[1]) * Xprev[, 2], EPS, 1e6),
+                rate  = exp(p[2]), log = TRUE))
 
 )
 init_vals <- list(c(0,0), c(0,0), c(0,0))
@@ -35,8 +36,9 @@ param_ll_mat_test <- sapply(seq_len(K), function(k) {
   switch(k,
     dnorm(xs, mean = p$mean, sd = p$sd, log = TRUE),
     dexp(xs, rate = exp(p$a + p$b * Xprev[, 1]), log = TRUE),
-    dgamma(xs, shape = exp(p$a) * Xprev[, 2],
-           rate = exp(p$b), log = TRUE)
+    dgamma(xs,
+           shape = clip(exp(p$a) * Xprev[, 2], EPS, 1e6),
+           rate  = exp(p$b), log = TRUE)
 
 
   )
