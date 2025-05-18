@@ -31,11 +31,24 @@ cat("- X_pi_test SD:   ", paste(round(apply(X_pi_test, 2, sd), 3), collapse = ",
 cat("- det(J)_test Range: [", round(min(detJ_test), 3), ",", round(max(detJ_test), 3), "]\n\n")
 
 if (!dir.exists("results")) dir.create("results")
-write.csv(X_pi_train, "results/X_pi_train.csv", row.names = FALSE)
-write.csv(U_eta_train, "results/U_eta_train.csv", row.names = FALSE)
-write.csv(Z_eta_train, "results/Z_eta_train.csv", row.names = FALSE)
-write.csv(logd_train, "results/logd_train.csv", row.names = FALSE)
-write.csv(X_pi_test,  "results/X_pi_test.csv",  row.names = FALSE)
-write.csv(U_eta_test, "results/U_eta_test.csv", row.names = FALSE)
-write.csv(Z_eta_test, "results/Z_eta_test.csv", row.names = FALSE)
-write.csv(logd_test, "results/logd_test.csv", row.names = FALSE)
+
+# combine training data into one CSV
+train_df <- data.frame(
+  X_pi_train, U_eta_train, Z_eta_train, logd_train,
+  check.names = FALSE
+)
+colnames(train_df) <- c(
+  paste0("Xpi",  seq_len(K)),
+  paste0("Ueta", seq_len(K)),
+  paste0("Zeta", seq_len(K)),
+  paste0("logd", seq_len(K))
+)
+write.csv(train_df, "results/train_data.csv", row.names = FALSE)
+
+# combine test data into one CSV
+test_df <- data.frame(
+  X_pi_test, U_eta_test, Z_eta_test, logd_test,
+  check.names = FALSE
+)
+colnames(test_df) <- colnames(train_df)
+write.csv(test_df, "results/test_data.csv", row.names = FALSE)
