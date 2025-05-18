@@ -1,6 +1,7 @@
 source("02_generate_data.R")
 
 nll_funs <- list(
+
   function(p, xs, Xprev) {
     pars <- safe_pars(list(mean = p[1], sd = exp(p[2])), "norm")
     xs   <- safe_support(xs, "norm", pars)
@@ -19,6 +20,7 @@ nll_funs <- list(
     xs    <- safe_support(xs, "gamma", pars)
     -sum(dgamma(xs, shape = pars$shape, rate = pars$rate, log = TRUE))
   }
+
 )
 init_vals <- list(c(0,0), c(0,0), c(0,0))
 param_est <- vector("list", K)
@@ -42,6 +44,7 @@ param_ll_mat_test <- sapply(seq_len(K), function(k) {
   Xprev <- if (k > 1) X_pi_test[, 1:(k - 1), drop = FALSE] else NULL
   p     <- param_est[[k]]
   switch(k,
+
     {
       pars <- safe_pars(list(mean = p$mean, sd = p$sd), "norm")
       xs   <- safe_support(xs, "norm", pars)
@@ -60,6 +63,7 @@ param_ll_mat_test <- sapply(seq_len(K), function(k) {
       xs    <- safe_support(xs, "gamma", pars)
       dgamma(xs, shape = pars$shape, rate = pars$rate, log = TRUE)
     }
+
 
 
   )
