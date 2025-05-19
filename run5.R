@@ -20,8 +20,7 @@ LD_hat <- forest_res$LD_hat
 source("05_joint_evaluation.R")
 
 # summarize mismatches after all computations
-gauss_sum <- sum(dnorm(Z_eta_test, log = TRUE))
-target_ll <- sum(ll_test) - gauss_sum
+target_ll <- sum(ll_test)
 forest_mismatch <- sum(loglik_forest) - target_ll
 kernel_mismatch <- sum(loglik_kernel) - target_ll
 copula_mismatch <- ll_dvine_sum[length(ll_dvine_sum)] - target_ll
