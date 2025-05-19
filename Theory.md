@@ -60,7 +60,7 @@ with a monotone link to keep valid conditional densities.
 ## Special Cases
 * **Gaussian copula** – Gaussian \(f_{d_k}\) with linear \(\theta_k\).
 * **Transformation forest** – tree‑based \(\theta_k\).
-* **D-vine with TF marginals** – each transformation forest estimates the conditional CDF \(\hat F_k(y_k\mid x)\). A D-vine copula models only the dependence among uniform scores \(U_{ik}=\hat F_k(y_{ik}\mid x_i)\), or their probit transforms \(Z_{ik}=\Phi^{-1}(U_{ik})\). This realises the pipeline “conditional CDF \(\rightarrow\) ranks \(U\) \(\rightarrow\) copula”.
+* **D-vine with TF marginals** – each transformation forest estimates the conditional CDF \(\hat F_k(y_k\mid x)\). D-vine copula models only the dependence among uniform scores \(U_{ik}=\hat F_k(y_{ik}\mid x_i)\), or their probit transforms \(Z_{ik}=\Phi^{-1}(U_{ik})\). conditional CDF \(\rightarrow\) ranks \(U\) \(\rightarrow\) copula.
 * **Autoregressive normalising flow** – neural‑network \(\theta_k\).
 
 ## Model Inputs
@@ -75,6 +75,9 @@ Algorithms use only observation vectors \(x^{(i)}\in\mathbb R^3\) split into tra
 For each \(k\) fit a transformation forest of \(X_k\) on \((X_{<k},x_{\text{cov}})\) to obtain a monotone empirical CDF \(\hat F_k\). Substitute \(\hat F_k\) and its inverse for \(F_{d_k}\) in the map:
 \[
 S_k(x_1,\dots,x_k)=\Phi^{-1}\!\bigl(\hat F_k(x_k\mid x_{<k},x_{\text{cov}})\bigr).
+
+### D-vine Copula with TF marginals** – 
+For each transformation forest estimates the conditional CDF \(\hat F_k(y_k\mid x)\). D-vine copula models only the dependence among uniform scores \(U_{ik}=\hat F_k(y_{ik}\mid x_i)\), or their probit transforms \(Z_{ik}=\Phi^{-1}(U_{ik})\). conditional CDF \(\rightarrow\) ranks \(U\) \(\rightarrow\) copula.
 \]
 
 
