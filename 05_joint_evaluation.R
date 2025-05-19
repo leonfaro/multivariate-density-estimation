@@ -31,7 +31,7 @@ delta_check <- sum(loglik_forest) - sum(ll_test)
 if (abs(delta_check) >= 1e-1) {
   message("Warning: forest log-likelihood mismatch = ", round(delta_check, 3))
 }
-if (!dir.exists("results")) dir.create("results")
+
 
 pdf("results/BlockE_scatterplots.pdf")
 par(mfrow = c(2, 2))
