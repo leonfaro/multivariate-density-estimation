@@ -1,3 +1,28 @@
+
+# 02_generate_data.R
+#
+# Inputs:
+# - `N_train`: number of draws for the training set, read from the environment
+#   variable of the same name (default `500`).
+# - `N_test`: number of draws for the test set, read from the environment
+#   variable of the same name (default `500`).
+#
+# Outputs:
+# - `results/train_data.csv` containing columns `Xpi*`, `Ueta*`, `Zeta*`,
+#   and `logd*` for each target dimension.
+# - `results/test_data.csv` with the same column names.
+#
+# Algorithmic steps:
+# 1. Draw `U_eta` from the reference distribution `eta`.
+# 2. Apply the inverse map `S_inv(U_eta)` sequentially to obtain `X_pi`,
+#    `Z_eta`, and the log partial derivatives `logd`.
+# 3. Compute `det(J) = rowSums(logd)` and evaluate the log-likelihood via
+#    `loglik(Z_eta, det(J))`.
+# 4. Print exploratory summaries for `X_pi` and the range of `det(J)`.
+# 5. Combine the variables into data frames and store them as CSV files.
+#
+# Notation follows `Notation.md`.
+
 source("01_transport_utils.R")
 
 set.seed(2044)
