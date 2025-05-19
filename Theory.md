@@ -1,5 +1,71 @@
 ## Theory
 
+* **Triangular factorisation.** Model the joint density via sequential
+  univariate factors. For target variables $X_1,\ldots,X_K$ conditioned on
+  external covariates $x_{\text{cov}}$
+  \[
+    \pi(x_1,\ldots,x_K \mid x_{\text{cov}})
+      = \prod_{k=1}^K f_{d_k}(x_k \mid x_{1:k-1}, x_{\text{cov}}),
+  \]
+  where each $f_{d_k}$ has parameter function $\theta_k(x_{1:k-1},x_{\text{cov}})$.
+* **Transport map $S$.** Let $F_{d_k}(x_k \mid x_{1:k-1},x_{\text{cov}})$ be the
+  conditional distribution function. The map $S:\mathbb{R}^K\to\mathbb{R}^K$ is
+  defined by
+  \[
+    z_k
+      = S_k(x_1,\ldots,x_k)
+      = \Phi^{-1}\bigl(F_{d_k}(x_k \mid x_{1:k-1},x_{\text{cov}})\bigr),
+  \]
+  and each component is monotone in $x_k$.
+* **Inverse transform.** For $z\sim\mathcal N(0,I_K)$ set $u_k=\Phi(z_k)$ and
+  compute
+  \[
+    x_k = F_{d_k}^{-1}(u_k \mid x_{1:k-1},x_{\text{cov}}),\qquad k=1,\ldots,K,
+  \]
+  which yields $x\sim\pi(\cdot\mid x_{\text{cov}})$. Any $x$ maps to $z=S(x)$ in
+  the same manner.
+* **Likelihood formula.** The change of variables gives
+  \[
+    \pi(x\mid x_{\text{cov}})
+      = \eta\bigl(S(x)\bigr)
+        \prod_{k=1}^K
+          \frac{f_{d_k}(x_k \mid x_{1:k-1},x_{\text{cov}})}{\varphi(z_k)},
+  \]
+  hence
+  \[
+    \ell(x)
+      = -\tfrac12\|S(x)\|^2
+        + \sum_{k=1}^K \bigl[\log f_{d_k}(x_k \mid x_{1:k-1},x_{\text{cov}})
+          - \log \varphi(z_k)\bigr].
+  \]
+  Maximising $\sum_i \ell(x^{(i)})$ estimates $\theta_k$.
+* **Sparsity.** Restrict each $\theta_k$ to $J_k\subseteq\{1,\ldots,k-1\}$ so that
+  $X_k\perp X_j\mid\{X_i:i\in J_k\},x_{\text{cov}}$ whenever $j\notin J_k$.
+  Sparsity reduces complexity.
+* **Flexible parameterisation.** Approximate
+  \[
+    \theta_k(x_{1:k-1},x_{\text{cov}})
+      \approx \sum_m c_{mk}\,\psi_{mk}(x_{1:k-1},x_{\text{cov}}),
+  \]
+  with basis functions $\psi_{mk}$. The monotonic link ensures valid conditional
+  densities.
+* **Learning algorithm.** Train by maximising the log-likelihood via gradient
+  descent or boosting. A map-adaptation strategy can start from the identity and
+  iteratively enrich $\theta_k$. The triangular structure allows sequential or
+  block-wise training.
+* **Unifying cases.**
+  - All $d_k$ Gaussian with linear $\theta_k$ yield a Gaussian copula.
+  - Tree-based $\theta_k$ lead to transformation forest models.
+  - Neural-network $\theta_k$ result in autoregressive normalising flows.
+* **Model inputs.** The estimators are trained and tested only on the observation
+  vectors $x^{(i)}\in\mathbb{R}^3$. Let $(x^{(i)})_{i=1}^{N_{\text{train}}}$
+  denote the training sample and $(x^{(i)})_{i=1}^{N_{\text{test}}}$ the test
+  sample. Each algorithm processes the coordinates sequentially in the order
+  $k=1,2,3$ and relies solely on these data.
+* **Map implementation.** Our $S_k(x_1,\ldots,x_k)$ functions are transformation
+  forests for the regression $x_k\sim x_{1:k-1}$. Monotonicity in $x_k$ is
+  automatically ensured.
+
 ### Triangular factorisation
 
 Consider target variables $X_1,\ldots,X_K$. For each index $k$ choose a univariate density family $f_{d_k}$ with parameter function $\theta_k(x_{1:k-1}, x_{\text{cov}})$. The conditional joint density is
