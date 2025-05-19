@@ -29,14 +29,13 @@ U_hat_train <- predict(model, newdata = as.data.frame(X_pi_train),
 U_hat_test  <- predict(model, newdata = as.data.frame(X_pi_test),
                       type = "distribution")
 
-# fit a D-vine copula with fixed natural order 1:K
-vine_struct <- dvine_structure(1:K)
-dvine_model <- vinecop(U_hat_train, structure = vine_struct)
-
-# log-copula densities for the test sample
-cop_dens <- dvinecop(U_hat_test, dvine_model)
-log_cop_test <- log(cop_dens)
-
-# joint log-density estimate via copula times marginals
-loglik_dvine <- rowSums(LD_hat) + log_cop_test
-stopifnot(all(is.finite(loglik_dvine)))
+# compute D-vine joint log-likelihood for each dimension separately
+loglik_dvine_list <- lapply(seq_len(K), function(k) {
+  vine_struct <- dvine_structure(1:k)
+  dvine_model <- vinecop(U_hat_train[, 1:k, drop = FALSE],
+                         structure = vine_struct)
+  log_cop <- log(dvinecop(U_hat_test[, 1:k, drop = FALSE], dvine_model))
+  rowSums(LD_hat[, 1:k, drop = FALSE]) + log_cop
+})
+loglik_dvine_mat <- do.call(cbind, loglik_dvine_list)
+stopifnot(all(is.finite(loglik_dvine_mat)))
