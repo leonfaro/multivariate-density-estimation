@@ -62,7 +62,7 @@ config3 <- list(
     distr = "gamma",
     parm  = function(d) list(
       shape = d$X2^2,
-      rate  = exp(sin(d$X2) + 0.5 * d$X2^2)
+      rate  = 1)
     )
   )
 )
