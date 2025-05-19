@@ -2,6 +2,7 @@ source("00_setup.R")
 source("01_transport_utils.R")
 source("02_generate_data.R")
 source("03_param_baseline.R")
+
 param_res <- fit_param(X_pi_train, X_pi_test, config)
 param_est <- param_res$param_est
 ll_delta_df_test <- param_res$ll_delta_df_test
