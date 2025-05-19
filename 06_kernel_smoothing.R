@@ -32,10 +32,12 @@ predict.mykernel <- function(object, newdata, type = "logdensity") {
           log_w <- log_w + dnorm((test[i, m] - train[, m]) / bw[m], log = TRUE)
         }
       }
+
       log_k <- dnorm((test[i, k] - train[, k]) / bw[k], log = TRUE) - log(bw[k])
       numer <- logsumexp(log_w + log_k)
       denom <- logsumexp(log_w)
       dens <- exp(numer - denom)
+
       ld_mat[i, k] <- safe_logdens(dens)
     }
   }
