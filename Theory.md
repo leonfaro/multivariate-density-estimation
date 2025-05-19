@@ -23,3 +23,4 @@
   * All $d_k$ Gaussian with linear $\theta_k$ $\;\to\;$ Gaussian copula (multivariate normal with regression).
   * Tree-based $\theta_k$ $\;\to\;$ transformation forest models for each conditional.
   * Neural network $\theta_k$ $\;\to\;$ autoregressive normalizing flow.
+* **Model inputs:** The three estimators—transformation forest, D-vine copula, and autoregressive normalizing flow—are trained and tested solely on the observation vectors $x^{(i)}\in\mathbb{R}^3$. Let $(x^{(i)})_{i=1}^{N_{\text{train}}}$ denote the training sample and $(x^{(i)})_{i=1}^{N_{\text{test}}}$ the test sample. Each algorithm processes the coordinates sequentially in the order $k=1,2,3$ without any side information about $\pi$ or the conditional factors. Parameter estimation relies only on these data.
