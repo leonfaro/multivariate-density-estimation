@@ -1,3 +1,25 @@
+# Joint evaluation of conditional density estimators -------------------------
+# - Input:
+#   * `Z_eta_test`      – reference sample for the test set.
+#   * `LD_hat`          – log-density matrix from transformation forests.
+#   * `KS_hat`          – log-density matrix from kernel smoothing.
+#   * `true_ll_mat_test` – true log-density contributions per dimension.
+#   * `ll_test`         – true joint log-likelihood from `02_generate_data.R`.
+#   * `loglik_dvine`    – joint log-density from the D-vine copula.
+#   * `ll_delta_df_test` – summary from the parametric baseline.
+# - Output:
+#   * `results/BlockE_scatterplots.pdf` – scatterplots comparing each estimator with the truth.
+#   * `results/joint_logdensity_scatterplot.png` – estimated vs true joint log-likelihood.
+#   * `results/evaluation_summary.csv` – aggregated log-likelihood comparisons.
+# - Algorithm:
+#   1. Reload objects created in the preceding scripts.
+#   2. Re-compute joint log-likelihoods via `loglik()` to verify forest and kernel fits.
+#   3. Visualise component-wise log-density estimates against the truth.
+#   4. Summarise log-likelihood discrepancies between each estimator and the truth.
+#   5. Save diagnostics and numeric summaries.
+#
+# All symbols are defined once and follow `Notation.md`.
+
 source("03_param_baseline.R")
 source("04_forest_models.R")
 source("06_kernel_smoothing.R")
