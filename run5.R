@@ -30,10 +30,3 @@ cat("Copula log-likelihood mismatch =", round(copula_mismatch, 3), "\n")
 
 eval_tab <- read.csv("results/evaluation_summary.csv")
 print(eval_tab)
-
-dt <- as.data.frame(X_pi_test)
-ll <- logLik(model$ymod[[1]], newdata = dt) +
-  sum(sapply(model$forests, logLik, newdata = dt))
-ld <- predict(model, newdata = dt)
-print(ll)
-print(all.equal(sum(ld), c(ll)))
