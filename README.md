@@ -40,7 +40,7 @@ therefore automatically ensured.
 ## Theory
 The theoretical background has been moved to [Theory.md](Theory.md) for clarity.
 ## Implementation
-* **Triangular transport map:** Implement by choosing distribution \$d\_k\$ and functional form for \$\theta\_k\$ for each dimension. The algorithm computes \$S^{-1}\$ and \$\ell(x)\$ by iterating \$k=1\$ to \$K\$. *Sampling:* draw \$z \sim \mathcal{N}(0,I\_K)\$ and set \$x\_k = q\_{d\_k}(\Phi(z\_k) \mid x\_{\<k}, x\_{\text{cov}})\$ sequentially to get a sample \$x\$. *Density evaluation:* given \$x\$, compute \$z=S(x)\$ and accumulate \$\log f\_{d\_k}(x\_k \mid x\_{\<k},x\_{\text{cov}}) - \log \varphi(z\_k)\$ over \$k\$. This yields exact likelihood values and allows fast simulation from \$\pi\$.
+* **Triangular transport map:** Implement by choosing distribution \$d\_k\$ and functional form for \$\theta\_k\$ for each dimension. The algorithm computes \$S^{-1}\$ and \$\ell(x)\$ by iterating \$k=1\$ to \$K\$. *Sampling:* draw \$z \sim \mathcal{N}(0,I\_K)\$ and set \$x\_k = q\_{d\_k}(\Phi(z\_k) \mid x\_{\<k})\$ sequentially to get a sample \$x\$. *Density evaluation:* given \$x\$, compute \$z=S(x)\$ and accumulate \$\log f\_{d\_k}(x\_k \mid x\_{\<k}) - \log \varphi(z\_k)\$ over \$k\$. This yields exact likelihood values and allows fast simulation from \$\pi\$.
 * **Transformation forest approach:** Instead of parametric \$\theta\_k\$, fit each conditional distribution with a nonparametric forest. For each \$k\$, treat \$Y\_k\$ as response and \$(Y\_{\<k}, X)\$ as covariates in a transformation forest. This produces an empirical CDF \$\hat F\_k(y\_k \mid y\_{\<k},x)\$ that is monotonic in \$y\_k\$. Use \$\hat F\_k\$ (and its inverse) in place of \$F\_{d\_k}\$ in the triangular map to obtain a fully data-driven \$S\$. The forest automatically captures interactions via tree splits, without explicit basis functions.
 - Let \(\hat F_k(x_k\mid x_{<k})\) be the conditional CDF estimated by a transformation forest fitting \(X_k\) on \(X_{<k}\).  Then
   \[
@@ -61,6 +61,11 @@ The theoretical background has been moved to [Theory.md](Theory.md) for clarity.
   This approach separates marginal and dependence modeling. If the dependence between \$Y\$ components changes with \$x\$, a static copula may be inadequate without allowing copula parameters to vary with \$x\$.
   * **Conditional normalizing flow:** Use an invertible neural network to model \$p(y|x)\$. For example, implement a coupling-layer or autoregressive flow with parameters conditioned on \$X\$. The network \$T\$ is trained such that \$z = T(y; x) \sim \mathcal{N}(0,I)\$. Training maximizes \$\sum\_i \log p\_{T}(y\_i \mid x\_i)\$ by gradient descent. This black-box model provides great flexibility (universal function approximation) at the cost of many parameters and less interpretability. It serves as a baseline for comparison, highlighting the trade-off between flexibility and interpretability.
 
+
+# Workflow
+The interaction of the main scripts is summarised in
+[workflow.md](workflow.md). It visualises the sequence executed by
+`run_all.R` and highlights which objects are passed between scripts.
 
 # Notation
 The full notation tables are available in [Notation.md](Notation.md).
