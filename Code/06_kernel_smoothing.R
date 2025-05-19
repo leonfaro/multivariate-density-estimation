@@ -1,4 +1,5 @@
 # Sequential kernel smoothing for conditional log-densities
+source("02_generate_data.R")
 # - Input: training data frame `X_pi_train` with `N` rows and `K` columns
 # - Output: `ks_model` object; `predict()` returns an `N_test x K` matrix of log-densities
 # - Algorithm:

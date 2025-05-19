@@ -19,7 +19,7 @@
 # Variablennamen folgen Notation.md
 # ------------------------------------------------------------------------------
 
-source("04_forest_models.R")
+source("02_generate_data.R")
 
 library(rvinecopulib)
 
