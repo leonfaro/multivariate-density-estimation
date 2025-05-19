@@ -26,8 +26,14 @@ source("06_kernel_smoothing.R")
 source("07_dvine_copula.R")
 
 ## joint log-likelihoods for forest and kernel estimators
-loglik_forest <- rowSums(LD_hat) - rowSums(dnorm(Z_eta_test, log = TRUE))
-loglik_kernel <- rowSums(KS_hat) - rowSums(dnorm(Z_eta_test, log = TRUE))
+## joint log-likelihoods of the estimators -----------------------------
+## LD_hat and KS_hat already contain log-density contributions for the
+## original data.  Hence the joint log-likelihood is simply the row sum
+## without any normalising Gaussian terms.
+loglik_forest <- rowSums(LD_hat)
+loglik_kernel <- rowSums(KS_hat)
+
+## diagnostic: difference between forest log-likelihood and truth
 delta_check <- sum(loglik_forest) - sum(ll_test)
 if (abs(delta_check) >= 1e-1) {
   message("Warning: forest log-likelihood mismatch = ", round(delta_check, 3))
@@ -58,16 +64,16 @@ stopifnot(all(is.finite(ld_hat)))
 stopifnot(all(is.finite(ld_true)))
 
 forest_df <- data.frame(
-  dim          = seq_len(ncol(LD_hat)),
-  ell_true     = colSums(true_ll_mat_test - dnorm(Z_eta_test, log = TRUE)),
-  loglik_forest = colSums(LD_hat - dnorm(Z_eta_test, log = TRUE))
+  dim           = seq_len(ncol(LD_hat)),
+  ell_true      = colSums(true_ll_mat_test),
+  loglik_forest = colSums(LD_hat)
 )
 forest_df$delta <- forest_df$ell_true - forest_df$loglik_forest
 
 kernel_df <- data.frame(
   dim           = seq_len(K),
-  ell_true      = colSums(true_ll_mat_test - dnorm(Z_eta_test, log = TRUE)),
-  loglik_kernel = colSums(KS_hat - dnorm(Z_eta_test, log = TRUE))
+  ell_true      = colSums(true_ll_mat_test),
+  loglik_kernel = colSums(KS_hat)
 )
 kernel_df$delta <- kernel_df$ell_true - kernel_df$loglik_kernel
 
