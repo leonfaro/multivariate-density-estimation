@@ -12,14 +12,11 @@
 ##   3. Predict log-density contributions on `X_pi_test` and assemble
 ##      them into `LD_hat`.
 ## -------------------------------------------------------------------
-source("02_generate_data.R")
-
 library(trtf)
 
-## reproducibility for the forest fit
-set.seed(2046)
-
-fit_forest <- function(data) {
+fit_forest <- function(X_pi_train, X_pi_test) {
+  set.seed(2046)
+  data <- as.data.frame(X_pi_train)
   ymod <- lapply(names(data), function(y)
     BoxCox(as.formula(paste0(y, "~1")), data = data)
   )
@@ -38,7 +35,9 @@ fit_forest <- function(data) {
       trace = TRUE
     )
   )
-  structure(list(ymod = ymod, forests = forests), class = "mytrtf")
+  model <- structure(list(ymod = ymod, forests = forests), class = "mytrtf")
+  LD_hat <- predict(model, newdata = as.data.frame(X_pi_test), type = "logdensity")
+  list(model = model, LD_hat = LD_hat)
 }
 
 predict.mytrtf <- function(object, newdata,
@@ -57,6 +56,3 @@ predict.mytrtf <- function(object, newdata,
   stopifnot(all(is.finite(ld_mat)))
   ld_mat
 }
-
-model  <- fit_forest(as.data.frame(X_pi_train))
-LD_hat <- predict(model, newdata = as.data.frame(X_pi_test), type = "logdensity")
