@@ -1,3 +1,6 @@
+N <- 50
+Sys.setenv(N_train = N, N_test = N)
+
 source("00_setup.R")
 source("01_transport_utils.R")
 source("02_generate_data.R")
@@ -15,3 +18,22 @@ model  <- forest_res$model
 LD_hat <- forest_res$LD_hat
 
 source("05_joint_evaluation.R")
+
+# summarize mismatches after all computations
+forest_mismatch <- sum(loglik_forest) - sum(ll_test)
+kernel_mismatch <- sum(loglik_kernel) - sum(ll_test)
+copula_mismatch <- ll_dvine_sum - sum(ll_test)
+
+cat("forest logL mismatch =", round(forest_mismatch, 3), "\n")
+cat("Kernel-smooth logL mismatch =", round(kernel_mismatch, 3), "\n")
+cat("Copula log-likelihood mismatch =", round(copula_mismatch, 3), "\n")
+
+eval_tab <- read.csv("results/evaluation_summary.csv")
+print(eval_tab)
+
+dt <- as.data.frame(X_pi_test)
+ll <- logLik(model$ymod[[1]], newdata = dt) +
+  sum(sapply(model$forests, logLik, newdata = dt))
+ld <- predict(model, newdata = dt)
+print(ll)
+print(all.equal(sum(ld), c(ll)))
