@@ -65,6 +65,7 @@ config3 <- list(
       rate  = 1)
     )
   )
+
 config <- config3
 
 ## dimension K of the target random vector X_pi
