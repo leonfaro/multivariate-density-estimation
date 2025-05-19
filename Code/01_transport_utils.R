@@ -1,3 +1,22 @@
+
+# Triangular transport utilities
+#
+# - **Input:** `config` list with `K` components.  Each `config[[k]]` defines
+#   the conditional distribution `distr` of \(X_k\mid X_{<k}\) and optionally a
+#   parameter function `parm`.
+# - **Output:** helper functions
+#     * `pdf_k`, `cdf_k`, `qtf_k` for density, distribution and quantile of each
+#       conditional law.
+#     * `S_inv` to compute \(X \sim \pi\) from reference variables \(U_\eta\) or
+#       \(Z_\eta\) including log-Jacobian values.
+#     * `pi_sample` to draw samples from the target by sequential inversion.
+# - **Algorithm:** for \(k=1,\dots,K\)
+#     1. Evaluate `config[[k]]$parm` on \(X_{<k}\) to obtain distribution
+#        parameters.
+#     2. Map \(U_{\eta,k}\) through `qtf_k` to get \(X_k\) and accumulate
+#        `logd[k]` via `pdf_k`.
+#   The monotonicity of each step ensures the map `S_inv` is invertible.
+
 source("00_setup.R")
 
 SAFE_PAR_COUNT <- 0
