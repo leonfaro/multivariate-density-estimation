@@ -25,8 +25,10 @@ source("04_forest_models.R")
 source("06_kernel_smoothing.R")
 source("07_dvine_copula.R")
 
-loglik_forest <- loglik(Z_eta_test, rowSums(LD_hat))
-loglik_kernel <- loglik(Z_eta_test, rowSums(KS_hat))
+adj_forest <- rowSums(LD_hat) - rowSums(dnorm(Z_eta_test, log = TRUE))
+adj_kernel <- rowSums(KS_hat) - rowSums(dnorm(Z_eta_test, log = TRUE))
+loglik_forest <- loglik(Z_eta_test, adj_forest)
+loglik_kernel <- loglik(Z_eta_test, adj_kernel)
 delta_check <- sum(loglik_forest) - sum(ll_test)
 if (abs(delta_check) >= 1e-1) {
   message("Warning: forest log-likelihood mismatch = ", round(delta_check, 3))
@@ -57,17 +59,16 @@ stopifnot(all(is.finite(ld_hat)))
 stopifnot(all(is.finite(ld_true)))
 
 forest_df <- data.frame(
-  dim        = seq_len(ncol(LD_hat)),
-  ell_true   = colSums(true_ll_mat_test),
-
-  loglik_forest = colSums(LD_hat)
+  dim          = seq_len(ncol(LD_hat)),
+  ell_true     = colSums(true_ll_mat_test),
+  loglik_forest = colSums(LD_hat - dnorm(Z_eta_test, log = TRUE))
 )
 forest_df$delta <- forest_df$ell_true - forest_df$loglik_forest
 
 kernel_df <- data.frame(
-  dim = seq_len(K),
-  ell_true = colSums(true_ll_mat_test),
-  loglik_kernel = colSums(KS_hat)
+  dim           = seq_len(K),
+  ell_true      = colSums(true_ll_mat_test),
+  loglik_kernel = colSums(KS_hat - dnorm(Z_eta_test, log = TRUE))
 )
 kernel_df$delta <- kernel_df$ell_true - kernel_df$loglik_kernel
 
