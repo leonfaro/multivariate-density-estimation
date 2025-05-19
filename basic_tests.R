@@ -1,7 +1,3 @@
-old_wd <- getwd()
-setwd("Code")
-on.exit(setwd(old_wd))
-
 source("00_setup.R")
 source("01_transport_utils.R")
 
