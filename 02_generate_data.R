@@ -33,12 +33,12 @@ U_eta_train <- samp_train$U_eta
 Z_eta_train <- samp_train$Z_eta
 logd_train <- samp_train$logd
 
-detJ_train <- det_J(logd_train)
-ll_train <- loglik(Z_eta_train, detJ_train)
+det_J_train <- det_J(logd_train)
+ll_train <- loglik(Z_eta_train, det_J_train)
 cat("Train EDA:\n")
 cat("- X_pi_train Mean: ", paste(round(colMeans(X_pi_train), 3), collapse = ", "), "\n")
 cat("- X_pi_train SD:   ", paste(round(apply(X_pi_train, 2, sd), 3), collapse = ", "), "\n")
-cat("- det(J)_train Range: [", round(min(detJ_train), 3), ",", round(max(detJ_train), 3), "]\n\n")
+cat("- det(J)_train Range: [", round(min(det_J_train), 3), ",", round(max(det_J_train), 3), "]\n\n")
 
 set.seed(2045)
 N_test <- as.integer(Sys.getenv("N_test", "500"))
@@ -48,12 +48,12 @@ U_eta_test <- samp_test$U_eta
 Z_eta_test <- samp_test$Z_eta
 logd_test <- samp_test$logd
 
-detJ_test <- det_J(logd_test)
-ll_test <- loglik(Z_eta_test, detJ_test)
+det_J_test <- det_J(logd_test)
+ll_test <- loglik(Z_eta_test, det_J_test)
 cat("Test EDA:\n")
 cat("- X_pi_test Mean: ", paste(round(colMeans(X_pi_test), 3), collapse = ", "), "\n")
 cat("- X_pi_test SD:   ", paste(round(apply(X_pi_test, 2, sd), 3), collapse = ", "), "\n")
-cat("- det(J)_test Range: [", round(min(detJ_test), 3), ",", round(max(detJ_test), 3), "]\n\n")
+cat("- det(J)_test Range: [", round(min(det_J_test), 3), ",", round(max(det_J_test), 3), "]\n\n")
 
 if (!dir.exists("results")) dir.create("results")
 
