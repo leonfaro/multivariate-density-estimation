@@ -44,7 +44,7 @@
   ◦ Heatmap empirische Copula der Residuen
 
 • **Dateistruktur**
-  ◦ `run_all.R` ruft `Code/00_setup.R` bis `Code/05_joint_evaluation.R` auf
+  ◦ `run_all.R` ruft `00_setup.R` bis `05_joint_evaluation.R` auf
   ◦ Output-Verzeichnis `results/` für CSV und PDF-Plots
 
 • **To-Do-Checkliste**
