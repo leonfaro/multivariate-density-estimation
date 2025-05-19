@@ -34,7 +34,8 @@ vine_struct <- dvine_structure(1:K)
 dvine_model <- vinecop(U_hat_train, structure = vine_struct)
 
 # log-copula densities for the test sample
-log_cop_test <- dvinecop(U_hat_test, dvine_model, log = TRUE)
+cop_dens <- dvinecop(U_hat_test, dvine_model)
+log_cop_test <- log(cop_dens)
 
 # joint log-density estimate via copula times marginals
 loglik_dvine <- rowSums(LD_hat) + log_cop_test
