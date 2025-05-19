@@ -1,6 +1,7 @@
 source("03_param_baseline.R")
 source("04_forest_models.R")
 source("06_kernel_smoothing.R")
+source("07_dvine_copula.R")
 
 loglik_forest <- loglik(Z_eta_test, rowSums(LD_hat))
 loglik_kernel <- loglik(Z_eta_test, rowSums(KS_hat))
@@ -29,7 +30,7 @@ ld_true <- rowSums(true_ll_mat_test)
 stopifnot(all(is.finite(ld_hat)))
 stopifnot(all(is.finite(ld_true)))
 
-delta_df <- data.frame(
+forest_df <- data.frame(
   dim        = seq_len(ncol(LD_hat)),
   ell_true   = colSums(true_ll_mat_test),
 
@@ -44,6 +45,10 @@ kernel_df <- data.frame(
 )
 kernel_df$delta <- kernel_df$ell_true - kernel_df$loglik_kernel
 
+# D-vine joint log-likelihood summary
+ll_dvine_sum <- sum(loglik_dvine)
+delta_dvine <- sum(ll_test) - ll_dvine_sum
+
 # merge results
 eval_df <- data.frame(
   dim = ll_delta_df_test$dim,
@@ -52,9 +57,11 @@ eval_df <- data.frame(
   ll_param_sum = ll_delta_df_test$ll_param_sum,
   ll_forest_sum = forest_df$loglik_forest,
   ll_kernel_sum = kernel_df$loglik_kernel,
+  ll_dvine_sum = ll_dvine_sum,
   delta_param = ll_delta_df_test$delta_ll,
   delta_forest = forest_df$delta,
-  delta_kernel = kernel_df$delta
+  delta_kernel = kernel_df$delta,
+  delta_dvine = delta_dvine
 )
 if (!dir.exists("results")) dir.create("results")
 write.csv(eval_df, "results/evaluation_summary.csv", row.names = FALSE)
@@ -63,8 +70,9 @@ png("results/joint_logdensity_scatterplot.png")
 plot(ld_hat, ld_true, xlab = "estimated", ylab = "true")
 abline(a = 0, b = 1)
 info_text <- sprintf(
-  "N = %d | sum(delta_param) = %.3f | sum(delta_forest) = %.3f",
-  N_test, sum(eval_df$delta_param), sum(eval_df$delta_forest)
+  "N = %d | sum(delta_param) = %.3f | sum(delta_forest) = %.3f | delta_dvine = %.3f",
+  N_test, sum(eval_df$delta_param), sum(eval_df$delta_forest),
+  delta_dvine
 )
 mtext(info_text, side = 1, line = 3)
 dev.off()

@@ -28,7 +28,10 @@ fit_forest <- function(data) {
   structure(list(ymod = ymod, forests = forests), class = "mytrtf")
 }
 
-predict.mytrtf <- function(object, newdata, type = "logdensity") {
+predict.mytrtf <- function(object, newdata,
+                           type = c("logdensity", "distribution",
+                                     "density", "trafo", "response")) {
+  type <- match.arg(type)
   ld1 <- predict(object$ymod[[1]], newdata = newdata, type = type)
   ldf <- lapply(object$forests, function(frst) {
     resp <- variable.names(frst$model)[1]
