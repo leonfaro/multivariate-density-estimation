@@ -32,6 +32,7 @@ if (abs(delta_check) >= 1e-1) {
   message("Warning: forest log-likelihood mismatch = ", round(delta_check, 3))
 }
 
+
 pdf("results/BlockE_scatterplots.pdf")
 par(mfrow = c(2, 2))
 for (k in seq_len(K)) {
