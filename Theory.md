@@ -60,6 +60,7 @@ with a monotone link to keep valid conditional densities.
 ## Special Cases
 * **Gaussian copula** – Gaussian \(f_{d_k}\) with linear \(\theta_k\).
 * **Transformation forest** – tree‑based \(\theta_k\).
+* **D-vine with TF marginals** – each transformation forest estimates the conditional CDF \(\hat F_k(y_k\mid x)\). A D-vine copula models only the dependence among uniform scores \(U_{ik}=\hat F_k(y_{ik}\mid x_i)\), or their probit transforms \(Z_{ik}=\Phi^{-1}(U_{ik})\). This realises the pipeline “conditional CDF \(\rightarrow\) ranks \(U\) \(\rightarrow\) copula”.
 * **Autoregressive normalising flow** – neural‑network \(\theta_k\).
 
 ## Model Inputs
