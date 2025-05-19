@@ -1,4 +1,5 @@
-results/
+results/*
+!results/.gitkeep
 output.txt
 output_counts.txt
 checks.log
