@@ -25,17 +25,20 @@ predict.mykernel <- function(object, newdata, type = "logdensity") {
   ntest <- nrow(test)
   ld_mat <- matrix(NA_real_, ntest, K)
   for (i in seq_len(ntest)) {
-  weights <- rep(1, nrow(train))
-  for (k in seq_len(K)) {
-  if (k > 1) {
-  for (m in seq_len(k - 1)) {
-  weights <- weights * dnorm((test[i, m] - train[, m]) / bw[m])
-  }
-  }
-  kern_vals <- dnorm((test[i, k] - train[, k]) / bw[k]) / bw[k]
-  dens <- sum(weights * kern_vals) / sum(weights)
-  ld_mat[i, k] <- safe_logdens(dens)
-  }
+    for (k in seq_len(K)) {
+      log_w <- rep(0, nrow(train))
+      if (k > 1) {
+        for (m in seq_len(k - 1)) {
+          log_w <- log_w + dnorm((test[i, m] - train[, m]) / bw[m], log = TRUE)
+        }
+      }
+      log_k <- dnorm((test[i, k] - train[, k]) / bw[k], log = TRUE) -
+        log(bw[k])
+      num <- logsumexp(log_w + log_k)
+      den <- logsumexp(log_w)
+      dens <- exp(num - den)
+      ld_mat[i, k] <- safe_logdens(dens)
+    }
   }
   ld_mat
 }
