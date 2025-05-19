@@ -1,3 +1,16 @@
+## Parametric baseline estimation --------------------------------------------
+# - Input
+#   * `X_pi_train`, `X_pi_test`: N x K matrices from 02_generate_data.R.
+#   * `config`: list describing the conditional distribution of each X_k.
+# - Output
+#   * Prints `ll_delta_df_test` with log-likelihood sums and their difference.
+#   * Reports `SAFE_PAR_COUNT` and `SAFE_SUPPORT_COUNT` for clipping events.
+# - Algorithm
+#   * For every k = 1,...,K define `nll_funs[[k]]`, the negative log-likelihood
+#     for the chosen distribution with regressors X_{1:k-1}.
+#   * Estimate parameters via `optim()` and store in `param_est[[k]]`.
+#   * Evaluate fitted log-densities on test data and compare with `pdf_k`.
+#   * Summarise the differences in `ll_delta_df_test`.
 source("02_generate_data.R")
 
 nll_funs <- list(
