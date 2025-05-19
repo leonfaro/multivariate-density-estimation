@@ -1,3 +1,24 @@
+# ------------------------------------------------------------------------------
+# Skript: 07_dvine_copula.R
+# Ziel: gemeinsamer Log-Dichte-Schätzer mittels D-Vine-Copula
+#
+# Eingabe:
+# - X_pi_train, X_pi_test: Matrizen (N × K) mit Beobachtungen im π-Raum
+# - model: fit_forest()-Objekt mit bedingten Verteilungen
+# - LD_hat: Log-Dichten der Marginalen für das Testset
+#
+# Ausgabe:
+# - loglik_dvine: Vektor mit Log-Dichte-Schätzungen für X_pi_test
+#
+# Algorithmus:
+# - mittels predict(..., type = "distribution") U_hat_train und U_hat_test berechnen
+# - dvine_structure(1:K) definieren und vinecop() auf U_hat_train anwenden
+# - dvinecop() liefert log-Kopuladichten für U_hat_test
+# - LD_hat mit den log-Kopuladichten addieren -> loglik_dvine
+#
+# Variablennamen folgen Notation.md
+# ------------------------------------------------------------------------------
+
 source("04_forest_models.R")
 
 library(rvinecopulib)
