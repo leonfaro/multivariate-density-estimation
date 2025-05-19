@@ -2,9 +2,9 @@
 # Simple lint: check for trailing whitespace in R files
 
 fail=0
-for f in Code/*.R tests/*.R; do
+for f in *.R tests/*.R; do
   case "$f" in
-    Code/demo* ) continue ;;
+    demo* ) continue ;;
   esac
   if grep -nE "[[:space:]]$" "$f" >/dev/null; then
     echo "Trailing whitespace found in $f" >&2
