@@ -1,176 +1,80 @@
-## Theory Multivariate Conditional Density Estimation with Likelihood Inference and Regression Analysis: Comparing Transformation Forest Models, Copulas and Normalizing Flows
+# Multivariate Conditional Density Estimation: Transformation Forests, Copulas, and Normalizing Flows
 
-* **Triangular factorisation.** Model the joint density via sequential univariate factors. For target variables $X_1,\ldots,X_K$ conditioned on external covariates $x_{\text{cov}}$
+## Triangular Factorisation
+For target variables \(X_1,\dots,X_K\) conditioned on external covariates \(x_{\text{cov}}\)
+\[
+\pi(x_1,\ldots,x_K \mid x_{\text{cov}})
+  = \prod_{k=1}^{K} f_{d_k}(x_k \mid x_{1:k-1}, x_{\text{cov}}),
+\]
+where each univariate density \(f_{d_k}\) has parameter function \(\theta_k(x_{1:k-1},x_{\text{cov}})\).
 
-  $$
-    \pi(x_1,\ldots,x_K \mid x_{\text{cov}})
-      = \prod_{k=1}^K f_{d_k}(x_k \mid x_{1:k-1}, x_{\text{cov}}),
-  $$
+## Transport Map
+Define conditional CDFs
+\[
+F_{d_k}(x_k \mid x_{1:k-1}, x_{\text{cov}})
+  = \int_{-\infty}^{x_k} f_{d_k}(t \mid x_{1:k-1}, x_{\text{cov}})\, \mathrm dt.
+\]
+The monotone triangular map \(S:\mathbb R^K\to\mathbb R^K\) is
+\[
+z_k = S_k(x_1,\dots,x_k) = \Phi^{-1}\!\bigl(F_{d_k}(x_k \mid x_{1:k-1},x_{\text{cov}})\bigr),
+\qquad k=1,\dots,K.
+\]
 
-  where each $f_{d_k}$ has parameter function $\theta_k(x_{1:k-1},x_{\text{cov}})$.
-* **Transport map $S$.** Let $F_{d_k}(x_k \mid x_{1:k-1},x_{\text{cov}})$ be the conditional distribution function. The map $S:\mathbb{R}^K\to\mathbb{R}^K$ is defined by
+## Inverse Transform (Sampling)
+For \(z\sim\mathcal N(0,I_K)\) set \(u_k=\Phi(z_k)\) and compute sequentially
+\[
+x_k = F_{d_k}^{-1}(u_k \mid x_{1:k-1}, x_{\text{cov}}),
+\]
+yielding \(x\sim\pi(\cdot\mid x_{\text{cov}})\).
 
-  $$
-    z_k
-      = S_k(x_1,\ldots,x_k)
-      = \Phi^{-1}\bigl(F_{d_k}(x_k \mid x_{1:k-1},x_{\text{cov}})\bigr),
-  $$
+## Likelihood
+Change of variables gives
+\[
+\pi(x\mid x_{\text{cov}})=
+  \eta\!\bigl(S(x)\bigr)\,
+  \prod_{k=1}^{K}
+    \frac{f_{d_k}(x_k \mid x_{1:k-1}, x_{\text{cov}})}{\varphi(z_k)},
+\]
+and the log‑likelihood
+\[
+\ell(x)=
+  -\tfrac12\|S(x)\|^2
+  + \sum_{k=1}^{K}\!\bigl[\log f_{d_k}(x_k \mid x_{1:k-1},x_{\text{cov}})-\log\varphi(z_k)\bigr].
+\]
+Maximising \(\sum_i \ell(x^{(i)})\) estimates \(\theta_k\).
 
-  and each component is monotone in $x_k$.
-* **Inverse transform.** For $z\sim\mathcal N(0,I_K)$ set $u_k=\Phi(z_k)$ and compute
+## Sparsity
+Impose conditional independence by restricting
+\(\theta_k\) to depend only on \(J_k\subset\{1,\dots,k-1\}\):
+\(X_k\perp X_j\mid\{X_i:i\in J_k\},x_{\text{cov}}\) for \(j\notin J_k\).
+Sparsity lowers complexity.
 
-  $$
-    x_k = F_{d_k}^{-1}(u_k \mid x_{1:k-1},x_{\text{cov}}),\qquad k=1,\ldots,K,
-  $$
+## Flexible Parameterisation
+Approximate the parameter functions via basis expansion
+\[
+\theta_k(x_{1:k-1},x_{\text{cov}})
+  \approx \sum_m c_{mk}\,\psi_{mk}(x_{1:k-1},x_{\text{cov}}),
+\]
+with a monotone link to keep valid conditional densities.
 
-  which yields $x\sim\pi(\cdot\mid x_{\text{cov}})$. Any $x$ maps to $z=S(x)$ in the same manner.
-* **Likelihood formula.** The change of variables gives
+## Special Cases
+* **Gaussian copula** – Gaussian \(f_{d_k}\) with linear \(\theta_k\).
+* **Transformation forest** – tree‑based \(\theta_k\).
+* **Autoregressive normalising flow** – neural‑network \(\theta_k\).
 
-  $$
-    \pi(x\mid x_{\text{cov}})
-      = \eta\bigl(S(x)\bigr)
-        \prod_{k=1}^K
-          \frac{f_{d_k}(x_k \mid x_{1:k-1},x_{\text{cov}})}{\varphi(z_k)},
-  $$
+## Model Inputs
+Algorithms use only observation vectors \(x^{(i)}\in\mathbb R^3\) split into training \((i=1,\dots,N_{\text{train}})\) and test samples \((i=1,\dots,N_{\text{test}})\). Processing order is \(k=1,2,3\).
 
-  hence
+## Implementation Details
+### Triangular Transport Map
+* **Sampling:** draw \(z\sim\mathcal N(0,I_K)\), set \(x_k=q_{d_k}(\Phi(z_k)\mid x_{<k},x_{\text{cov}})\) sequentially.
+* **Density Evaluation:** given \(x\), compute \(z=S(x)\) and accumulate \(\log f_{d_k}(x_k\mid x_{<k},x_{\text{cov}})-\log\varphi(z_k)\).
 
-  $$
-    \ell(x)
-      = -\tfrac12\|S(x)\|^2
-        + \sum_{k=1}^K \bigl[\log f_{d_k}(x_k \mid x_{1:k-1},x_{\text{cov}})
-          - \log \varphi(z_k)\bigr].
-  $$
-
-  Maximising $\sum_i \ell(x^{(i)})$ estimates $\theta_k$.
-* **Sparsity.** Restrict each $\theta_k$ to $J_k\subseteq\{1,\ldots,k-1\}$ so that $X_k\perp X_j\mid\{X_i\:i\in J_k\},x_{\text{cov}}$ whenever $j\notin J_k$. Sparsity reduces complexity.
-* **Flexible parameterisation.** Approximate
-
-  $$
-    \theta_k(x_{1:k-1},x_{\text{cov}})
-      \approx \sum_m c_{mk}\,\psi_{mk}(x_{1:k-1},x_{\text{cov}}),
-  $$
-
-  with basis functions $\psi_{mk}$. The monotonic link ensures valid conditional densities.
-* **Learning algorithm.** Train by maximising the log-likelihood via gradient descent or boosting. A map-adaptation strategy can start from the identity and iteratively enrich $\theta_k$. The triangular structure allows sequential or block-wise training.
-* **Unifying cases.**
-  * All $d_k$ Gaussian with linear $\theta_k$ yield a Gaussian copula.
-  * Tree-based $\theta_k$ lead to transformation forest models.
-  * Neural-network $\theta_k$ result in autoregressive normalising flows.
-* **Model inputs.** The estimators are trained and tested only on the observation vectors $x^{(i)}\in\mathbb{R}^3$. Let $(x^{(i)})_{i=1}^{N_{\text{train}}}$ denote the training sample and $(x^{(i)})_{i=1}^{N_{\text{test}}}$ the test sample. Each algorithm processes the coordinates sequentially in the order $k=1,2,3$ and relies solely on these data.
-* **Map implementation.** Our $S_k(x_1,\ldots,x_k)$ functions are transformation forests for the regression $x_k\sim x_{1:k-1}$. Monotonicity in $x_k$ is automatically ensured.
-
-### Triangular factorisation
-
-Consider target variables $X_1,\ldots,X_K$. For each index $k$ choose a univariate density family $f_{d_k}$ with parameter function $\theta_k(x_{1:k-1}, x_{\text{cov}})$. The conditional joint density is
-
-$$
-  \pi(x_1,\ldots,x_K \mid x_{\text{cov}})
-    = \prod_{k=1}^K f_{d_k}(x_k \mid x_{1:k-1}, x_{\text{cov}}).
-$$
-
-### Transport map
-
-Define
-
-$$
-  F_{d_k}(x_k \mid x_{1:k-1}, x_{\text{cov}})
-    = \int_{-\infty}^{x_k} f_{d_k}(t \mid x_{1:k-1}, x_{\text{cov}})\,\mathrm dt.
-$$
-
-The triangular map $S\colon\mathbb{R}^K\rightarrow\mathbb{R}^K$ sends $x=(x_1,\ldots,x_K)$ to $z=(z_1,\ldots,z_K)$ via
-
-$$
-  z_k = S_k(x_1,\ldots,x_k)
-      = \Phi^{-1}\bigl(F_{d_k}(x_k \mid x_{1:k-1}, x_{\text{cov}})\bigr).
-$$
-
-Each component is monotone in $x_k$, hence $S$ is invertible.
-
-### Inverse transform
-
-Let $z\sim\mathcal N(0,I_K)$. Set $u_k=\Phi(z_k)$ and compute
-
-$$
-  x_k = F_{d_k}^{-1}(u_k \mid x_{1:k-1}, x_{\text{cov}}),\quad k=1,\ldots,K.
-$$
-
-This yields $x\sim\pi(\cdot\mid x_{\text{cov}})$. Conversely, any $x$ maps to $z=S(x)$.
-
-### Likelihood
-
-The change-of-variables formula gives
-
-$$
-  \pi(x\mid x_{\text{cov}})
-    = \eta(S(x)) \prod_{k=1}^K \frac{f_{d_k}(x_k \mid x_{1:k-1}, x_{\text{cov}})}{\varphi(z_k)},
-$$
-
-where $\eta$ is the $K$-variate standard normal density and $\varphi$ is its one-dimensional version. The log-likelihood reads
-
-$$
-  \ell(x) = -\tfrac{1}{2}\|S(x)\|^2
-             + \sum_{k=1}^K \bigl[\log f_{d_k}(x_k \mid x_{1:k-1}, x_{\text{cov}}) - \log \varphi(z_k)\bigr].
-$$
-
-Maximising $\sum_i \ell(x^{(i)})$ estimates the functions $\theta_k$.
-
-### Sparsity and functional form
-
-Conditional independence enters by restricting $\theta_k$ to depend only on $J_k\subseteq\{1,\ldots,k-1\}$. Excluding $X_j$ with $j\notin J_k$ yields $X_k\perp X_j\mid\{X_i\:i\in J_k\},x_{\text{cov}}$. A sparse choice of $J_k$ reduces complexity.
-
-We may expand
-
-$$
-  \theta_k(x_{1:k-1}, x_{\text{cov}})
-    \approx \sum_{m} c_{mk}\,\psi_{mk}(x_{1:k-1}, x_{\text{cov}}),
-$$
-
-where ${\psi_{mk}}$ is a set of basis functions. The monotonic CDF link ensures validity of the conditional densities.
-
-### Learning algorithm
-
-Gradient-based optimisation or boosting maximises the log-likelihood. One strategy starts with the identity map and adds basis terms that increase the objective most. The triangular structure allows sequential or block-wise training.
-
-### Special cases
-
-* Gaussian $f_{d_k}$ with linear $\theta_k$ yield a Gaussian copula.
-* Tree-based parameter functions lead to transformation forests.
-* Neural network parameter functions give autoregressive normalising flows.
-
-### Model inputs
-
-The algorithms use only the observation vectors $x^{(i)}\in\mathbb{R}^3$. Let ${x^{(i)}}_{i=1}^{N_{\text{train}}}$ denote the training set and ${x^{(i)}}_{i=1}^{N_{\text{test}}}$ the test set. Each method processes the coordinates in the order $k=1,2,3$ without additional information.
-
-## Implementation
-
-* **Triangular transport map:** Implement by choosing distribution $d_k$ and functional form for $\theta_k$ for each dimension. The algorithm computes $S^{-1}$ and $\ell(x)$ by iterating $k=1$ to $K$.  
-  *Sampling:* draw $z \sim \mathcal{N}(0,I_K)$ and set $x_k = q_{d_k}(\Phi(z_k) \mid x_{<k}, x_{\text{cov}})$ sequentially to get a sample $x$.  
-  *Density evaluation:* given $x$, compute $z=S(x)$ and accumulate $\log f_{d_k}(x_k \mid x_{<k},x_{\text{cov}}) - \log \varphi(z_k)$ over $k$. This yields exact likelihood values and allows fast simulation from $\pi$.
-
-* **Transformation forest approach:** Instead of parametric $\theta_k$, fit each conditional distribution with a nonparametric forest. For each $k$, treat $Y_k$ as response and $(Y_{<k}, X)$ as covariates in a transformation forest. This produces an empirical CDF  
-  $\hat F_k(y_k \mid y_{<k},x)$ that is monotonic in $y_k$. Use $\hat F_k$ (and its inverse) in place of $F_{d_k}$ in the triangular map to obtain a fully data-driven $S$. The forest automatically captures interactions via tree splits without explicit basis functions.  
-
-  Let $\hat F_k(x_k\mid x_{<k})$ be the conditional CDF estimated by a transformation forest fitting $X_k$ on $X_{<k}$.  Then  
-  \[
-    S_k(x_1,\dots,x_k)
-      = \Phi^{-1}\bigl(\hat F_k(x_k\mid x_{<k})\bigr).
-  \]
-
-  For each fixed $x_{<k}$, $\hat F_k(\cdot\mid x_{<k})$ is non-decreasing in $x_k$ by construction of the forest-based CDF estimator; hence  
-  \[
-    \partial_{x_k}S_k(x_1,\dots,x_k)
-      = \frac{\partial_{x_k}\hat F_k(x_k\mid x_{<k})}{\varphi\bigl(\Phi^{-1}(\hat F_k(x_k\mid x_{<k}))\bigr)}.
-  \]
-
-* **Copula-based approach:** Combine estimated marginals $\hat F_k$ with a copula $C$ to approximate the full conditional distribution, e.g.  
-  \[
-    F(y_1,\dots,y_d \mid x) \approx C\!\big(\hat F_1(y_1|x),\,\dots,\,\hat F_d(y_d|x)\big).
-  \]
-  This separates marginal and dependence modelling. If dependence between components changes with covariates, copula parameters should vary with $x$.
+### Transformation Forest Variant
+For each \(k\) fit a transformation forest of \(X_k\) on \((X_{<k},x_{\text{cov}})\) to obtain a monotone empirical CDF \(\hat F_k\). Substitute \(\hat F_k\) and its inverse for \(F_{d_k}\) in the map:
+\[
+S_k(x_1,\dots,x_k)=\Phi^{-1}\!\bigl(\hat F_k(x_k\mid x_{<k},x_{\text{cov}})\bigr).
+\]
 
 
 
-### Model inputs
-
-The algorithms use only the observation vectors $x^{(i)}\in\mathbb{R}^3$. Let $\{x^{(i)}\}_{i=1}^{N_{\text{train}}}$ denote the training set and $\{x^{(i)}\}_{i=1}^{N_{\text{test}}}$ the test set. Each method processes the coordinates in the order $k=1,2,3$ without additional information.
