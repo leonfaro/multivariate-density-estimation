@@ -17,6 +17,16 @@ clip <- function(x, lo = 1e-6, hi = 1e6) {
 ## Machine epsilon (approx. 1e-10) for log-stability
 EPS <- 1e-10
 
+## numerically stable log-sum-exp ------------------------------------------------
+## Compute \( \log\sum_i e^{x_i} \) without overflow.
+logsumexp <- function(x) {
+  stopifnot(is.numeric(x))
+  m <- max(x)
+  res <- m + log(sum(exp(x - m)))
+  stopifnot(is.finite(res))
+  res
+}
+
 ## Numerically safe log of a pdf value
 safe_logpdf <- function(val, eps = EPS) {
   res <- log(pmax(val, eps))
