@@ -25,10 +25,9 @@ source("04_forest_models.R")
 source("06_kernel_smoothing.R")
 source("07_dvine_copula.R")
 
-adj_forest <- rowSums(LD_hat) - rowSums(dnorm(Z_eta_test, log = TRUE))
-adj_kernel <- rowSums(KS_hat) - rowSums(dnorm(Z_eta_test, log = TRUE))
-loglik_forest <- loglik(Z_eta_test, adj_forest)
-loglik_kernel <- loglik(Z_eta_test, adj_kernel)
+## joint log-likelihoods for forest and kernel estimators
+loglik_forest <- rowSums(LD_hat) - rowSums(dnorm(Z_eta_test, log = TRUE))
+loglik_kernel <- rowSums(KS_hat) - rowSums(dnorm(Z_eta_test, log = TRUE))
 delta_check <- sum(loglik_forest) - sum(ll_test)
 if (abs(delta_check) >= 1e-1) {
   message("Warning: forest log-likelihood mismatch = ", round(delta_check, 3))
@@ -60,21 +59,24 @@ stopifnot(all(is.finite(ld_true)))
 
 forest_df <- data.frame(
   dim          = seq_len(ncol(LD_hat)),
-  ell_true     = colSums(true_ll_mat_test),
+  ell_true     = colSums(true_ll_mat_test - dnorm(Z_eta_test, log = TRUE)),
   loglik_forest = colSums(LD_hat - dnorm(Z_eta_test, log = TRUE))
 )
 forest_df$delta <- forest_df$ell_true - forest_df$loglik_forest
 
 kernel_df <- data.frame(
   dim           = seq_len(K),
-  ell_true      = colSums(true_ll_mat_test),
+  ell_true      = colSums(true_ll_mat_test - dnorm(Z_eta_test, log = TRUE)),
   loglik_kernel = colSums(KS_hat - dnorm(Z_eta_test, log = TRUE))
 )
 kernel_df$delta <- kernel_df$ell_true - kernel_df$loglik_kernel
 
-# D-vine joint log-likelihood summary
-ll_dvine_sum <- sum(loglik_dvine)
-delta_dvine <- sum(ll_test) - ll_dvine_sum
+# D-vine joint log-likelihood summary (per dimension)
+ll_dvine_sum <- colSums(loglik_dvine_mat)
+ll_true_cum <- sapply(seq_len(K), function(k)
+  sum(rowSums(true_ll_mat_test[, 1:k, drop = FALSE]))
+)
+delta_dvine <- ll_true_cum - ll_dvine_sum
 
 # merge results
 eval_df <- data.frame(
@@ -99,7 +101,7 @@ abline(a = 0, b = 1)
 info_text <- sprintf(
   "N = %d | sum(delta_param) = %.3f | sum(delta_forest) = %.3f | delta_dvine = %.3f",
   N_test, sum(eval_df$delta_param), sum(eval_df$delta_forest),
-  delta_dvine
+  delta_dvine[length(delta_dvine)]
 )
 mtext(info_text, side = 1, line = 3)
 dev.off()
