@@ -31,6 +31,12 @@ safe_logdens <- function(val, eps = EPS, hi = 1e6) {
   res
 }
 
+## log-sum-exp for stable aggregation
+logsumexp <- function(x) {
+  m <- max(x)
+  m + log(sum(exp(x - m)))
+}
+
 ## Bound a CDF away from 0 and 1
 safe_cdf <- function(val, eps = EPS) {
   res <- pmax(eps, pmin(1 - eps, val))
