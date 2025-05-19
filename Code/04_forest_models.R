@@ -1,7 +1,20 @@
+
+## -------------------------------------------------------------------
+## Overview of this script
+## - Input: training sample `X_pi_train` and test sample `X_pi_test`
+##   generated in `02_generate_data.R`.
+## - Output: transformation forest model `model` and matrix `LD_hat`
+##   containing log-density contributions for the test data.
+## - Algorithm:
+##   1. Fit a marginal Box--Cox model for each component of `X_pi_train`.
+##   2. Fit a conditional transformation forest for each response
+##      `X_pi_k` given `X_pi_{<k}`.
+##   3. Predict log-density contributions on `X_pi_test` and assemble
+##      them into `LD_hat`.
+## -------------------------------------------------------------------
 source("02_generate_data.R")
 
 library(trtf)
-library(tram)
 
 ## reproducibility for the forest fit
 set.seed(2046)
