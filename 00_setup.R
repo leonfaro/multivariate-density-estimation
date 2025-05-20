@@ -56,15 +56,10 @@ safe_cdf <- function(val, eps = EPS) {
 
 ## Default configuration for three illustrative distributions
 config3 <- list(
-  list(distr = "norm",  parm = NULL),
-  list(distr = "exp",   parm = function(d) list(rate = exp(d$X1))),
-  list(
-    distr = "gamma",
-    parm  = function(d) list(
-      shape = d$X2^2,
-      rate  = 1)
-    )
-  )
+  list(distr = "norm", parm = NULL),
+  list(distr = "exp",  parm = function(d) list(rate = exp(d$X1))),
+  list(distr = "pois", parm  = function(d) list(lambda = d$X2))
+)
 
 config <- config3
 
