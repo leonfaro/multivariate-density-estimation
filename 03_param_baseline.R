@@ -1,16 +1,11 @@
-## Parametric baseline estimation --------------------------------------------
-# - Input
-#   * `X_pi_train`, `X_pi_test`: N x K matrices from 02_generate_data.R.
-#   * `config`: list describing the conditional distribution of each X_k.
-# - Output
-#   * Prints `ll_delta_df_test` with log-likelihood sums and their difference.
-#   * Reports `SAFE_PAR_COUNT` and `SAFE_SUPPORT_COUNT` for clipping events.
-# - Algorithm
-#   * For every k = 1,...,K define a negative log-likelihood via
-#     `nll_fun_from_cfg()`.
-#   * Estimate parameters via `optim()` and store in `param_est[[k]]`.
-#   * Evaluate fitted log-densities on test data with `eval_ll_from_cfg()`.
-#   * Summarise the differences in `ll_delta_df_test`.
+## Parametrischer Baseline-Fit ---------------------------------------------
+# Eingabe: Matrizen `X_pi_train`, `X_pi_test`, Liste `config`
+# Ausgabe: `param_est`, Tabelle `ll_delta_df_test`, Zähler für Clipping
+# Ablauf:
+#   * für jedes k Negativ-Loglikelihood via `nll_fun_from_cfg()`
+#   * Parameter mit `optim()` schätzen
+#   * Logdichten mit `eval_ll_from_cfg()` auswerten
+#   * Differenzen in `ll_delta_df_test` sammeln
 
 safe_optim <- function(par, fn, ...) {
   res <- optim(par, fn, hessian = TRUE, ...)
@@ -20,9 +15,9 @@ safe_optim <- function(par, fn, ...) {
   res
 }
 
-## Generic negative log-likelihood -----------------------------------------
-# Each component has two parameters `pars[1]` (intercept) and `pars[2]` (slope).
-# The slope multiplies the immediate predecessor `X_{k-1}` if k > 1.
+## generisches Negativ-Loglikelihood -------------------------------------
+# Parameter: `pars[1]` Intercept, `pars[2]` Steigung
+# Steigung wirkt auf Vorfahre `X_{k-1}` falls k>1
 nll_fun_from_cfg <- function(k, cfg) {
   dname <- cfg[[k]]$distr
   function(par, xs, Xprev) {
