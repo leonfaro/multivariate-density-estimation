@@ -1,6 +1,6 @@
 N <- 500
-# Choose which configuration to use: 3 or 4
-config_choice <- 4
+# fixed three-dimensional setup
+config_choice <- 3
 Sys.setenv(N_train = N, N_test = N)
 
 source("00_setup.R")
