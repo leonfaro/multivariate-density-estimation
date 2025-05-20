@@ -26,7 +26,7 @@ par_map_from_cfg <- function(k, cfg) {
   } else if (dname == "exp") {
     function(p, Xprev) list(rate = exp(p[1] + p[2] * Xprev[, 1]))
   } else if (dname == "pois") {
-    function(p, Xprev) list(lambda = exp(p[1]) * Xprev[, 2])
+    function(p, Xprev) list(lambda = exp(p[1] + p[2] * Xprev[, 2]))
   } else {
     stop("Unsupported distribution: ", dname)
   }
@@ -58,7 +58,7 @@ fit_param <- function(X_pi_train, X_pi_test, config) {
 
   nll_funs <- lapply(seq_len(K), nll_fun_from_cfg, cfg = config)
 
-  init_vals <- list(c(0, 0), c(0, 0), c(0))
+  init_vals <- list(c(0, 0), c(0, 0), c(0, 0))
   param_est <- vector("list", K)
   for (k in seq_len(K)) {
     xs    <- X_pi_train[, k]
@@ -72,6 +72,7 @@ fit_param <- function(X_pi_train, X_pi_test, config) {
                      else numeric(0), config, log = TRUE))
     delta_ll <- tll - pll
     message(sprintf("dim %d delta_ll_train %.3f", k, delta_ll))
+    stopifnot(abs(delta_ll) < 1e2)
 
     if (k > 1) {
       new_par <- SAFE_PAR_COUNT
@@ -98,7 +99,8 @@ fit_param <- function(X_pi_train, X_pi_test, config) {
     ll_true_sum  = apply(true_ll_mat_test, 2, sum),
     ll_param_sum = apply(param_ll_mat_test, 2, sum)
   )
-  ll_delta_df_test$delta_ll <- ll_delta_df_test$ll_true_sum - ll_delta_df_test$ll_param_sum
+  ll_delta_df_test$delta_ll_param <-
+    ll_delta_df_test$ll_true_sum - ll_delta_df_test$ll_param_sum
   ll_delta_df_test[, 3:5] <- round(ll_delta_df_test[, 3:5], 3)
 
   list(
