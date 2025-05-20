@@ -1,10 +1,13 @@
 N <- 50
 SEED <- 2023
-set.seed(SEED)
+
 Sys.setenv(N_train = N, N_test = N)
 
 source("00_setup.R")
+set.seed(SEED)  # override default seed from 00_setup.R
 config <- config4
+K <- length(config)
+
 source("01_transport_utils.R")
 source("02_generate_data.R")
 source("03_param_baseline.R")
