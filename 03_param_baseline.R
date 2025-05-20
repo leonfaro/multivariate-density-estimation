@@ -114,11 +114,14 @@ fit_param <- function(X_pi_train, X_pi_test, config) {
     eval_ll_from_cfg(k, param_est[[k]], X_pi_test, config)
   )
 
+  ## per-observation joint log-likelihood using row sums (see AGENTS.md)
+  ll_param_sum <- rowSums(param_ll_mat_test)
+
   ll_delta_df_test <- data.frame(
     dim          = seq_len(K),
     distribution = sapply(config, `[[`, "distr"),
     ll_true_sum  = apply(true_ll_mat_test, 2, sum),
-    ll_param_sum = apply(param_ll_mat_test, 2, sum)
+    ll_param_sum = colSums(param_ll_mat_test)
   )
   ll_delta_df_test$delta_ll_param <-
     ll_delta_df_test$ll_true_sum - ll_delta_df_test$ll_param_sum
