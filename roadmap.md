@@ -1,46 +1,65 @@
 ---
+### **Block 0 (Setup & Reproducibility) - new**
 
-### **Block 0 (Setup & Reproduzierbarkeit) – neu**
-
-* **00\_setup.R**
-
-  * Setze `set.seed(SEED)` mit SEED = 24
-  * Definiere `EPS`, `SAFE_CLIP`, `logsumexp()`, usw. wie bereits vorhanden („numerically safe utility layer“).
----
-
-### Block A (K = 3 Festlegung)
-
-* **config3** bleibt (norm, exp, pois), doch:
-  * **Statt `lambda = d$X2`** verwende `lambda = clip(exp(d$X2), EPS, 1e6)`; so ist Positivität garantiert und identisch zum Clip-Schema anderer Verteilungen.
-  * Hinterlege `K <- length(config)` global; alle subsequent scripts lesen `K`, nicht umgekehrt.
----
-
-### Block B (Daten-Generating-Prozess)
-
-* **02\_generate\_data.R**
-   Erzeuge `samp_train`, `samp_test` exakt wie jetzt, aber
-    * **speichere den Seed in der CSV-Datei** (`attr(..., "seed") <- SEED`), damit später rekonstruierbar.
-    * **speichere auch `det_J` und die wahren Log-Likelihood‐Spalten** in den CSVs; das erleichtert unit tests.
-  * Die Hilfsfunktionen `eta_sample()`, `S_inv()` usw. bleiben unverändert .
+* **00_setup.R**
+  * Call `set.seed(SEED)` with `SEED <- 24`.
+  * Define `EPS`, `SAFE_CLIP`, `logsumexp()`, etc. as in the existing
+    numerically safe utility layer.
 
 ---
 
-### Block C (Parametrische Baseline)
+### Block A (K = 3 setting)
 
-* **03\_param\_baseline.R**
+* **config3** stays as (norm, exp, pois), but:
+  * **Instead of `lambda = d$X2`** use  
+    `lambda = clip(exp(d$X2), EPS, 1e6)`; this guarantees positivity and
+    matches the clipping scheme of the other distributions.
+  * Store `K <- length(config)` as a global so that all subsequent
+    scripts *read* `K` rather than redefine it.
 
-  * **Generischer Ansatz:** baue `nll_fun_from_cfg(k, cfg)` und `eval_ll_from_cfg()` – so verschwindet der manuelle Switch-Block und die Gefahr des Gamma/Poisson-Vertauschers (Fehler aus dem ursprünglichen Code).
-  * Führe nach jedem Fit `stopifnot(abs(Δℓ_k) < 1e2)` aus und addiere `testthat`-Files in `tests/testthat/`.
-  * **Out-of-sample Δℓ** wird in `ll_delta_df_test` berechnet, aber die Spalte heißt nun strikt `delta_ll_param` wie in run3.R.
 ---
 
-### Block D (Evaluierung & Reporting) – neu
+### Block B (Data generating process)
+
+* **02_generate_data.R**  
+  Create `samp_train` and `samp_test` exactly as now, but
+  * **write the seed to the CSV file** with  
+    `attr(csv_object, "seed") <- SEED` so runs are reproducible later.
+  * **also store `det_J` and the true log-likelihood columns** in the CSVs
+    to simplify unit tests.
+* Helper functions `eta_sample()`, `S_inv()`, etc. remain unchanged.
+
+---
+
+### Block C (Parametric baseline)
+
+* **03_param_baseline.R**
+  * **Generic approach:** implement `nll_fun_from_cfg(k, cfg)` and
+    `eval_ll_from_cfg()`.  
+    This removes the manual switch block and prevents the
+    Gamma/Poisson mix-up that was in the original code.
+  * After every fit run  
+    `stopifnot(abs(delta_l_k) < 1e2)`  
+    and add matching `testthat` files in `tests/testthat/`.
+  * **Out-of-sample delta_l** is computed in `ll_delta_df_test`, but the
+    column is now strictly called `delta_ll_param` as in `run3.R`.
+
+---
+
+### Block D (Evaluation & reporting) - new
 
 * **run3.R**
-* Für ein strikt monoton-trianguläres S müssen alle Diagonal-Ableitungen ∂<sub>x k</sub>S<sub>k</sub>>0 gelten; damit ist auch det (J)>0 .
-    ---
+* For a strictly monotone triangular map `S`, every diagonal derivative  
+  `partial_{x_k} S_k` must be `> 0`; this implies `det(J) > 0`.
 
-### Weitere Rigorositäts-Details
+---
 
-1. **Notation**: Jede Variable erhält `_pi` (target) oder `_eta` (reference) Suffix gemäß Tabelle 1 des Tutorials .
-2. **Log-Determinant**: Stelle sicher, dass `det_J(logd)` summiert **vor** dem Bias-Term im Log-Likelihood-Call auftaucht .
+### Further rigor details
+
+1. **Notation:** Every variable gets the suffix `_pi` (target domain) or
+   `_eta` (reference domain) exactly as in Table 1 of the tutorial.
+2. **Log determinant:** Make sure `det_J(logd)` is added **before** the
+   bias term inside the log-likelihood call.
+
+---
+
