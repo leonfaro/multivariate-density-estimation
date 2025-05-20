@@ -60,7 +60,18 @@ config3 <- list(
     list(lambda = clip(exp(d$X2), EPS, 1e6)))
 )
 
-config <- config3
+## Alternative configuration with four distributions
+config4 <- list(
+  list(distr = "norm",    parm = NULL),
+  list(distr = "t",       parm = function(d) list(df = 3 + 0.5 * d$X1)),
+  list(distr = "laplace", parm = function(d)
+    list(m = 0.3 * d$X2, s = clip(1 + 0.1 * d$X2))),
+  list(distr = "logis",   parm = function(d)
+    list(location = 0.2 * d$X3, scale = clip(1 + 0.05 * d$X3)))
+)
+
+if (!exists("config_choice")) config_choice <- 3
+config <- if (config_choice == 4) config4 else config3
 
 ## dimension K of the target random vector X_pi
 K <- length(config)

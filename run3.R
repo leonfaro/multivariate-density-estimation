@@ -1,4 +1,6 @@
 N <- 100
+# Choose which configuration to use: 3 or 4
+config_choice <- 3
 Sys.setenv(N_train = N, N_test = N)
 
 source("00_setup.R")
