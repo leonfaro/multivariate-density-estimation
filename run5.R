@@ -39,18 +39,19 @@ eval_tab <- read.csv("results/evaluation_summary.csv")
 print(eval_tab)
 
 
-png("results/run5_logdensity_scatterplot.png")
 plot(ld_hat, ld_true,
+     col = "steelblue", pch = 16,
      xlab = "estimated log-density",
      ylab = "true log-density")
-abline(a = 0, b = 1)
-dev.off()
-message("Saved plot to results/run5_logdensity_scatterplot.png")
+points(ld_hat_ks, ld_true,
+       col = "firebrick", pch = 17)
 
-png("results/run5_kernel_logdensity_scatterplot.png")
-plot(ld_hat_ks, ld_true,
-     xlab = "estimated log-density",
-     ylab = "true log-density")
-abline(a = 0, b = 1)
-dev.off()
-message("Saved plot to results/run5_kernel_logdensity_scatterplot.png")
+
+abline(a = 0, b = 1, lty = 2)
+
+
+legend("topleft",
+       legend = c("trtf", "Kernel-smooth"),
+       col    = c("steelblue", "firebrick"),
+       pch    = c(16, 17),
+       bty    = "n")
