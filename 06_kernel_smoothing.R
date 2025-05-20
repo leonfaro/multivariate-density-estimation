@@ -1,14 +1,13 @@
-# Sequential kernel smoothing for conditional log-densities
-# - Input: training data frame `X_pi_train` with `N` rows and `K` columns
-# - Output: `ks_model` object; `predict()` returns an `N_test x K` matrix of log-densities
-# - Algorithm:
-#   * Compute Silverman's bandwidth for each column: `bw[k] = 1.06 * sd(X[, k]) * N^(-1/5)`
-#   * For a new observation `x` iterate over `k = 1, \dots, K`
-#     - Accumulate weights from kernels of the previous `k-1` variables
-#     - Evaluate the Gaussian kernel at `x_k` and divide by `bw[k]`
-#     - Obtain the conditional density by a weighted average
-#     - Store the log-density via `safe_logdens()`
-#   * Repeat for all rows in `newdata`
+# Sequentielle Kernel-Glättung für Logdichten
+# Eingabe: Datenmatrix `X_pi_train` (N x K)
+# Ausgabe: Objekt `ks_model`; `predict()` liefert N_test x K Logdichten
+# Ablauf:
+#   * Bandbreite bw[k] = 1.06 * sd(X[,k]) * N^(-1/5)
+#   * für jedes Test-x und k:
+#       - Gewichte der früheren k-1 Variablen aufsummieren
+#       - Gauß-Kernel an x_k / bw[k]
+#       - gewichtete Dichte berechnen
+#       - Logdichte via `safe_logdens()` speichern
 
 fit_kernel <- function(data) {
   N <- nrow(data)

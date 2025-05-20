@@ -1,10 +1,19 @@
+# Beispiel-Run --------------------------------------------------------------
+# Erstellt kleine Beispieldaten und vergleicht drei Dichteschätzer
+# Eingabe: keine (N siehe unten)
+# Ausgabe: Diagnostik in `results/` und Plot auf dem Bildschirm
+# Schritte:
+#   1. Daten generieren mit `02_generate_data.R`
+#   2. Parametrisch, Forest und Kernel fitten
+#   3. Loglikelihood-Abweichungen zusammenfassen und visualisieren
+
 N <- 50
 SEED <- 2023
 
 Sys.setenv(N_train = N, N_test = N)
 
 source("00_setup.R")
-set.seed(SEED)  # override default seed from 00_setup.R
+set.seed(SEED)  # Seed hier überschreiben
 config <- config4
 K <- length(config)
 
@@ -27,7 +36,7 @@ source("06_kernel_smoothing.R")
 
 source("05_joint_evaluation.R")
 
-# summarize mismatches after all computations
+# Zusammenfassung der Abweichungen
 target_ll <- sum(ll_test)
 forest_mismatch <- sum(loglik_trtf) - target_ll
 kernel_mismatch <- sum(loglik_kernel) - target_ll

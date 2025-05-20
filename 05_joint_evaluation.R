@@ -1,37 +1,30 @@
-# Joint evaluation of conditional density estimators -------------------------
-# - Input:
-#   * `Z_eta_test`      – reference sample for the test set.
-#   * `LD_hat`          – log-density matrix from transformation forests.
-#   * `true_ll_mat_test` – true log-density contributions per dimension.
-#   * `ll_test`         – true joint log-likelihood from `02_generate_data.R`.
-#   * `ll_delta_df_test` – summary from the parametric baseline.
-# - Output:
-#   * `results/joint_logdensity_scatterplot.png` – estimated vs true joint log-likelihood.
-#   1. Reload objects created in the preceding scripts.
-#   2. Re-compute joint log-likelihoods via `loglik()` to verify forest .
-#   3. Visualise component-wise log-density estimates against the truth.
-#   4. Summarise log-likelihood discrepancies between each estimator and the truth.
-#   5. Save diagnostics and numeric summaries.
-#
-# All symbols are defined once and follow `Notation.md`.
+# Gemeinsame Bewertung der Schätzer -------------------------------------
+# Eingabe:
+#   * `Z_eta_test` Referenz-Stichprobe
+#   * `LD_hat` Logdichte-Matrix der Transformation-Forest
+#   * `true_ll_mat_test` wahre Logdichte pro Dimension
+#   * `ll_test` wahre gemeinsame Loglikelihood
+#   * `ll_delta_df_test` Zusammenfassung des parametrischen Fits
+# Ausgabe:
+#   * `results/evaluation_summary.csv` mit Summen je Dimension
+#   * `results/joint_logdensity_scatterplot.png` Vergleich wahr/geschätzt
+# Schritte:
+#   1. Vorherige Objekte laden
+#   2. Loglikelihoods mit `loglik()` prüfen
+#   3. Wahre vs geschätzte Logdichten plotten
+#   4. Abweichungen zusammenfassen und speichern
+# Notation siehe Notation.md
 
 source("03_param_baseline.R")
 source("04_forest_models.R")
-## Expect KS_hat from kernel smoothing already computed
-
-
-
-
-
-## joint log-likelihoods for forest
-## joint log-likelihoods of the estimators -----------------------------
-## LD_hat already contain log-density contributions for the
-## original data.  Hence the joint log-likelihood is simply the row sum
-## without any normalising Gaussian terms.
+## `KS_hat` aus Kernelglättung muss vorhanden sein
+## gemeinsame Loglikelihoods der Schätzer ---------------------------
+## LD_hat enthält schon Logdichten der Originaldaten
+## daher Zeilensummen ohne Zusatzterme
 loglik_trtf <- rowSums(LD_hat)
 loglik_kernel <- rowSums(KS_hat)
 
-## diagnostic: difference between forest log-likelihood and truth
+## Diagnose: Unterschied Forest-Loglikelihood
 delta_check <- sum(loglik_trtf) - sum(ll_test)
 message(sprintf("trtf log-likelihood mismatch = %.3f", delta_check))
 delta_check_ks <- sum(loglik_kernel) - sum(ll_test)
@@ -40,7 +33,7 @@ message(sprintf("kernel log-likelihood mismatch = %.3f", delta_check_ks))
 
 
 
-## plot true vs estimated joint log-densities
+## Plot wahr vs geschätzt für gemeinsame Logdichte
 ld_hat  <- rowSums(LD_hat)
 ld_true <- rowSums(true_ll_mat_test)
 ld_hat_ks <- rowSums(KS_hat)
@@ -63,7 +56,7 @@ kernel_df <- data.frame(
 kernel_df$delta <- kernel_df$ell_true - kernel_df$loglik_kernel
 
 
-# merge results
+## Ergebnisse zusammenführen
 eval_df <- data.frame(
   dim = ll_delta_df_test$dim,
   distribution = ll_delta_df_test$distribution,
