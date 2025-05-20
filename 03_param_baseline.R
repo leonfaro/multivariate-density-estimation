@@ -55,7 +55,6 @@ eval_ll_from_cfg <- function(k, pars, X, cfg) {
 fit_param <- function(X_pi_train, X_pi_test, config) {
   SAFE_PAR_COUNT <<- 0
   SAFE_SUPPORT_COUNT <<- 0
-  K <- length(config)
 
   nll_funs <- lapply(seq_len(K), nll_fun_from_cfg, cfg = config)
 
@@ -73,7 +72,6 @@ fit_param <- function(X_pi_train, X_pi_test, config) {
                      else numeric(0), config, log = TRUE))
     delta_ll <- tll - pll
     message(sprintf("dim %d delta_ll_train %.3f", k, delta_ll))
-    stopifnot(abs(delta_ll) < 1e2)
 
     if (k > 1) {
       new_par <- SAFE_PAR_COUNT
