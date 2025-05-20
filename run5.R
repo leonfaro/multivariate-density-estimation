@@ -64,3 +64,5 @@ legend("topleft",
        col    = c("steelblue", "firebrick"),
        pch    = c(16, 17),
        bty    = "n")
+
+source("dump_run5_code.R")
