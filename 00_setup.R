@@ -56,7 +56,8 @@ safe_cdf <- function(val, eps = EPS) {
 config3 <- list(
   list(distr = "norm", parm = NULL),
   list(distr = "exp",  parm = function(d) list(rate = exp(d$X1))),
-  list(distr = "pois", parm  = function(d) list(lambda = d$X2))
+  list(distr = "pois", parm  = function(d)
+    list(lambda = clip(exp(d$X2), EPS, 1e6)))
 )
 
 config <- config3
