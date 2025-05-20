@@ -31,6 +31,16 @@ cat("- log_det(J)_test Range: [",
     round(min(test_df$det_J), 3), ",",
     round(max(test_df$det_J), 3), "]\n\n")
 
+summary_stats <- data.frame(
+  dim = seq_len(K),
+  mean_train = round(colMeans(X_train), 3),
+  sd_train = round(apply(X_train, 2, sd), 3),
+  mean_test = round(colMeans(X_test), 3),
+  sd_test = round(apply(X_test, 2, sd), 3),
+  row.names = NULL
+)
+print(summary_stats)
+
 source("03_param_baseline.R")
 
 param_res <- fit_param(X_pi_train, X_pi_test, config)
