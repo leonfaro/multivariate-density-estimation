@@ -1,28 +1,15 @@
 
-# 02_generate_data.R
-#
-# Inputs:
-# - `N_train`: number of draws for the training set, read from the environment
-#   variable of the same name (default `500`).
-# - `N_test`: number of draws for the test set, read from the environment
-#   variable of the same name (default `500`).
-#
-# Outputs:
-# - `results/train_data.csv` containing columns `Xpi*`, `Ueta*`, `Zeta*`,
-#   `logd*`, `det_J` and `ll_true` for each observation (where `det_J`
-#   stores the log-determinant).
-# - `results/test_data.csv` with the same column names.
-#
-# Algorithmic steps:
-# 1. Draw `U_eta` from the reference distribution `eta`.
-# 2. Apply the inverse map `S_inv(U_eta)` sequentially to obtain `X_pi`,
-#    `Z_eta`, and the log partial derivatives `logd`.
-# 3. Compute `logdet_J = rowSums(logd)` and evaluate the log-likelihood via
-#    `loglik(Z_eta, logdet_J)`.
-# 4. Print exploratory summaries for `X_pi` and the range of `det(J)`.
-# 5. Combine the variables into data frames and store them as CSV files.
-#
-# Notation follows `Notation.md`.
+# Daten erzeugen ---------------------------------------------------------
+# Eingabe: Umgebungsvariablen `N_train`, `N_test` (Standard 500)
+# Ausgabe: CSVs unter `results/` mit Spalten `Xpi*`, `Ueta*`, `Zeta*`,
+#          `logd*`, `det_J`, `ll_true` (det_J = Logdeterminante)
+# Ablauf:
+#   1. U_eta aus Referenz ziehen
+#   2. `S_inv` anwenden -> X_pi, Z_eta, logd
+#   3. logdet_J = rowSums(logd); loglik berechnen
+#   4. kurze Zusammenfassung ausgeben
+#   5. Daten als CSV speichern
+# Notation siehe Notation.md
 
 source("01_transport_utils.R")
 
