@@ -1,4 +1,7 @@
-N <- 500
+
+# sample size
+N <- 50
+
 # fixed three-dimensional setup
 config_choice <- 3
 Sys.setenv(N_train = N, N_test = N)
