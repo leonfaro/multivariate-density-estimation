@@ -46,11 +46,21 @@
 
 
 
-### Block D (Evaluation & reporting) - new
+### Block D (Evaluation & reporting)
 
 * **run3.R**
-* For a strictly monotone triangular map `S`, every diagonal derivative  
-  `partial_{x_k} S_k` must be `> 0`; this implies `det(J) > 0`.
+* For a strictly monotone triangular map `S`, each diagonal derivative
+  `partial_{x_k} S_k` must satisfy `partial_{x_k} S_k > 0`.
+* This condition guarantees a **strictly positive** Jacobian determinant:
+  `det(J) > 0`.
+* Positivity does **not** mean the determinant must be larger than one.
+  It can lie anywhere in the interval `0 < det(J) < +inf`.
+* Whenever `0 < det(J) < 1`, the logarithm is negative, so
+  `log det(J) < 0` is absolutely permissible.
+* Only if a diagonal derivative drops to `<= 0` does the map cease to be
+  strictly monotone and invertible, and the sign of `det(J)` becomes
+  undefined.
+
 
 
 
