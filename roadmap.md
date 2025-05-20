@@ -1,8 +1,16 @@
 #Roadmap
 
 • **Block A (K = 3 Festlegung)**
- ◦ `config3` unverändert (norm, exp, gamma)
-  ◦ Notation strikt wie *notation.txt* (Suffix `_pi`, `_eta`, etc.) 
+ ◦ `config3` jetzt (norm, exp, pois)
+```r
+## Default configuration for three illustrative distributions
+config3 <- list(
+  list(distr = "norm", parm = NULL),
+  list(distr = "exp",  parm = function(d) list(rate = exp(d$X1))),
+  list(distr = "pois", parm  = function(d) list(lambda = d$X2))
+)
+```
+  ◦ Notation strikt wie *notation.txt* (Suffix `_pi`, `_eta`, etc.)
 
 • **Block B (Daten-Generating-Prozess)**
   ◦ Funktionen `eta_sample()`, `S_inv()` beibehalten
