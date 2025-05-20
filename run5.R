@@ -23,13 +23,17 @@ forest_res <- fit_forest(X_pi_train, X_pi_test)
 model  <- forest_res$model
 LD_hat <- forest_res$LD_hat
 
+source("06_kernel_smoothing.R")
+
 source("05_joint_evaluation.R")
 
 # summarize mismatches after all computations
 target_ll <- sum(ll_test)
 forest_mismatch <- sum(loglik_trtf) - target_ll
+kernel_mismatch <- sum(loglik_kernel) - target_ll
 
 cat("trtf logL mismatch =", round(forest_mismatch, 3), "\n")
+cat("kernel logL mismatch =", round(kernel_mismatch, 3), "\n")
 
 eval_tab <- read.csv("results/evaluation_summary.csv")
 print(eval_tab)
@@ -42,3 +46,11 @@ plot(ld_hat, ld_true,
 abline(a = 0, b = 1)
 dev.off()
 message("Saved plot to results/run5_logdensity_scatterplot.png")
+
+png("results/run5_kernel_logdensity_scatterplot.png")
+plot(ld_hat_ks, ld_true,
+     xlab = "estimated log-density",
+     ylab = "true log-density")
+abline(a = 0, b = 1)
+dev.off()
+message("Saved plot to results/run5_kernel_logdensity_scatterplot.png")
