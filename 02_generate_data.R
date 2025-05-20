@@ -9,7 +9,7 @@
 #
 # Outputs:
 # - `results/train_data.csv` containing columns `Xpi*`, `Ueta*`, `Zeta*`,
-#   and `logd*` for each target dimension.
+#   `logd*`, `det_J` and `ll_true` for each observation.
 # - `results/test_data.csv` with the same column names.
 #
 # Algorithmic steps:
@@ -60,20 +60,25 @@ if (!dir.exists("results")) dir.create("results")
 # combine training data into one CSV
 train_df <- data.frame(
   X_pi_train, U_eta_train, Z_eta_train, logd_train,
+  det_J = det_J_train, ll_true = ll_train,
   check.names = FALSE
 )
 colnames(train_df) <- c(
   paste0("Xpi",  seq_len(K)),
   paste0("Ueta", seq_len(K)),
   paste0("Zeta", seq_len(K)),
-  paste0("logd", seq_len(K))
+  paste0("logd", seq_len(K)),
+  "det_J", "ll_true"
 )
+attr(train_df, "seed") <- SEED
 write.csv(train_df, "results/train_data.csv", row.names = FALSE)
 
 # combine test data into one CSV
 test_df <- data.frame(
   X_pi_test, U_eta_test, Z_eta_test, logd_test,
+  det_J = det_J_test, ll_true = ll_test,
   check.names = FALSE
 )
 colnames(test_df) <- colnames(train_df)
+attr(test_df, "seed") <- SEED
 write.csv(test_df, "results/test_data.csv", row.names = FALSE)
