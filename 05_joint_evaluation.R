@@ -34,15 +34,6 @@ delta_check <- sum(loglik_trtf) - sum(ll_test)
 message(sprintf("trtf log-likelihood mismatch = %.3f", delta_check))
 
 
-pdf("results/BlockE_scatterplots.pdf")
-par(mfrow = c(2, 2))
-for (k in seq_len(K)) {
-  plot(true_ll_mat_test[, k], LD_hat[, k],
-       main = paste0("dim ", k, " forest"),
-       xlab = "true", ylab = "forest")
-  abline(0, 1)
-}
-dev.off()
 
 
 ## plot true vs estimated joint log-densities
