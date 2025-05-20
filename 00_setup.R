@@ -49,10 +49,13 @@ safe_cdf <- function(val, eps = EPS) {
 
 ## Standard-Config mit drei Verteilungen
 config3 <- list(
+  ## normal with mean 0, sd 1
   list(distr = "norm", parm = NULL),
+  ## exponential rate depends on previous dimension
   list(distr = "exp",  parm = function(d) list(rate = exp(d$X1))),
-  list(distr = "pois", parm  = function(d)
-    list(lambda = clip(exp(d$X2), EPS, 1e6)))
+  ## gamma shape depends on X2, fixed rate 1
+  list(distr = "gamma", parm  = function(d)
+    list(shape = clip(d$X2, EPS, 1e6), rate = 1))
 )
 
 ## Alternative Config mit vier Verteilungen
