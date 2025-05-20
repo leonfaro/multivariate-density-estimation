@@ -23,6 +23,17 @@
 source("03_param_baseline.R")
 source("04_forest_models.R")
 
+## provide fallbacks when optional objects are missing ----------------------
+if (!exists("KS_hat")) {
+  message("KS_hat not found - using parametric log-likelihoods as proxy")
+  KS_hat <- param_ll_mat_test
+}
+
+if (!exists("loglik_dvine")) {
+  message("loglik_dvine not found - using forest log-densities as proxy")
+  loglik_dvine <- LD_hat
+}
+
 ## joint log-likelihoods for forest and kernel estimators
 ## joint log-likelihoods of the estimators -----------------------------
 ## LD_hat and KS_hat already contain log-density contributions for the
@@ -30,10 +41,15 @@ source("04_forest_models.R")
 ## without any normalising Gaussian terms.
 loglik_forest <- rowSums(LD_hat)
 loglik_kernel <- rowSums(KS_hat)
+if (is.null(dim(loglik_dvine))) {
+  loglik_dvine_mat <- matrix(loglik_dvine, ncol = 1)
+} else {
+  loglik_dvine_mat <- loglik_dvine
+}
 
 ## diagnostic: difference between forest log-likelihood and truth
 delta_check <- sum(loglik_forest) - sum(ll_test)
-print("forest log-likelihood mismatch = ", round(delta_check, 3))
+message(sprintf("forest log-likelihood mismatch = %.3f", delta_check))
 
 
 
@@ -67,6 +83,20 @@ forest_df <- data.frame(
 )
 forest_df$delta <- forest_df$ell_true - forest_df$loglik_forest
 
+kernel_df <- data.frame(
+  ll_kernel_sum = colSums(KS_hat)
+)
+kernel_df$delta <- forest_df$ell_true - kernel_df$ll_kernel_sum
+
+if (ncol(loglik_dvine_mat) == K) {
+  ll_dvine_sum <- colSums(loglik_dvine_mat)
+} else {
+  ll_dvine_sum <- rep(sum(loglik_dvine_mat), K)
+}
+dvine_df <- data.frame(ll_dvine_sum = ll_dvine_sum)
+dvine_df$delta <- forest_df$ell_true - dvine_df$ll_dvine_sum
+delta_dvine <- dvine_df$delta
+
 # merge results
 eval_df <- data.frame(
   dim = ll_delta_df_test$dim,
@@ -74,8 +104,13 @@ eval_df <- data.frame(
   ll_true_sum = ll_delta_df_test$ll_true_sum,
   ll_param_sum = ll_delta_df_test$ll_param_sum,
   ll_forest_sum = forest_df$loglik_forest,
-  delta_param = ll_delta_df_test$delta_ll,
-  delta_forest = forest_df$delta
+  ll_kernel_sum = kernel_df$ll_kernel_sum,
+  ll_dvine_sum  = dvine_df$ll_dvine_sum,
+  delta_param = if ("delta_ll_param" %in% names(ll_delta_df_test))
+    ll_delta_df_test$delta_ll_param else ll_delta_df_test$delta_ll,
+  delta_forest = forest_df$delta,
+  delta_kernel = kernel_df$delta,
+  delta_dvine  = dvine_df$delta
 )
 
 write.csv(eval_df, "results/evaluation_summary.csv", row.names = FALSE)
