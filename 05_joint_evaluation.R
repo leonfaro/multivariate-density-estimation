@@ -54,8 +54,8 @@ forest_df$delta <- forest_df$ell_true - forest_df$loglik_trtf
 eval_df <- data.frame(
   dim = ll_delta_df_test$dim,
   distribution = ll_delta_df_test$distribution,
-  ll_true_sum = ll_delta_df_test$ll_true_sum,
-  ll_param_sum = ll_delta_df_test$ll_param_sum,
+  ll_true_sum = colSums(true_ll_mat_test),
+  ll_param_sum = colSums(param_ll_mat_test),
   ll_trtf_sum = forest_df$loglik_trtf,
   delta_ll_param = if ("delta_ll_param" %in% names(ll_delta_df_test))
     ll_delta_df_test$delta_ll_param else ll_delta_df_test$delta_ll,

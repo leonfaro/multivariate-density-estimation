@@ -114,11 +114,15 @@ fit_param <- function(X_pi_train, X_pi_test, config) {
     eval_ll_from_cfg(k, param_est[[k]], X_pi_test, config)
   )
 
+  ll_param_sum <- rowSums(param_ll_mat_test)
+  ll_param_dim_sum <- colSums(param_ll_mat_test)
+  ll_true_dim_sum <- colSums(true_ll_mat_test)
+
   ll_delta_df_test <- data.frame(
     dim          = seq_len(K),
     distribution = sapply(config, `[[`, "distr"),
-    ll_true_sum  = apply(true_ll_mat_test, 2, sum),
-    ll_param_sum = apply(param_ll_mat_test, 2, sum)
+    ll_true_sum  = ll_true_dim_sum,
+    ll_param_sum = ll_param_dim_sum
   )
   ll_delta_df_test$delta_ll_param <-
     ll_delta_df_test$ll_true_sum - ll_delta_df_test$ll_param_sum
@@ -129,6 +133,7 @@ fit_param <- function(X_pi_train, X_pi_test, config) {
     ll_delta_df_test = ll_delta_df_test,
     true_ll_mat_test = true_ll_mat_test,
     param_ll_mat_test = param_ll_mat_test,
+    ll_param_sum = ll_param_sum,
     SAFE_PAR_COUNT = SAFE_PAR_COUNT,
     SAFE_SUPPORT_COUNT = SAFE_SUPPORT_COUNT
   )

@@ -25,7 +25,7 @@
   Create `samp_train` and `samp_test` exactly as now, but
   * **write the seed to the CSV file** with  
     `attr(csv_object, "seed") <- SEED` so runs are reproducible later.
-  * **also store `det_J` and the true log-likelihood columns** in the CSVs
+  * **also store `logdet_J` and the true log-likelihood columns** in the CSVs
     to simplify unit tests.
 * Helper functions `eta_sample()`, `S_inv()`, etc. remain unchanged.
 
@@ -68,6 +68,6 @@
 
 1. **Notation:** Every variable gets the suffix `_pi` (target domain) or
    `_eta` (reference domain) exactly as in Table 1 of the tutorial.
-2. **Log determinant:** Make sure `det_J(logd)` is added **before** the
+2. **Log determinant:** Make sure `logdet_J(logd)` is added **before** the
    bias term inside the log-likelihood call.
 

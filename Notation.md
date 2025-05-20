@@ -11,6 +11,7 @@
 | **R** | Reference->Target map (Sec. 3.2.2) | `R` / `R_map()` |
 | $\nabla S$ | Jacobian matrix of the map | `J_S` |
 | $\det\nabla S$ | Determinant (triangular -> product of diagonals) | `det_J` |
+| $\log\det\nabla S$ | Log-determinant of the Jacobian | `logdet_J` |
 | $\partial_{x_k}S_k$ | Diagonal Jacobian entry | `dSdx_k` |
 | **$\pi$** | Target distribution (orange variables) | `pi_dist` |
 | $\pi(x)$ | Target density function | `pi_density` |
