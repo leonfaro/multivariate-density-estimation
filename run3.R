@@ -1,4 +1,4 @@
-N <- 1000
+N <- 100
 Sys.setenv(N_train = N, N_test = N)
 
 source("00_setup.R")

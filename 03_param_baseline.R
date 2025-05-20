@@ -19,44 +19,41 @@ safe_optim <- function(par, fn, ...) {
   res
 }
 
-par_map_from_cfg <- function(k, cfg) {
-  dname <- cfg[[k]]$distr
-  if (dname == "norm") {
-    function(p, Xprev) list(mean = p[1], sd = exp(p[2]))
-  } else if (dname == "exp") {
-    function(p, Xprev) list(rate = exp(p[1] + p[2] * Xprev[, 1]))
-  } else if (dname == "pois") {
-    function(p, Xprev) list(lambda = exp(p[1] + p[2] * Xprev[, 2]))
-  } else {
-    stop("Unsupported distribution: ", dname)
-  }
-}
-
-nll_fun_from_cfg <- function(k, cfg) {
-  par_map <- par_map_from_cfg(k, cfg)
-  dname   <- cfg[[k]]$distr
+## Manual negative log-likelihoods for config3 ------------------------------
+nll_funs <- list(
   function(p, xs, Xprev) {
-    pars <- safe_pars(par_map(p, Xprev), dname)
-    xs   <- safe_support(xs, dname, pars)
-    -sum(do.call(dist_fun("d", dname),
-                 c(list(x = xs, log = TRUE), pars)))
+    -sum(dnorm(xs, mean = p[1], sd = exp(p[2]), log = TRUE))
+  },
+  function(p, xs, Xprev) {
+    rate <- clip(exp(p[1] + p[2] * Xprev[, 1]), EPS, 1e6)
+    -sum(dexp(xs, rate = rate, log = TRUE))
+  },
+  function(p, xs, Xprev) {
+    lambda <- clip(exp(p[1] + p[2] * Xprev[, 2]), EPS, 1e6)
+    -sum(dpois(xs, lambda = lambda, log = TRUE))
   }
-}
+)
 
-eval_ll_from_cfg <- function(k, pars, X, cfg) {
-  par_map <- par_map_from_cfg(k, cfg)
-  dname   <- cfg[[k]]$distr
-  Xprev   <- if (k > 1) X[, 1:(k - 1), drop = FALSE] else NULL
-  dist_p  <- safe_pars(par_map(pars, Xprev), dname)
-  xs      <- safe_support(X[, k], dname, dist_p)
-  do.call(dist_fun("d", dname), c(list(x = xs, log = TRUE), dist_p))
+## Evaluate fitted densities on a data set ---------------------------------
+eval_ll_k <- function(k, pars, X) {
+  xs    <- X[, k]
+  Xprev <- if (k > 1) X[, 1:(k - 1), drop = FALSE] else NULL
+  if (k == 1) {
+    dnorm(xs, mean = pars[1], sd = exp(pars[2]), log = TRUE)
+  } else if (k == 2) {
+    rate <- clip(exp(pars[1] + pars[2] * Xprev[, 1]), EPS, 1e6)
+    dexp(xs, rate = rate, log = TRUE)
+  } else if (k == 3) {
+    lambda <- clip(exp(pars[1] + pars[2] * Xprev[, 2]), EPS, 1e6)
+    dpois(xs, lambda = lambda, log = TRUE)
+  } else {
+    stop("dimension out of range")
+  }
 }
 
 fit_param <- function(X_pi_train, X_pi_test, config) {
   SAFE_PAR_COUNT <<- 0
   SAFE_SUPPORT_COUNT <<- 0
-
-  nll_funs <- lapply(seq_len(K), nll_fun_from_cfg, cfg = config)
 
   init_vals <- list(c(0, 0), c(0, 0), c(0, 0))
   param_est <- vector("list", K)
@@ -66,21 +63,13 @@ fit_param <- function(X_pi_train, X_pi_test, config) {
     fit   <- safe_optim(init_vals[[k]], nll_funs[[k]], xs = xs, Xprev = Xprev)
     param_est[[k]] <- fit$par
 
-    pll <- sum(eval_ll_from_cfg(k, param_est[[k]], X_pi_train, config))
+    pll <- sum(eval_ll_k(k, param_est[[k]], X_pi_train))
     tll <- sum(pdf_k(k, X_pi_train[, k],
                      if (k > 1) X_pi_train[, 1:(k - 1), drop = FALSE]
                      else numeric(0), config, log = TRUE))
     delta_ll <- tll - pll
     message(sprintf("dim %d delta_ll_train %.3f", k, delta_ll))
     stopifnot(abs(delta_ll) < 1e2)
-
-    if (k > 1) {
-      new_par <- SAFE_PAR_COUNT
-      new_sup <- SAFE_SUPPORT_COUNT
-      message(sprintf("SAFE_PAR_COUNT %d SAFE_SUPPORT_COUNT %d", new_par, new_sup))
-      if (new_par > 100 || new_sup > 100)
-        stop("Excessive clipping")
-    }
   }
 
   true_ll_mat_test <- sapply(seq_len(K), function(k)
@@ -90,7 +79,7 @@ fit_param <- function(X_pi_train, X_pi_test, config) {
   )
 
   param_ll_mat_test <- sapply(seq_len(K), function(k)
-    eval_ll_from_cfg(k, param_est[[k]], X_pi_test, config)
+    eval_ll_k(k, param_est[[k]], X_pi_test)
   )
 
   ll_delta_df_test <- data.frame(
@@ -113,12 +102,20 @@ fit_param <- function(X_pi_train, X_pi_test, config) {
   )
 }
 
-summarise_fit <- function(param_est, X_test, ll_delta_df, cfg = config) {
+summarise_fit <- function(param_est, X_test, ll_delta_df) {
   K <- length(param_est)
   mean_param_test <- sapply(seq_len(K), function(k) {
-    Xprev <- if (k > 1) X_test[, 1:(k - 1), drop = FALSE] else NULL
-    pars <- par_map_from_cfg(k, cfg)(param_est[[k]], Xprev)
-    mean(pars[[1]])
+    if (k == 1) {
+      param_est[[k]][1]
+    } else if (k == 2) {
+      Xprev <- X_test[, 1, drop = FALSE]
+      mean(clip(exp(param_est[[k]][1] + param_est[[k]][2] * Xprev[, 1]), EPS, 1e6))
+    } else if (k == 3) {
+      Xprev <- X_test[, 2, drop = FALSE]
+      mean(clip(exp(param_est[[k]][1] + param_est[[k]][2] * Xprev[, 1]), EPS, 1e6))
+    } else {
+      NA_real_
+    }
   })
   mle_param <- sapply(param_est, function(p) p[1])
   ll_delta_df$mean_param_test <- round(mean_param_test, 3)
