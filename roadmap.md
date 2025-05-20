@@ -1,74 +1,46 @@
-#Roadmap
+---
 
-• **Block A (K = 3 Festlegung)**
- ◦ `config3` jetzt (norm, exp, pois)
-```r
-## Default configuration for three illustrative distributions
-config3 <- list(
-  list(distr = "norm", parm = NULL),
-  list(distr = "exp",  parm = function(d) list(rate = exp(d$X1))),
-  list(distr = "pois", parm  = function(d) list(lambda = d$X2))
-)
-```
-  ◦ Notation strikt wie *notation.txt* (Suffix `_pi`, `_eta`, etc.)
+### **Block 0 (Setup & Reproduzierbarkeit) – neu**
 
-• **Block B (Daten-Generating-Prozess)**
-  ◦ Funktionen `eta_sample()`, `S_inv()` beibehalten
-  ◦ Generiere zwei unabhängige Samples
-   ▪ Train $N_{\text{train}} = 100$
-   ▪ Test $N_{\text{test}} = 100$
-  ◦ Speichere `X_pi`, `U_eta`, `Z_eta`, `logd` separat als CSV für Debug
+* **00\_setup.R**
 
-• **Block C (Parametrische Baseline ≙ “ohne Forest”)**
-  ◦ MLE-Schätzung jeder Konditional­verteilung $f_{d_k}\bigl(x_k\mid x_{<k}\bigr)$ via `optim` schon umgesetzt 
-  ◦ Berechne **Out-of-Sample**‐Loglikelihood
-   $\ell_{\text{param}}^{\text{test}} = \sum_{i,k}\log f_{d_k}(x_{ik}\mid x_{i,<k};\hat\theta_k)$
-  ◦ Vergleiche mit wahrer Loglikelihood
-   $\Delta\ell_k = \ell_{\text{true},k} - \ell_{\text{param},k}$ (table already printed)
+  * Setze `set.seed(SEED)` mit SEED = 24
+  * Definiere `EPS`, `SAFE_CLIP`, `logsumexp()`, usw. wie bereits vorhanden („numerically safe utility layer“).
+---
 
-• **Block D (Transformation Forests)**
-  ◦ Für jedes $k=2,\dots,3$:
-   ▪ Formular `y_k ~ x_1 + … + x_{k-1}`
-   ▪ Basismodell `mlt()` linearer shift-scale; danach `traforest()` 
-   ▪ Parameter: `ntree = 200`, `mtry = ⌈(k-1)/3⌉`, `minbucket ≥ 20`
-   ▪ Keine Informationen aus `config` (Forest sieht **nur Daten**)
-  ◦ $k=1$: einfaches marginales `mlt()` ohne Forest
-  ◦ Vorhersage auf Testdaten:
-   `ld_k <- predict(obj_k, newdata = X_test, type = "logdensity")`
-◦ Baue Matrix `LD_hat` ($N_{\text{test}}\times3$)
+### Block A (K = 3 Festlegung)
 
-• **Block E (Joint Likelihood-Evaluation)**
-  ◦ Addiere Beiträge:
-   $\hat\ell_i = -\tfrac12‖Z_{i,\eta}‖^2 -2\log(2\pi) + \sum_{k} ld_{ik}$
-  ◦ Vergleiche gegen wahres $\ell_i$ (aus DGP)
-   ▪ `all.equal(sum(LD_hat), sum(ll_true), tol = 1e-1)`
-  ◦ Streudiagramm pro Dimension:
-    x-Achse $\ell_{ik}^{\text{true}}$, y-Achse $\ell_{ik}^{\text{forest}}$
-    Ideal ≈ 45°-Linie
+* **config3** bleibt (norm, exp, pois), doch:
+  * **Statt `lambda = d$X2`** verwende `lambda = clip(exp(d$X2), EPS, 1e6)`; so ist Positivität garantiert und identisch zum Clip-Schema anderer Verteilungen.
+  * Hinterlege `K <- length(config)` global; alle subsequent scripts lesen `K`, nicht umgekehrt.
+---
 
-• **Diagnostik-Plots**
-  ◦ Histogramme `Δℓ_k`
-  ◦ QQ-Plot $Z_{\eta}$ gegen $\mathcal N(0,1)$
-  ◦ Heatmap empirische Copula der Residuen
+### Block B (Daten-Generating-Prozess)
 
-• **Dateistruktur**
-  ◦ `run_all.R` ruft `00_setup.R` bis `05_joint_evaluation.R` auf
-  ◦ Output-Verzeichnis `results/` für CSV und PDF-Plots
+* **02\_generate\_data.R**
+   Erzeuge `samp_train`, `samp_test` exakt wie jetzt, aber
+    * **speichere den Seed in der CSV-Datei** (`attr(..., "seed") <- SEED`), damit später rekonstruierbar.
+    * **speichere auch `det_J` und die wahren Log-Likelihood‐Spalten** in den CSVs; das erleichtert unit tests.
+  * Die Hilfsfunktionen `eta_sample()`, `S_inv()` usw. bleiben unverändert .
 
-• **To-Do-Checkliste**
-  ▢ Code refaktorieren: Funktionen `fit_param()`, `fit_forest()`
-  ▢ Seed setzen `set.seed(…)` für Reproduzierbarkeit
-  ▢ Variable-Order $x_1,x_2,x_3$ **nicht ändern** (Professor­vorgabe) 
-  ▢ Sample-Größen im Skript als Parameter
-  ▢ Laufzeit-Kommentar: Forests \~ minuten­lang, akzeptabel
+---
 
-• **Nächster Schritt nach Proof-of-Concept**
-  ◦ Skalieren auf $K=25$ (nur Rechenzeit)
-  ◦ Evtl. Sparsity-Flags $f_3$ aktivieren für bedingte Unabhängigkeit 
+### Block C (Parametrische Baseline)
 
-• **Lieferobjekte fürs Meeting**
-  ◦ Scripts, CSV-Daten, Plots
-  ◦ Tabelle “true vs forest” inkl. $\Delta\ell$
-  ◦ Kurze Slide mit Bullet-Summary der Ergebnisse
+* **03\_param\_baseline.R**
 
-✔️ Erfüllt alle vom Prof geforderten Punkte; fehlende Aufgaben oben abhaken.
+  * **Generischer Ansatz:** baue `nll_fun_from_cfg(k, cfg)` und `eval_ll_from_cfg()` – so verschwindet der manuelle Switch-Block und die Gefahr des Gamma/Poisson-Vertauschers (Fehler aus dem ursprünglichen Code).
+  * Führe nach jedem Fit `stopifnot(abs(Δℓ_k) < 1e2)` aus und addiere `testthat`-Files in `tests/testthat/`.
+  * **Out-of-sample Δℓ** wird in `ll_delta_df_test` berechnet, aber die Spalte heißt nun strikt `delta_ll_param` wie in run3.R.
+---
+
+### Block D (Evaluierung & Reporting) – neu
+
+* **run3.R**
+* Für ein strikt monoton-trianguläres S müssen alle Diagonal-Ableitungen ∂<sub>x k</sub>S<sub>k</sub>>0 gelten; damit ist auch det (J)>0 .
+    ---
+
+### Weitere Rigorositäts-Details
+
+1. **Notation**: Jede Variable erhält `_pi` (target) oder `_eta` (reference) Suffix gemäß Tabelle 1 des Tutorials .
+2. **Log-Determinant**: Stelle sicher, dass `det_J(logd)` summiert **vor** dem Bias-Term im Log-Likelihood-Call auftaucht .
