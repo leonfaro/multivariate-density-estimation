@@ -17,8 +17,6 @@
 #        `logd[k]` via `pdf_k`.
 #   The monotonicity of each step ensures the map `S_inv` is invertible.
 
-source("00_setup.R")
-
 SAFE_PAR_COUNT <- 0
 SAFE_SUPPORT_COUNT <- 0
 
