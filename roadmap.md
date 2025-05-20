@@ -1,4 +1,4 @@
----
+
 ### **Block 0 (Setup & Reproducibility) - new**
 
 * **00_setup.R**
@@ -6,7 +6,7 @@
   * Define `EPS`, `SAFE_CLIP`, `logsumexp()`, etc. as in the existing
     numerically safe utility layer.
 
----
+
 
 ### Block A (K = 3 setting)
 
@@ -17,7 +17,7 @@
   * Store `K <- length(config)` as a global so that all subsequent
     scripts *read* `K` rather than redefine it.
 
----
+
 
 ### Block B (Data generating process)
 
@@ -29,7 +29,7 @@
     to simplify unit tests.
 * Helper functions `eta_sample()`, `S_inv()`, etc. remain unchanged.
 
----
+
 
 ### Block C (Parametric baseline)
 
@@ -44,7 +44,7 @@
   * **Out-of-sample delta_l** is computed in `ll_delta_df_test`, but the
     column is now strictly called `delta_ll_param` as in `run3.R`.
 
----
+
 
 ### Block D (Evaluation & reporting) - new
 
@@ -52,7 +52,7 @@
 * For a strictly monotone triangular map `S`, every diagonal derivative  
   `partial_{x_k} S_k` must be `> 0`; this implies `det(J) > 0`.
 
----
+
 
 ### Further rigor details
 
@@ -60,6 +60,4 @@
    `_eta` (reference domain) exactly as in Table 1 of the tutorial.
 2. **Log determinant:** Make sure `det_J(logd)` is added **before** the
    bias term inside the log-likelihood call.
-
----
 
