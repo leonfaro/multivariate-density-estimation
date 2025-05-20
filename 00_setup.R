@@ -3,8 +3,6 @@ SEED <- 24
 set.seed(SEED)
 suppressPackageStartupMessages({
   library(extraDistr)
-  library(tram)
-  library(trtf)
 })
 
 ## clip ----------------------------------------------------------------------
@@ -52,13 +50,6 @@ safe_cdf <- function(val, eps = EPS) {
   res
 }
 
-## Default configuration for three illustrative distributions
-config3 <- list(
-  list(distr = "norm", parm = NULL),
-  list(distr = "exp",  parm = function(d) list(rate = exp(d$X1))),
-  list(distr = "pois", parm  = function(d)
-    list(lambda = clip(exp(d$X2), EPS, 1e6)))
-)
 
 ## Alternative configuration with four distributions
 config4 <- list(
@@ -70,8 +61,7 @@ config4 <- list(
     list(location = 0.2 * d$X3, scale = clip(1 + 0.05 * d$X3)))
 )
 
-if (!exists("config_choice")) config_choice <- 3
-config <- if (config_choice == 4) config4 else config3
+config <- config4
 
 ## dimension K of the target random vector X_pi
 K <- length(config)

@@ -31,9 +31,10 @@ source("04_forest_models.R")
 loglik_forest <- rowSums(LD_hat)
 loglik_kernel <- rowSums(KS_hat)
 
+delta_dvine <- 0
 ## diagnostic: difference between forest log-likelihood and truth
 delta_check <- sum(loglik_forest) - sum(ll_test)
-print("forest log-likelihood mismatch = ", round(delta_check, 3))
+cat("forest log-likelihood mismatch =", round(delta_check, 3), "\n")
 
 
 

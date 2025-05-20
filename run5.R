@@ -17,9 +17,11 @@ forest_res <- fit_forest(X_pi_train, X_pi_test)
 model  <- forest_res$model
 LD_hat <- forest_res$LD_hat
 
+KS_hat <- matrix(0, nrow=nrow(X_pi_test), ncol=K)
 source("05_joint_evaluation.R")
 
 # summarize mismatches after all computations
+ll_dvine_sum <- 0
 target_ll <- sum(ll_test)
 forest_mismatch <- sum(loglik_forest) - target_ll
 kernel_mismatch <- sum(loglik_kernel) - target_ll

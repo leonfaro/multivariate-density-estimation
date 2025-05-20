@@ -19,113 +19,8 @@
 
 source("00_setup.R")
 
-SAFE_PAR_COUNT <- 0
-SAFE_SUPPORT_COUNT <- 0
-
-clip_count <- function(x, lo, hi) {
-  changed <- (x < lo) | (x > hi)
-  list(val = pmin(hi, pmax(lo, x)), count = sum(changed))
-}
-
-safe_pars <- function(pars, dname) {
-  lo <- EPS
-  hi <- 1e6
-  if (dname == "norm" && !is.null(pars$sd)) {
-    res <- clip_count(pars$sd, lo, hi)
-    SAFE_PAR_COUNT <<- SAFE_PAR_COUNT + res$count
-    pars$sd <- res$val
-  }
-  if (dname == "exp" && !is.null(pars$rate)) {
-    res <- clip_count(pars$rate, lo, hi)
-    SAFE_PAR_COUNT <<- SAFE_PAR_COUNT + res$count
-    pars$rate <- res$val
-  }
-  if (dname == "gamma") {
-    if (!is.null(pars$shape)) {
-      res <- clip_count(pars$shape, lo, hi)
-      SAFE_PAR_COUNT <<- SAFE_PAR_COUNT + res$count
-      pars$shape <- res$val
-    }
-    if (!is.null(pars$rate)) {
-      res <- clip_count(pars$rate, lo, hi)
-      SAFE_PAR_COUNT <<- SAFE_PAR_COUNT + res$count
-      pars$rate <- res$val
-    }
-  }
-
-  if (dname == "weibull") {
-    if (!is.null(pars$shape)) {
-      res <- clip_count(pars$shape, lo, hi)
-      SAFE_PAR_COUNT <<- SAFE_PAR_COUNT + res$count
-      pars$shape <- res$val
-    }
-    if (!is.null(pars$scale)) {
-      res <- clip_count(pars$scale, lo, hi)
-      SAFE_PAR_COUNT <<- SAFE_PAR_COUNT + res$count
-      pars$scale <- res$val
-    }
-  }
-  if (dname == "lnorm" && !is.null(pars$sdlog)) {
-    res <- clip_count(pars$sdlog, lo, hi)
-    SAFE_PAR_COUNT <<- SAFE_PAR_COUNT + res$count
-    pars$sdlog <- res$val
-  }
-  if (dname == "pois" && !is.null(pars$lambda)) {
-    res <- clip_count(pars$lambda, lo, hi)
-    SAFE_PAR_COUNT <<- SAFE_PAR_COUNT + res$count
-    pars$lambda <- res$val
-  }
-  if (dname %in% c("bern", "binom") && !is.null(pars$prob)) {
-    changed <- (pars$prob < lo) | (pars$prob > 1 - lo)
-    SAFE_PAR_COUNT <<- SAFE_PAR_COUNT + sum(changed)
-    pars$prob <- pmin(1 - lo, pmax(lo, pars$prob))
-  }
-  if (dname == "binom" && !is.null(pars$size)) {
-    res <- clip_count(pars$size, 1, hi)
-    SAFE_PAR_COUNT <<- SAFE_PAR_COUNT + res$count
-    pars$size <- res$val
-  }
-  if (dname == "beta") {
-    if (!is.null(pars$shape1)) {
-      res <- clip_count(pars$shape1, lo, hi)
-      SAFE_PAR_COUNT <<- SAFE_PAR_COUNT + res$count
-      pars$shape1 <- res$val
-    }
-    if (!is.null(pars$shape2)) {
-      res <- clip_count(pars$shape2, lo, hi)
-      SAFE_PAR_COUNT <<- SAFE_PAR_COUNT + res$count
-      pars$shape2 <- res$val
-    }
-  }
-  if (dname == "logis" && !is.null(pars$scale)) {
-    res <- clip_count(pars$scale, lo, hi)
-    SAFE_PAR_COUNT <<- SAFE_PAR_COUNT + res$count
-    pars$scale <- res$val
-  }
-  pars
-}
-
-safe_support <- function(x, dname, pars = list()) {
-  lo <- EPS
-  hi <- 1e6
-  old <- x
-  res <- switch(dname,
-    exp     = clip(x, lo, hi),
-    gamma   = clip(x, lo, hi),
-    weibull = clip(x, lo, hi),
-    lnorm   = clip(x, lo, hi),
-    beta    = pmin(1 - lo, pmax(lo, x)),
-    pois    = pmax(0, round(x)),
-    bern    = ifelse(x > 0.5, 1, 0),
-    binom   = {
-      size <- if (!is.null(pars$size)) pars$size else hi
-      pmin(size, pmax(0, round(x)))
-    },
-    x
-  )
-  SAFE_SUPPORT_COUNT <<- SAFE_SUPPORT_COUNT + sum(old != res)
-  res
-}
+safe_pars <- function(pars, ...) pars
+safe_support <- function(x, ...) x
 
 
 dist_fun <- function(pref, name) get(paste0(pref, name))
@@ -145,23 +40,12 @@ get_pars <- function(k, x_prev, cfg) {
 
 pdf_k <- function(k, xk, x_prev, cfg, log = TRUE) {
   pars <- get_pars(k, x_prev, cfg)
-  xk   <- safe_support(xk, cfg[[k]]$distr, pars)
+  xk <- xk
   dens <- do.call(dist_fun("d", cfg[[k]]$distr),
                   c(list(x = xk), pars, list(log = log)))
   dens
 }
 
-cdf_k <- function(k, xk, x_prev, cfg, log = TRUE) {
-  dname <- cfg[[k]]$distr
-  pars  <- get_pars(k, x_prev, cfg)
-  xk    <- safe_support(xk, dname, pars)
-  args  <- c(if (dname == "sn") list(x = xk) else list(q = xk),
-             pars,
-             list(log.p = FALSE))
-  cdfv <- do.call(dist_fun("p", dname), args)
-  cdfv <- safe_cdf(cdfv)
-  if (log) log(cdfv) else cdfv
-}
 
 qtf_k <- function(k, u, x_prev, cfg, log.p = FALSE) {
   dname <- cfg[[k]]$distr
@@ -179,7 +63,7 @@ qtf_k <- function(k, u, x_prev, cfg, log.p = FALSE) {
   } else {
     res <- do.call(dist_fun("q", dname), c(list(p = u, log.p = log.p), pars))
   }
-  safe_support(res, dname, pars)
+  res
 }
 
 det_J <- function(logd) rowSums(logd)
