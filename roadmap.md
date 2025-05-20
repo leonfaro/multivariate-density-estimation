@@ -68,6 +68,6 @@
 
 1. **Notation:** Every variable gets the suffix `_pi` (target domain) or
    `_eta` (reference domain) exactly as in Table 1 of the tutorial.
-2. **Log determinant:** Make sure `det_J(logd)` is added **before** the
+2. **Log determinant:** Make sure `logdet_J(logd)` is added **before** the
    bias term inside the log-likelihood call.
 

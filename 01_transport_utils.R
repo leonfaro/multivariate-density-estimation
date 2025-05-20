@@ -180,9 +180,9 @@ qtf_k <- function(k, u, x_prev, cfg, log.p = FALSE) {
   safe_support(res, dname, pars)
 }
 
-det_J <- function(logd) rowSums(logd)
-loglik <- function(Z_eta, logdet) {
-  -0.5 * rowSums(Z_eta^2) - (ncol(Z_eta)/2) * log(2 * pi) + logdet
+logdet_J <- function(logd) rowSums(logd)
+loglik <- function(Z_eta, logdet_J) {
+  -0.5 * rowSums(Z_eta^2) - (ncol(Z_eta)/2) * log(2 * pi) + logdet_J
 }
 eta_sample <- function(N) {
   Z_eta <- matrix(rnorm(N * K), nrow = N)
