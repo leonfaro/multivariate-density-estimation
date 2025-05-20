@@ -1,5 +1,5 @@
 
-### **Block 0 (Setup & Reproducibility) - new**
+### **Block 0 (Setup & Reproducibility)**
 
 * **00_setup.R**
   * Call `set.seed(SEED)` with `SEED <- 24`.
