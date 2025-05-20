@@ -33,3 +33,15 @@ cat("trtf logL mismatch =", round(forest_mismatch, 3), "\n")
 
 eval_tab <- read.csv("results/evaluation_summary.csv")
 print(eval_tab)
+
+## scatter plot of estimated vs true log-densities ----------------------------
+stopifnot(all(is.finite(ld_hat)))
+stopifnot(all(is.finite(ld_true)))
+
+png("results/run5_logdensity_scatterplot.png")
+plot(ld_hat, ld_true,
+     xlab = "estimated log-density",
+     ylab = "true log-density")
+abline(a = 0, b = 1)
+dev.off()
+message("Saved plot to results/run5_logdensity_scatterplot.png")
