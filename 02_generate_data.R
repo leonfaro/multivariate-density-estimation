@@ -38,7 +38,7 @@ ll_train <- loglik(Z_eta_train, det_J_train)
 cat("Train EDA:\n")
 cat("- X_pi_train Mean: ", paste(round(colMeans(X_pi_train), 3), collapse = ", "), "\n")
 cat("- X_pi_train SD:   ", paste(round(apply(X_pi_train, 2, sd), 3), collapse = ", "), "\n")
-cat("- det(J)_train Range: [", round(min(det_J_train), 3), ",", round(max(det_J_train), 3), "]\n\n")
+cat("- log_det(J)_train Range: [", round(min(det_J_train), 3), ",", round(max(det_J_train), 3), "]\n\n")
 
 set.seed(2045)
 N_test <- as.integer(Sys.getenv("N_test", "500"))
@@ -53,7 +53,7 @@ ll_test <- loglik(Z_eta_test, det_J_test)
 cat("Test EDA:\n")
 cat("- X_pi_test Mean: ", paste(round(colMeans(X_pi_test), 3), collapse = ", "), "\n")
 cat("- X_pi_test SD:   ", paste(round(apply(X_pi_test, 2, sd), 3), collapse = ", "), "\n")
-cat("- det(J)_test Range: [", round(min(det_J_test), 3), ",", round(max(det_J_test), 3), "]\n\n")
+cat("- log_det(J)_test Range: [", round(min(det_J_test), 3), ",", round(max(det_J_test), 3), "]\n\n")
 
 if (!dir.exists("results")) dir.create("results")
 
