@@ -1,4 +1,6 @@
 ## Setup basic numerical utilities adhering to Notation.md --------------------
+SEED <- 24
+set.seed(SEED)
 suppressPackageStartupMessages({
   library(extraDistr)
   library(tram)
@@ -16,6 +18,8 @@ clip <- function(x, lo = 1e-6, hi = 1e6) {
 
 ## Machine epsilon (approx. 1e-10) for log-stability
 EPS <- 1e-10
+
+SAFE_CLIP <- function(x, lo = EPS, hi = 1e6) clip(x, lo, hi)
 
 ## numerically stable log-sum-exp ------------------------------------------------
 ## Compute \( \log\sum_i e^{x_i} \) without overflow.
@@ -39,12 +43,6 @@ safe_logdens <- function(val, eps = EPS, hi = 1e6) {
   res <- log(pmin(pmax(val, eps), hi))
   stopifnot(all(is.finite(res)))
   res
-}
-
-## log-sum-exp for stable aggregation
-logsumexp <- function(x) {
-  m <- max(x)
-  m + log(sum(exp(x - m)))
 }
 
 ## Bound a CDF away from 0 and 1
