@@ -29,7 +29,7 @@ output_lines <- capture.output({
 
   print(summary_stats)
   print(ll_delta_df_test[
-    , c("dim", "distribution", "ll_true_sum", "ll_param_sum", "delta_ll_param", "mean_param_test", "mle_param")
+    , c("dim", "distribution", "ll_true_avg", "ll_param_avg", "delta_ll_param_avg", "mean_param_test", "mle_param")
   ])
 })
 con <- file(out_file, open = "a")
