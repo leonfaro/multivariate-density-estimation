@@ -1,4 +1,10 @@
-files <- c("00_setup.R", "01_transport_utils.R", "02_generate_data.R", "03_param_baseline.R")
+files <- c(
+  "00_setup.R",
+  "01_transport_utils.R",
+  "02_generate_data.R",
+  "03_param_baseline.R",
+  "run3.R"
+)
 code_lines <- lapply(files, function(f) {
   lines <- readLines(f)
   lines <- gsub("#.*$", "", lines)
