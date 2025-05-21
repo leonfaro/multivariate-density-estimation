@@ -5,7 +5,8 @@ files <- c(
   "03_param_baseline.R",
   "04_forest_models.R",
   "06_kernel_smoothing.R",
-  "05_joint_evaluation.R"
+  "05_joint_evaluation.R",
+  "run5.R"
 )
 code_lines <- lapply(files, function(f) {
   lines <- readLines(f)
