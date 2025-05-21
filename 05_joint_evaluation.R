@@ -21,8 +21,8 @@ source("04_forest_models.R")
 ## gemeinsame Loglikelihoods der Schätzer ---------------------------
 ## LD_hat enthält schon Logdichten der Originaldaten
 ## daher Zeilensummen ohne Zusatzterme
-loglik_trtf <- rowSums(LD_hat)
-loglik_kernel <- rowSums(KS_hat)
+loglik_trtf <- rowMeans(LD_hat)
+loglik_kernel <- rowMeans(KS_hat)
 
 ## Diagnose: Unterschied Forest-Loglikelihood
 delta_check <- sum(loglik_trtf) - sum(ll_test)
@@ -34,38 +34,38 @@ message(sprintf("kernel log-likelihood mismatch = %.3f", delta_check_ks))
 
 
 ## Plot wahr vs geschätzt für gemeinsame Logdichte
-ld_hat  <- rowSums(LD_hat)
-ld_true <- rowSums(true_ll_mat_test)
-ld_hat_ks <- rowSums(KS_hat)
+ld_hat  <- rowMeans(LD_hat)
+ld_true <- rowMeans(true_ll_mat_test)
+ld_hat_ks <- rowMeans(KS_hat)
 stopifnot(all(is.finite(ld_hat)))
 stopifnot(all(is.finite(ld_true)))
 stopifnot(all(is.finite(ld_hat_ks)))
 
 forest_df <- data.frame(
   dim           = seq_len(ncol(LD_hat)),
-  ell_true      = colSums(true_ll_mat_test),
-  loglik_trtf = colSums(LD_hat)
+  ell_true_avg      = colMeans(true_ll_mat_test),
+  loglik_trtf = colMeans(LD_hat)
 )
-forest_df$delta <- forest_df$ell_true - forest_df$loglik_trtf
+forest_df$delta <- forest_df$ell_true_avg - forest_df$loglik_trtf
 
 kernel_df <- data.frame(
   dim           = seq_len(ncol(KS_hat)),
-  ell_true      = colSums(true_ll_mat_test),
-  loglik_kernel = colSums(KS_hat)
+  ell_true_avg      = colMeans(true_ll_mat_test),
+  loglik_kernel = colMeans(KS_hat)
 )
-kernel_df$delta <- kernel_df$ell_true - kernel_df$loglik_kernel
+kernel_df$delta <- kernel_df$ell_true_avg - kernel_df$loglik_kernel
 
 
 ## Ergebnisse zusammenführen
 eval_df <- data.frame(
   dim = ll_delta_df_test$dim,
   distribution = ll_delta_df_test$distribution,
-  ll_true_sum = ll_delta_df_test$ll_true_sum,
-  ll_param_sum = ll_delta_df_test$ll_param_sum,
-  ll_trtf_sum = forest_df$loglik_trtf,
-  ll_kernel_sum = kernel_df$loglik_kernel,
-  delta_ll_param = if ("delta_ll_param" %in% names(ll_delta_df_test))
-    ll_delta_df_test$delta_ll_param else ll_delta_df_test$delta_ll,
+  ll_true_avg = ll_delta_df_test$ll_true_avg,
+  ll_param_avg = ll_delta_df_test$ll_param_avg,
+  ll_trtf_avg = forest_df$loglik_trtf,
+  ll_kernel_avg = kernel_df$loglik_kernel,
+  delta_ll_param_avg = if ("delta_ll_param_avg" %in% names(ll_delta_df_test))
+    ll_delta_df_test$delta_ll_param_avg else ll_delta_df_test$delta_ll,
   delta_ll_trtf = forest_df$delta,
   delta_ll_kernel = kernel_df$delta
 )
@@ -75,9 +75,9 @@ png("results/joint_logdensity_scatterplot.png")
 plot(ld_hat, ld_true, xlab = "estimated", ylab = "true")
 abline(a = 0, b = 1)
 info_text <- sprintf(
-  "N = %d | sum(delta_ll_param) = %.3f | sum(delta_ll_trtf) = %.3f | sum(delta_ll_kernel) = %.3f",
+  "N = %d | sum(delta_ll_param_avg) = %.3f | sum(delta_ll_trtf) = %.3f | sum(delta_ll_kernel) = %.3f",
   N_test,
-  sum(eval_df$delta_ll_param),
+  sum(eval_df$delta_ll_param_avg),
   sum(eval_df$delta_ll_trtf),
   sum(eval_df$delta_ll_kernel)
 )
