@@ -1,6 +1,8 @@
 
 # sample size
 N <- 50
+args <- commandArgs(trailingOnly = TRUE)
+if (length(args) > 0 && args[1] == "big") N <- 10000
 
 # fixed three-dimensional setup
 config_choice <- 3
@@ -47,12 +49,12 @@ param_res <- fit_param(X_pi_train, X_pi_test, config)
 param_est <- param_res$param_est
 ll_delta_df_test <- summarise_fit(param_est, X_pi_test, param_res$ll_delta_df_test, config)
 
-ll_delta_df_test$delta_ll_param <-
-  ll_delta_df_test$ll_true_sum - ll_delta_df_test$ll_param_sum
+ll_delta_df_test$delta_ll_param_avg <-
+  ll_delta_df_test$ll_true_avg - ll_delta_df_test$ll_param_avg
 
 print(ll_delta_df_test[
   , c(
-    "dim", "distribution", "ll_true_sum", "ll_param_sum", "delta_ll_param",
+    "dim", "distribution", "ll_true_avg", "ll_param_avg", "delta_ll_param_avg",
     "mean_param_test", "mle_param"
   )
 ])
