@@ -1,0 +1,2 @@
+- All notation followed the conventions in Theory.md
+- Follow the guidelines in AGENTS.md
