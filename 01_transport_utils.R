@@ -8,6 +8,7 @@
 # Map ist monoton, daher invertierbar
 
 
+
 safe_pars <- function(pars, dname) {
   if (dname == "norm" && !is.null(pars$sd)) stopifnot(all(pars$sd > 0))
   if (dname == "exp"  && !is.null(pars$rate)) stopifnot(all(pars$rate > 0))
@@ -18,6 +19,7 @@ safe_pars <- function(pars, dname) {
   if (dname == "weibull") {
     if (!is.null(pars$shape)) stopifnot(all(pars$shape > 0))
     if (!is.null(pars$scale)) stopifnot(all(pars$scale > 0))
+
   }
   if (dname == "lnorm"  && !is.null(pars$sdlog)) stopifnot(all(pars$sdlog > 0))
   if (dname == "pois"   && !is.null(pars$lambda)) stopifnot(all(pars$lambda >= 0))
@@ -25,8 +27,10 @@ safe_pars <- function(pars, dname) {
     stopifnot(all(pars$prob > 0 & pars$prob < 1))
   if (dname == "binom"  && !is.null(pars$size)) stopifnot(all(pars$size >= 1))
   if (dname == "beta") {
+
     if (!is.null(pars$shape1)) stopifnot(all(pars$shape1 > 0))
     if (!is.null(pars$shape2)) stopifnot(all(pars$shape2 > 0))
+
   }
   if (dname == "logis" && !is.null(pars$scale)) stopifnot(all(pars$scale > 0))
   pars
@@ -50,6 +54,7 @@ safe_support <- function(x, dname, pars = list()) {
     gamma   = x > 0,
     weibull = x > 0,
     lnorm   = x > 0,
+
     beta    = x > 0 & x < 1,
     pois    = x >= 0 & floor(x) == x,
     bern    = x %in% c(0, 1),
@@ -60,6 +65,7 @@ safe_support <- function(x, dname, pars = list()) {
     TRUE
   )
   if (!all(valid)) stop("value outside support for ", dname)
+
   x
 }
 
