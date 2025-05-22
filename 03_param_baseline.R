@@ -1,12 +1,3 @@
-## Parametrischer Baseline-Fit ---------------------------------------------
-# Eingabe: Matrizen `X_pi_train`, `X_pi_test`, Liste `config`
-# Ausgabe: `param_est`, Tabelle `ll_delta_df_test`
-# Ablauf:
-#   * für jedes k eine sequentielle Negativ-Loglikelihood via
-#     `nll_fun_from_cfg()` bilden
-#   * Parameter mit `optim()` dimensionsweise maximieren
-#   * Logdichten mit `eval_ll_from_cfg()` auswerten
-#   * Differenzen in `ll_delta_df_test` sammeln
 
 safe_optim <- function(par, fn, method = "BFGS", ...) {
   res <- optim(par, fn, method = method, ...)
@@ -15,7 +6,6 @@ safe_optim <- function(par, fn, method = "BFGS", ...) {
   res
 }
 
-## distribution specific operations -----------------------------------------
 dist_ops <- list(
   norm = list(
     nll = function(par, xs, offset) {
@@ -94,10 +84,6 @@ dist_ops <- list(
   )
 )
 
-## generisches Negativ-Loglikelihood -------------------------------------
-# Parametervektor je nach Verteilung unterschiedlich lang.
-# Bei k > 1 wirkt `pars[1]` als globaler Multiplikator auf einen
-# festen Offset aus `X_{k-1}`; weitere Einträge kodieren z.B. Skalen.
 nll_fun_from_cfg <- function(k, cfg) {
   dname <- cfg[[k]]$distr
   ops   <- dist_ops[[dname]]
@@ -108,7 +94,6 @@ nll_fun_from_cfg <- function(k, cfg) {
 }
 
 
-## Evaluate fitted densities ------------------------------------------------
 eval_ll_from_cfg <- function(k, pars, X, cfg) {
   xs    <- X[, k]
   Xprev <- if (k > 1) X[, 1:(k - 1), drop = FALSE] else NULL
@@ -132,8 +117,6 @@ fit_param <- function(X_pi_train, X_pi_test, config) {
   ))
   init_vals <- lapply(param_len, function(n) rep(0, n))
   param_est <- vector("list", K)
-  # sequentielle Schätzung: jede Dimension k wird separat per
-  # Maximum-Likelihood angepasst
   for (k in seq_len(K)) {
     xs    <- X_pi_train[, k]
     Xprev <- if (k > 1) X_pi_train[, 1:(k - 1), drop = FALSE] else NULL
@@ -142,7 +125,6 @@ fit_param <- function(X_pi_train, X_pi_test, config) {
     lower <- if (method == "L-BFGS-B") rep(EPS, length(init_vals[[k]])) else -Inf
     fit   <- safe_optim(init_vals[[k]], nll, xs = xs, Xprev = Xprev,
                         method = method, lower = lower)
-    # numerical gradients from optim are sufficient
     param_est[[k]] <- fit$par
 
     pll <- sum(eval_ll_from_cfg(k, param_est[[k]], X_pi_train, config))
@@ -167,7 +149,6 @@ fit_param <- function(X_pi_train, X_pi_test, config) {
     eval_ll_from_cfg(k, param_est[[k]], X_pi_test, config)
   )
 
-  ## per-observation joint log-likelihood using row means (see AGENTS.md)
 
   ll_delta_df_test <- data.frame(
     dim          = seq_len(K),

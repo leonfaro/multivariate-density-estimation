@@ -1,10 +1,8 @@
 
-# sample size
 N <- 50
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) > 0 && args[1] == "big") N <- 10000
 
-# fixed three-dimensional setup
 config_choice <- 3
 Sys.setenv(N_train = N, N_test = N)
 
@@ -13,7 +11,6 @@ set.seed(SEED)
 source("01_transport_utils.R")
 source("02_generate_data.R")
 
-# compute exploratory summaries from the stored CSVs
 train_df <- read.csv("results/train_data.csv")
 test_df  <- read.csv("results/test_data.csv")
 
