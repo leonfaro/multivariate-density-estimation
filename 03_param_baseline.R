@@ -16,32 +16,34 @@ safe_optim <- function(par, fn, method = "BFGS", ...) {
 }
 
 ## generisches Negativ-Loglikelihood -------------------------------------
-# Parameter: `pars[1]` Intercept, `pars[2]` Steigung
-# Steigung wirkt auf Vorfahre `X_{k-1}` falls k>1
+# Parameter: `pars[1]` Intercept, `pars[-1]` Koeffizienten
+# Koeffizienten wirken auf Vorfahrsvektor `X_{1:(k-1)}` falls k>1
 nll_fun_from_cfg <- function(k, cfg) {
   dname <- cfg[[k]]$distr
   function(par, xs, Xprev) {
-    pred <- if (k > 1) Xprev[, k - 1] else 0
+    linpred <- par[1] + if (k > 1) drop(as.matrix(Xprev) %*% par[-1]) else 0
     if (dname == "norm") {
-      mu <- par[1] + par[2] * pred
+      mu <- linpred
       -sum(dnorm(xs, mean = mu, sd = 1, log = TRUE))
     } else if (dname == "exp") {
-      rate <- clip(exp(par[1] + par[2] * pred), EPS, 1e6)
+
+      rate <- softplus(linpred)
       -sum(dexp(xs, rate = rate, log = TRUE))
     } else if (dname == "gamma") {
-      shape <- clip(par[1] + par[2] * pred, EPS, 1e6)
+      shape <- softplus(linpred)
       -sum(dgamma(xs, shape = shape, rate = 1, log = TRUE))
     } else if (dname == "pois") {
-      lambda <- clip(exp(par[1] + par[2] * pred), EPS, 1e6)
+      lambda <- softplus(linpred)
+
       -sum(dpois(xs, lambda = lambda, log = TRUE))
     } else if (dname == "t") {
-      mu <- par[1] + par[2] * pred
+      mu <- linpred
       -sum(dt(xs - mu, df = 5, log = TRUE))
     } else if (dname == "laplace") {
-      m <- par[1] + par[2] * pred
+      m <- linpred
       -sum(extraDistr::dlaplace(xs, m = m, s = 1, log = TRUE))
     } else if (dname == "logis") {
-      loc <- par[1] + par[2] * pred
+      loc <- linpred
       -sum(dlogis(xs, location = loc, scale = 1, log = TRUE))
     } else {
       stop("unsupported distribution")
@@ -52,25 +54,39 @@ nll_fun_from_cfg <- function(k, cfg) {
 grad_nll_from_cfg <- function(k, cfg) {
   dname <- cfg[[k]]$distr
   function(par, xs, Xprev) {
-    pred <- if (k > 1) Xprev[, k - 1] else 0
+    linpred <- par[1] + if (k > 1) drop(as.matrix(Xprev) %*% par[-1]) else 0
     if (dname == "norm") {
-      mu <- par[1] + par[2] * pred
-      g1 <- sum(mu - xs)
-      g2 <- sum((mu - xs) * pred)
+      mu <- linpred
+      diff <- mu - xs
+      grad <- numeric(length(par))
+      grad[1] <- sum(diff)
+      if (k > 1) {
+        for (j in 2:length(par)) grad[j] <- sum(diff * Xprev[, j - 1])
+      }
     } else if (dname == "exp") {
-      rate <- clip(exp(par[1] + par[2] * pred), EPS, 1e6)
+
+      rate <- softplus(linpred)
+
       g_common <- rate * xs - 1
-      g1 <- sum(g_common)
-      g2 <- sum(g_common * pred)
+      grad <- numeric(length(par))
+      grad[1] <- sum(g_common)
+      if (k > 1) {
+        for (j in 2:length(par)) grad[j] <- sum(g_common * Xprev[, j - 1])
+      }
     } else if (dname == "gamma") {
-      shape <- clip(par[1] + par[2] * pred, EPS, 1e6)
+
+      shape <- softplus(linpred)
+
       g_common <- digamma(shape) - log(xs)
-      g1 <- sum(g_common)
-      g2 <- sum(g_common * pred)
+      grad <- numeric(length(par))
+      grad[1] <- sum(g_common)
+      if (k > 1) {
+        for (j in 2:length(par)) grad[j] <- sum(g_common * Xprev[, j - 1])
+      }
     } else {
       stop("gradient not implemented")
     }
-    c(g1, g2)
+    grad
   }
 }
 
@@ -78,28 +94,30 @@ grad_nll_from_cfg <- function(k, cfg) {
 eval_ll_from_cfg <- function(k, pars, X, cfg) {
   xs    <- X[, k]
   Xprev <- if (k > 1) X[, 1:(k - 1), drop = FALSE] else NULL
-  pred  <- if (k > 1) Xprev[, k - 1] else 0
+  linpred <- pars[1] + if (k > 1) drop(as.matrix(Xprev) %*% pars[-1]) else 0
   dname <- cfg[[k]]$distr
   if (dname == "norm") {
-    mu <- pars[1] + pars[2] * pred
+    mu <- linpred
     dnorm(xs, mean = mu, sd = 1, log = TRUE)
   } else if (dname == "exp") {
-    rate <- clip(exp(pars[1] + pars[2] * pred), EPS, 1e6)
+
+    rate <- softplus(linpred)
     dexp(xs, rate = rate, log = TRUE)
   } else if (dname == "gamma") {
-    shape <- clip(pars[1] + pars[2] * pred, EPS, 1e6)
+    shape <- softplus(linpred)
     dgamma(xs, shape = shape, rate = 1, log = TRUE)
   } else if (dname == "pois") {
-    lambda <- clip(exp(pars[1] + pars[2] * pred), EPS, 1e6)
+    lambda <- softplus(linpred)
+
     dpois(xs, lambda = lambda, log = TRUE)
   } else if (dname == "t") {
-    mu <- pars[1] + pars[2] * pred
+    mu <- linpred
     dt(xs - mu, df = 5, log = TRUE)
   } else if (dname == "laplace") {
-    m <- pars[1] + pars[2] * pred
+    m <- linpred
     extraDistr::dlaplace(xs, m = m, s = 1, log = TRUE)
   } else if (dname == "logis") {
-    loc <- pars[1] + pars[2] * pred
+    loc <- linpred
     dlogis(xs, location = loc, scale = 1, log = TRUE)
   } else {
     stop("unsupported distribution")
@@ -108,7 +126,7 @@ eval_ll_from_cfg <- function(k, pars, X, cfg) {
 
 fit_param <- function(X_pi_train, X_pi_test, config) {
 
-  init_vals <- replicate(K, c(0, 0), simplify = FALSE)
+  init_vals <- lapply(seq_len(K), function(k) rep(0, k))
   param_est <- vector("list", K)
   for (k in seq_len(K)) {
     xs    <- X_pi_train[, k]
@@ -172,14 +190,18 @@ fit_param <- function(X_pi_train, X_pi_test, config) {
 summarise_fit <- function(param_est, X_test, ll_delta_df, cfg = config) {
   K <- length(param_est)
   mean_param_test <- sapply(seq_len(K), function(k) {
-    pred <- if (k > 1) X_test[, k - 1] else 0
+    linpred <- param_est[[k]][1] +
+      if (k > 1) drop(as.matrix(X_test[, 1:(k - 1), drop = FALSE]) %*% param_est[[k]][-1])
+      else 0
     dname <- cfg[[k]]$distr
     if (dname %in% c("exp", "pois")) {
-      mean(clip(exp(param_est[[k]][1] + param_est[[k]][2] * pred), EPS, 1e6))
+
+      mean(softplus(linpred))
     } else if (dname == "gamma") {
-      mean(clip(param_est[[k]][1] + param_est[[k]][2] * pred, EPS, 1e6))
+      mean(softplus(linpred))
+
     } else {
-      mean(param_est[[k]][1] + param_est[[k]][2] * pred)
+      mean(linpred)
     }
   })
   mle_param <- sapply(param_est, function(p) p[1])

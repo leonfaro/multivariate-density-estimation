@@ -9,7 +9,6 @@
 #   3. logdet_J = rowSums(logd); loglik berechnen
 #   4. kurze Zusammenfassung ausgeben
 #   5. Daten als CSV speichern
-# Notation siehe Notation.md
 
 source("01_transport_utils.R")
 
