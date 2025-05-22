@@ -1,9 +1,10 @@
 ## Parametrischer Baseline-Fit ---------------------------------------------
 # Eingabe: Matrizen `X_pi_train`, `X_pi_test`, Liste `config`
-# Ausgabe: `param_est`, Tabelle `ll_delta_df_test`, Zähler für Clipping
+# Ausgabe: `param_est`, Tabelle `ll_delta_df_test`
 # Ablauf:
-#   * für jedes k Negativ-Loglikelihood via `nll_fun_from_cfg()`
-#   * Parameter mit `optim()` schätzen
+#   * für jedes k eine sequentielle Negativ-Loglikelihood via
+#     `nll_fun_from_cfg()` bilden
+#   * Parameter mit `optim()` dimensionsweise maximieren
 #   * Logdichten mit `eval_ll_from_cfg()` auswerten
 #   * Differenzen in `ll_delta_df_test` sammeln
 
@@ -15,8 +16,9 @@ safe_optim <- function(par, fn, method = "BFGS", ...) {
 }
 
 ## generisches Negativ-Loglikelihood -------------------------------------
-# Parameter: `pars[1]` Intercept, `pars[-1]` Koeffizienten
-# Koeffizienten wirken auf Vorfahrsvektor `X_{1:(k-1)}` falls k>1
+# Parametervektor je nach Verteilung unterschiedlich lang.
+# Bei k > 1 wirkt `pars[1]` als globaler Multiplikator auf einen
+# festen Offset aus `X_{k-1}`; weitere Einträge kodieren z.B. Skalen.
 nll_fun_from_cfg <- function(k, cfg) {
   dname <- cfg[[k]]$distr
   function(par, xs, Xprev) {
@@ -107,6 +109,8 @@ fit_param <- function(X_pi_train, X_pi_test, config) {
   ))
   init_vals <- lapply(param_len, function(n) rep(0, n))
   param_est <- vector("list", K)
+  # sequentielle Schätzung: jede Dimension k wird separat per
+  # Maximum-Likelihood angepasst
   for (k in seq_len(K)) {
     xs    <- X_pi_train[, k]
     Xprev <- if (k > 1) X_pi_train[, 1:(k - 1), drop = FALSE] else NULL
