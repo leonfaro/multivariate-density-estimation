@@ -60,30 +60,53 @@ make_dist_registry <- function() {
       invcdf = qlogis
     )
   )
-  for (n in names(reg))
-    reg[[n]]$param_count <- length(reg[[n]]$param_names) * 2
   reg
 }
 
-compute_params <- function(theta, offset, family) {
-  npar <- length(family$param_names)
-  params <- vector("list", npar)
-  for (i in seq_len(npar)) {
-    b0 <- theta[2 * i - 1]
-    b1 <- theta[2 * i]
-    lin <- b0 + b1 * offset
-    link_id <- family$link_vector[i]
-    params[[i]] <- link_fns[[link_id]](lin)
+compute_distribution_parameters <- function(theta_vector, X_prev_matrix,
+                                            family_spec, N_observations) {
+  output_params_list <- list()
+  current_theta_idx_start <- 1
+  num_betas_per_dist_param <- if (is.null(X_prev_matrix) ||
+    ncol(as.matrix(X_prev_matrix)) == 0) 1 else ncol(X_prev_matrix) + 1
+
+  intercept_column <- rep(1.0, N_observations)
+  if (is.null(X_prev_matrix) || ncol(as.matrix(X_prev_matrix)) == 0) {
+    D <- matrix(intercept_column, nrow = N_observations)
+  } else {
+    D <- cbind(intercept_column, X_prev_matrix)
   }
-  params
+
+  for (j in seq_along(family_spec$param_names)) {
+    current_param_name <- family_spec$param_names[j]
+    current_link_id <- family_spec$link_vector[j]
+    selected_link_function <- link_fns[[current_link_id]]
+    current_theta_idx_end <- current_theta_idx_start +
+      num_betas_per_dist_param - 1
+    beta_subset <- theta_vector[current_theta_idx_start:current_theta_idx_end]
+    linear_predictor_values <- as.numeric(D %*% beta_subset)
+    transformed_values <- selected_link_function(linear_predictor_values)
+    output_params_list[[current_param_name]] <- transformed_values
+    current_theta_idx_start <- current_theta_idx_end + 1
+  }
+  output_params_list
 }
 
 make_nll <- function(family_name, x_prev, x_curr, registry = dist_registry) {
   fam <- registry[[family_name]]
-  offset <- if (is.null(x_prev)) rep(0, length(x_curr)) else x_prev
+  N_obs <- length(x_curr)
+  if (!is.null(x_prev)) {
+    if (is.null(dim(x_prev))) {
+      if (length(x_prev) != N_obs)
+        stop("x_prev dimension mismatch")
+      x_prev <- matrix(x_prev, ncol = 1)
+    } else if (nrow(x_prev) != N_obs) {
+      stop("x_prev dimension mismatch")
+    }
+  }
   safe_support(x_curr, family_name)
   function(theta) {
-    pars <- compute_params(theta, offset, fam)
+    pars <- compute_distribution_parameters(theta, x_prev, fam, N_obs)
     logpdf <- do.call(fam$logpdf, c(list(x_curr), pars))
     -sum(logpdf)
   }
@@ -91,22 +114,27 @@ make_nll <- function(family_name, x_prev, x_curr, registry = dist_registry) {
 
 nll_fun_from_cfg <- function(k, cfg, xs, Xprev, registry = dist_registry) {
   dname <- cfg[[k]]$distr
-  offset <- if (k > 1) Xprev[, k - 1] else rep(0, length(xs))
-  make_nll(dname, offset, xs, registry)
+  X_prev <- if (k > 1) Xprev[, 1:(k - 1), drop = FALSE] else NULL
+  make_nll(dname, X_prev, xs, registry)
 }
 
 eval_ll_from_cfg <- function(k, pars, X, cfg, registry = dist_registry) {
   xs    <- X[, k]
-  Xprev <- if (k > 1) X[, k - 1] else NULL
+  X_prev <- if (k > 1) X[, 1:(k - 1), drop = FALSE] else NULL
   dname <- cfg[[k]]$distr
   fam   <- registry[[dname]]
-  offset <- if (k > 1) X[, k - 1] else rep(0, length(xs))
-  pars_list <- compute_params(pars, offset, fam)
+  N_obs <- length(xs)
+  pars_list <- compute_distribution_parameters(pars, X_prev, fam, N_obs)
   do.call(fam$logpdf, c(list(xs), pars_list))
 }
 
 fit_param <- function(X_pi_train, X_pi_test, config, registry = dist_registry) {
-  param_len <- sapply(config, function(cf) registry[[cf$distr]]$param_count)
+  K <- length(config)
+  param_len <- sapply(seq_len(K), function(k) {
+    fam <- registry[[config[[k]]$distr]]
+    n_prev <- if (k > 1) k - 1 else 0
+    (n_prev + 1) * length(fam$param_names)
+  })
   init_vals <- lapply(param_len, function(n) rep(0, n))
   param_est <- vector("list", K)
   for (k in seq_len(K)) {
@@ -159,11 +187,11 @@ fit_param <- function(X_pi_train, X_pi_test, config, registry = dist_registry) {
 summarise_fit <- function(param_est, X_test, ll_delta_df, cfg = config, registry = dist_registry) {
   K <- length(param_est)
   mean_param_test <- sapply(seq_len(K), function(k) {
-    offset <- if (k > 1) X_test[, k - 1] else rep(0, nrow(X_test))
+    X_prev <- if (k > 1) X_test[, 1:(k - 1), drop = FALSE] else NULL
     pars  <- param_est[[k]]
     dname <- cfg[[k]]$distr
     fam   <- registry[[dname]]
-    params <- compute_params(pars, offset, fam)
+    params <- compute_distribution_parameters(pars, X_prev, fam, nrow(X_test))
     mean(params[[1]])
   })
   mle_param <- sapply(param_est, function(p) p[1])
