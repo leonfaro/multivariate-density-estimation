@@ -8,11 +8,13 @@ Sys.setenv(N_train = N, N_test = N)
 
 source("00_setup.R")
 set.seed(SEED)
-source("01_transport_utils.R")
-source("02_generate_data.R")
+data <- generate_data()
+write_data(data)
 
-train_df <- read.csv("results/train_data.csv")
-test_df  <- read.csv("results/test_data.csv")
+train_df <- data$train$df
+test_df  <- data$test$df
+X_pi_train <- data$train$sample$X_pi
+X_pi_test  <- data$test$sample$X_pi
 
 X_train <- as.matrix(train_df[paste0("Xpi", seq_len(K))])
 X_test  <- as.matrix(test_df[paste0("Xpi", seq_len(K))])
@@ -40,8 +42,6 @@ summary_stats <- data.frame(
   row.names = NULL
 )
 print(summary_stats)
-
-source("03_param_baseline.R")
 
 param_res <- fit_param(X_pi_train, X_pi_test, config)
 param_est <- param_res$param_est
