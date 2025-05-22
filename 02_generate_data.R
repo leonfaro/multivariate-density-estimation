@@ -1,14 +1,4 @@
 
-# Daten erzeugen ---------------------------------------------------------
-# Eingabe: Umgebungsvariablen `N_train`, `N_test` (Standard 500)
-# Ausgabe: CSVs unter `results/` mit Spalten `Xpi*`, `Ueta*`, `Zeta*`,
-#          `logd*`, `det_J`, `ll_true` (det_J = Logdeterminante)
-# Ablauf:
-#   1. U_eta aus Referenz ziehen
-#   2. `S_inv` anwenden -> X_pi, Z_eta, logd
-#   3. logdet_J = rowSums(logd); loglik berechnen
-#   4. kurze Zusammenfassung ausgeben
-#   5. Daten als CSV speichern
 
 source("01_transport_utils.R")
 
@@ -33,7 +23,6 @@ ll_test <- loglik(Z_eta_test, logdet_J_test)
 
 if (!dir.exists("results")) dir.create("results")
 
-# combine training data into one CSV
 train_df <- data.frame(
   X_pi_train, U_eta_train, Z_eta_train, logd_train,
   det_J = logdet_J_train, ll_true = ll_train,
@@ -49,7 +38,6 @@ colnames(train_df) <- c(
 attr(train_df, "seed") <- SEED
 write.csv(train_df, "results/train_data.csv", row.names = FALSE)
 
-# combine test data into one CSV
 test_df <- data.frame(
   X_pi_test, U_eta_test, Z_eta_test, logd_test,
   det_J = logdet_J_test, ll_true = ll_test,
