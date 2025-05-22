@@ -105,7 +105,7 @@ make_generalized_nll <- function(family_name_str, X_prev_data_matrix,
     )
     logpdf_function <- family_spec$logpdf
     log_pdf_values <- do.call(logpdf_function,
-                              c(list(x_curr_vector), computed_params))
+                              c(list(x = x_curr_vector), computed_params))
     if (any(!is.finite(log_pdf_values)))
       return(Inf)
     -sum(log_pdf_values)
