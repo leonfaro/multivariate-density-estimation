@@ -101,6 +101,21 @@ safe_support <- function(x, dname, pars = list()) {
 
 
 dist_fun <- function(pref, name) get(paste0(pref, name))
+# Does the R quantile function support log.p?
+q_supports_logp <- list(
+  norm    = TRUE,
+  exp     = TRUE,
+  gamma   = TRUE,
+  pois    = TRUE,
+  t       = TRUE,
+  laplace = FALSE,
+  logis   = TRUE,
+  weibull = TRUE,
+  lnorm   = TRUE,
+  bern    = FALSE,
+  binom   = TRUE,
+  beta    = TRUE
+)
 get_pars <- function(k, x_prev, cfg) {
   ck <- cfg[[k]]
   if (is.null(ck$parm)) return(list())
@@ -137,19 +152,29 @@ cdf_k <- function(k, xk, x_prev, cfg, log = TRUE) {
 
 qtf_k <- function(k, u, x_prev, cfg, log.p = FALSE) {
   dname <- cfg[[k]]$distr
-  pars <- get_pars(k, x_prev, cfg)
+  pars  <- get_pars(k, x_prev, cfg)
+  lp_cap <- q_supports_logp[[dname]]
+  if (is.null(lp_cap))
+    stop(sprintf("quantile log.p capability unknown for distribution %s", dname))
+  lp_cap <- isTRUE(lp_cap)
+  if (log.p && !lp_cap) {
+    u <- exp(u)
+    log.p <- FALSE
+  }
   if (dname == "sn") {
+    args <- list(p = u, dp = c(unlist(pars), tau = 0), solver = "RFB")
+    if (lp_cap) args$log.p <- log.p
     res <- tryCatch(
-      do.call(dist_fun("q", dname),
-              list(p = u, dp = c(unlist(pars), tau = 0), solver = "RFB",
-                   log.p = log.p)),
-      error = function(e)
-        do.call(dist_fun("q", dname),
-                list(p = u, dp = c(unlist(pars), tau = 0), solver = "NR",
-                     log.p = log.p))
+      do.call(dist_fun("q", dname), args),
+      error = function(e) {
+        args$solver <- "NR"
+        do.call(dist_fun("q", dname), args)
+      }
     )
   } else {
-    res <- do.call(dist_fun("q", dname), c(list(p = u, log.p = log.p), pars))
+    args <- c(list(p = u), pars)
+    if (lp_cap) args$log.p <- log.p
+    res <- do.call(dist_fun("q", dname), args)
   }
   safe_support(res, dname, pars)
 }
