@@ -1,6 +1,5 @@
 library(testthat)
 source("../../00_setup.R", chdir = TRUE)
-source("../../01_transport_utils.R", chdir = TRUE)
 
 # Extreme X_k values should not produce NaN log-densities
 
