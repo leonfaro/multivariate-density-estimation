@@ -1,0 +1,108 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2821
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 ```mermaid\
+graph TD\
+    A["Triangular Transport Methods (TTM) - Core Concepts and Implementation"]\
+\
+    A --> B["I. Introduction and Goal"]\
+        B --> B1["Primary Goal: Characterize complex `pi` via transformation to simple `eta` (e.g., N(0,I))"]\
+        B --> B2["Core Idea: `z = S(x)`, `x = S^-1(z)`. `S` is learned, lower-triangular."]\
+        B --> B3["Key Notation: `pi, eta, x, z, S, S_k, S^-1, K, gradS, det, S_#eta, S_#pi, F_k, Phi, phi`"]\
+        B3_sub["`S_k` can be parametric or non-parametric (e.g., Transformation Forest - TF)"]\
+        B3 --> B3_sub\
+\
+    A --> C["II. Theoretical Foundations"]\
+        C --> C1["A. Change-of-Variables Formula"]\
+            C1 --> C1a["`pi(x) = eta(S(x)) * |det(grad_x S(x))|` (Eq 1)"]\
+            C1 --> C1b["`eta(z) = pi(S^-1(z)) * |det(grad_z S^-1(z))|` (Eq 2)"]\
+        C --> C2["B. Triangular Map Structure (`S`)"]\
+            C2 --> C2a["`S(x) = [ S_1(x_1) ; ... ; S_K(x_1,...,x_K) ]^T = z` (Eq 3)"]\
+            C2 --> C2b["Monotonicity Req: `dS_k(x_1,...,x_k)/dx_k > 0`"]\
+            C2 --> C2c["Properties: Efficient Jacobian Det, Invertibility, Distribution Factorization"]\
+            C2c --> C2c1["`det(grad_x S(x)) = product(dS_k/dx_k)` (Eq 4)"]\
+            C2c --> C2c2["`pi(x) = pi(x_1) * product pi(x_i|x_1..x_\{i-1\})`"]\
+        C --> C3["C. Map Inversion (`S^-1`)"]\
+            C3 --> C3a["Sequential: `x_k = S_k^-1(z_k; x_1,...,x_\{k-1\})` (Eq 5) (1D root-finding)"]\
+            C3 --> C3b["Sampling from `pi`: Draw `Z~eta`, compute `X = S^-1(Z)`"]\
+        C --> C4["D. Sampling Conditionals of `pi` (`pi(x_inf | x_obs^*)`)"]\
+            C4 --> C4a["Fix `x_obs^*`, draw `z_inf~eta_inf`, compute `x_inf^*` via lower block of `S^-1` (Eq 6)"]\
+            C4 --> C4b["Central to Bayesian Inference"]\
+            C4 --> C4c["Conditional Factorization: `pi(x_\{k+1:K\}|x_\{1:k\}^*) = product pi(x_j | x_\{1:k\}^*, x_\{k+1:j-1\}^*)` (Eq 7)"]\
+        C --> C5["E. Conditional Independence (Sparsification)"]\
+            C5 --> C5a["Simplify `S_k` by dropping irrelevant `x_j` (j < k)"]\
+            C5 --> C5b["Example: `S_3(x_1,x_2,x_3)` -> `S_3(x_2,x_3)` if `x_3 _|_ x_1 | x_2` (Eq 8 implies general structure)"]\
+            C5 --> C5c["Benefits: Robustness, Efficiency, Scalability"]\
+\
+    A --> D["III. Implementation Details"]\
+        D --> D1["A. General Considerations for Map `S`"]\
+            D1 --> D1a["Nonlinearity of `S` relates to `pi` vs `eta` distance"]\
+            D1 --> D1b["`S` approx. linear in tails"]\
+            D1 --> D1c["Standardization of `pi` data (optional for TF, outputs `z_k` are N(0,1))"]\
+        D --> D2["B. Structuring Map Components `S_k` (Monotone in `x_k`)"]\
+            D2 --> D2_Param["1. Parametric Approaches (from original paper)"]\
+                D2_Param --> D2_Param_Int["Monotonicity through Integration (Flexible, Costly)"]\
+                    D2_Param_Int --> D2_Param_Int_Eq["`S_k = g(...) + integral r(g_hat(...))dt` (Eq 9)"]\
+                D2_Param --> D2_Param_Sep["Monotonicity through Variable Separation (Efficient, Less Expressive)"]\
+                    D2_Param_Sep --> D2_Param_Sep_Eq["`S_k = g(x_1..x_\{k-1\}) + f(x_k)` (Eq 10)"]\
+            D2 --> D2_TF["2. Non-Parametric Approach: Using Transformation Forests for `S_k` (TTM-TF)"]\
+                D2_TF --> D2_TF_CDF["TF estimates Conditional CDF: `u_k = F_k(x_k | x_1,...,x_\{k-1\})` (Eq 12)"]\
+                D2_TF --> D2_TF_Sk["`S_k(x_1,...,x_k) := z_k = Phi^-1(F_k(x_k | x_1,...,x_\{k-1\}))` (Eq 13)"]\
+                D2_TF --> D2_TF_Mono["Monotonicity of `S_k` in `x_k` is automatic"]\
+                D2_TF --> D2_TF_Deriv["Derivative `dS_k/dx_k = p_k(x_k | ...) / phi(z_k)` (Eq 14) (`p_k` is cond. PDF)"]\
+                D2_TF --> D2_TF_Inv["Inversion `S_k^-1`: `x_k = F_k^\{-1\}(Phi(z_k) | x_1,...,x_\{k-1\})` (Eq 15) (`F_k^\{-1\}` is cond. Quantile Fn)"]\
+                D2_TF --> D2_TF_Adv["Advantages: Auto-monotonicity, Non-parametric flexibility, Leverages TF strengths"]\
+                D2_TF --> D2_TF_Cons["Considerations: Cost of training K-1 TFs, Estimation quality from TF"]\
+            D2 --> D2_Complexity["3. Parameterization Complexity (Parametric Forms)"]\
+                D2_Complexity --> D2_Complexity_Root["Root-finding objective: `z_k - g(...) = f(...)` (Eq 11)"]\
+                D2_Complexity --> D2_Complexity_Marg["Marginal Maps"]\
+                D2_Complexity --> D2_Complexity_Sep["Separable Maps"]\
+                D2_Complexity --> D2_Complexity_Cross["Cross-Term Maps"]\
+            D2 --> D2_Basis["4. Basis Functions (Parametric Forms)"]\
+                D2_Basis --> D2_Basis_Poly["Polynomial Basis Functions (Hermite, Edge Control)"]\
+                D2_Basis --> D2_Basis_RBF["Radial Basis Functions (RBFs, iRBF, LET/RET)"]\
+        D --> D3["C. Optimization of Map Parameters"]\
+            D3 --> D3_Param["For Parametric `S_k`: Optimize coefficients `c`"]\
+                D3_Param --> D3_Param_Sample["Maps from Samples: Minimize `KL(S_#pi || eta)` or Max Likelihood"]\
+                D3_Param --> D3_Param_Density["Maps from Densities: Minimize `KL(pi || S_#eta)`"]\
+            D3 --> D3_TF["For TTM-TF `S_k`: Optimization is training individual TFs for `F_k` sequentially"]\
+                D3_TF --> D3_TF_Seq["`trtf_1` for `F_1(x_1)`, then `trtf_2` for `F_2(x_2|x_1)`, ..."]\
+                D3_TF --> D3_TF_Global["No global optimization of map `S` parameters across `S_k` in TTM-TF"]\
+\
+    A --> E["IV. Algorithmic Flow Summary (Conceptual)"]\
+        E --> E1["1. Define Distributions: `pi` (samples for TF), `eta` (e.g. N(0,I))"]\
+        E --> E2["2. Build Map `S` (Sequentially for TTM-TF)"]\
+            E2 --> E2a["Choose variable ordering `x_1,...,x_K` (critical)"]\
+            E2 --> E2b["For `k=1 to K`: Construct/Train `S_k` (Parametric or TTM-TF via Eq 13)"]\
+            E2 --> E2c["Conditional Independencies: Explicit for Parametric; Automatic (variable selection) for TTM-TF"]\
+        E --> E3["3. Optimize Map"]\
+            E3 --> E3a["Parametric `S_k`: Numerically optimize `c`"]\
+            E3 --> E3b["TTM-TF: Training of individual TFs is the optimization"]\
+        E --> E4["4. Apply Transport"]\
+            E4 --> E4a["Generative Modeling/Sampling: `x = S^-1(z)`. (TTM-TF: use Eq 15 for `S_k^-1`)"]\
+            E4 --> E4b["Density Estimation: `pi(x) approx eta(S(x))|det(gradS)|`"]\
+            E4b --> E4b_TF["For TTM-TF: `pi(x) approx product_\{k=1 to K\} p_k(x_k | x_1,...,x_\{k-1\})` (Eq 16 - Chain Rule)"]\
+            E4 --> E4c["Conditional Sampling: Use general TTM (Sec II.D), with `S_k^-1` via Eq 15 for TTM-TF"]\
+\
+    A --> F["V. Key Advantages of TTM"]\
+        F --> F1["Parsimony (Parametric `S_k`)"]\
+        F --> F2["Sparsity (Explicit for Parametric; Automatic for TTM-TF via var selection)"]\
+        F --> F3["Numerical Convenience (Parametric `S_k` well-structured; TTM-TF relies on TF efficiency, Jacobian simplifies)"]\
+        F --> F4["Explainability (Parametric map elements; TTM-TF forest interpretability for each `S_k`)"]\
+        F --> F5["Exact Density Evaluation (Yes; simplifies for TTM-TF)"]\
+        F --> F6["Direct Conditional Sampling (Yes)"]\
+        F --> F7["(TTM-TF) Non-parametric Flexibility for `S_k`"]\
+        F --> F8["(TTM-TF) Automatic Monotonicity of `S_k` in `x_k`"]\
+\
+    %% Styling for clarity (optional, might not render in all Mermaid tools)\
+    style A fill:#f9f,stroke:#333,stroke-width:4px\
+    style B fill:#ccf,stroke:#333,stroke-width:2px\
+    style C fill:#ccf,stroke:#333,stroke-width:2px\
+    style D fill:#ccf,stroke:#333,stroke-width:2px\
+    style E fill:#ccf,stroke:#333,stroke-width:2px\
+    style F fill:#ccf,stroke:#333,stroke-width:2px\
+```}
