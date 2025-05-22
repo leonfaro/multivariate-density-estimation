@@ -16,6 +16,12 @@ softplus <- function(x) {
   ifelse(x > 50, x, log1p(exp(x)))
 }
 
+## Softplus -------------------------------------------------------------------
+## strictly increasing map R->(0,Inf)
+softplus <- function(x) {
+  ifelse(x > 20, x, log1p(exp(x)))
+}
+
 ## Maschinen-Epsilon ~1e-10 für Log-Stabilität
 EPS <- 1e-10
 
