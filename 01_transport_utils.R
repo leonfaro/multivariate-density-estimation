@@ -8,95 +8,61 @@
 # Map ist monoton, daher invertierbar
 
 
-clip_count <- function(x, lo, hi) {
-  changed <- (x < lo) | (x > hi)
-  list(val = pmin(hi, pmax(lo, x)), count = sum(changed))
-}
 
 safe_pars <- function(pars, dname) {
-  lo <- EPS
-  hi <- 1e6
   if (dname == "norm" && !is.null(pars$sd)) {
-    res <- clip_count(pars$sd, lo, hi)
-    pars$sd <- res$val
+    pars$sd <- softplus(pars$sd)
   }
   if (dname == "exp" && !is.null(pars$rate)) {
-    res <- clip_count(pars$rate, lo, hi)
-    pars$rate <- res$val
+    pars$rate <- softplus(pars$rate)
   }
   if (dname == "gamma") {
-    if (!is.null(pars$shape)) {
-      res <- clip_count(pars$shape, lo, hi)
-      pars$shape <- res$val
-    }
-    if (!is.null(pars$rate)) {
-      res <- clip_count(pars$rate, lo, hi)
-      pars$rate <- res$val
-    }
+    if (!is.null(pars$shape)) pars$shape <- softplus(pars$shape)
+    if (!is.null(pars$rate)) pars$rate <- softplus(pars$rate)
   }
-
   if (dname == "weibull") {
-    if (!is.null(pars$shape)) {
-      res <- clip_count(pars$shape, lo, hi)
-      pars$shape <- res$val
-    }
-    if (!is.null(pars$scale)) {
-      res <- clip_count(pars$scale, lo, hi)
-      pars$scale <- res$val
-    }
+    if (!is.null(pars$shape)) pars$shape <- softplus(pars$shape)
+    if (!is.null(pars$scale)) pars$scale <- softplus(pars$scale)
   }
   if (dname == "lnorm" && !is.null(pars$sdlog)) {
-    res <- clip_count(pars$sdlog, lo, hi)
-    pars$sdlog <- res$val
+    pars$sdlog <- softplus(pars$sdlog)
   }
   if (dname == "pois" && !is.null(pars$lambda)) {
-    res <- clip_count(pars$lambda, lo, hi)
-    pars$lambda <- res$val
+    pars$lambda <- softplus(pars$lambda)
   }
   if (dname %in% c("bern", "binom") && !is.null(pars$prob)) {
-    changed <- (pars$prob < lo) | (pars$prob > 1 - lo)
-    pars$prob <- pmin(1 - lo, pmax(lo, pars$prob))
+    pars$prob <- 1 / (1 + exp(-pars$prob))
   }
   if (dname == "binom" && !is.null(pars$size)) {
-    res <- clip_count(pars$size, 1, hi)
-    pars$size <- res$val
+    pars$size <- softplus(pars$size)
   }
   if (dname == "beta") {
-    if (!is.null(pars$shape1)) {
-      res <- clip_count(pars$shape1, lo, hi)
-      pars$shape1 <- res$val
-    }
-    if (!is.null(pars$shape2)) {
-      res <- clip_count(pars$shape2, lo, hi)
-      pars$shape2 <- res$val
-    }
+    if (!is.null(pars$shape1)) pars$shape1 <- softplus(pars$shape1)
+    if (!is.null(pars$shape2)) pars$shape2 <- softplus(pars$shape2)
   }
   if (dname == "logis" && !is.null(pars$scale)) {
-    res <- clip_count(pars$scale, lo, hi)
-    pars$scale <- res$val
+    pars$scale <- softplus(pars$scale)
   }
   pars
 }
 
 safe_support <- function(x, dname, pars = list()) {
-  lo <- EPS
-  hi <- 1e6
-  old <- x
-  res <- switch(dname,
-    exp     = clip(x, lo, hi),
-    gamma   = clip(x, lo, hi),
-    weibull = clip(x, lo, hi),
-    lnorm   = clip(x, lo, hi),
-    beta    = pmin(1 - lo, pmax(lo, x)),
-    pois    = pmax(0, round(x)),
-    bern    = ifelse(x > 0.5, 1, 0),
+  valid <- switch(dname,
+    exp     = x > 0,
+    gamma   = x > 0,
+    weibull = x > 0,
+    lnorm   = x > 0,
+    beta    = (x > 0) & (x < 1),
+    pois    = (x >= 0) & (abs(x - round(x)) < 1e-8),
+    bern    = x %in% c(0, 1),
     binom   = {
-      size <- if (!is.null(pars$size)) pars$size else hi
-      pmin(size, pmax(0, round(x)))
+      size <- if (!is.null(pars$size)) pars$size else Inf
+      (x >= 0) & (x <= size) & (abs(x - round(x)) < 1e-8)
     },
-    x
+    rep(TRUE, length(x))
   )
-  res
+  if (!all(valid)) stop("value outside support")
+  x
 }
 
 
