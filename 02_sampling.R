@@ -1,5 +1,43 @@
 # Sampling utilities
 
+logdet_J <- function(logd) rowSums(logd)
+
+loglik <- function(Z_eta, logdet_J) {
+  -0.5 * rowSums(Z_eta^2) - (ncol(Z_eta)/2) * log(2 * pi) + logdet_J
+}
+
+eta_sample <- function(N) {
+  Z_eta <- matrix(rnorm(N * K), nrow = N)
+  U_eta <- pnorm(Z_eta)
+  list(U_eta = U_eta, Z_eta = Z_eta)
+}
+
+S_inv <- function(U_eta, cfg = config, Z_eta = qnorm(U_eta)) {
+  n <- nrow(U_eta)
+  X_pi <- matrix(NA_real_, n, K)
+  logd <- matrix(NA_real_, n, K)
+  for (i in seq_len(n)) {
+    x_prev <- numeric(0)
+    for (k in seq_len(K)) {
+      logu <- pnorm(Z_eta[i, k], log.p = TRUE)
+      x_prev[k] <- qtf_k(k, logu, x_prev, cfg, log.p = TRUE)
+    }
+    X_pi[i, ] <- x_prev
+    for (k in seq_len(K)) {
+      logd[i, k] <- pdf_k(k, X_pi[i, k], X_pi[i, seq_len(k-1)], cfg, log = TRUE) -
+                    dnorm(Z_eta[i, k], log = TRUE)
+    }
+  }
+  list(X_pi = X_pi, U_eta = U_eta, Z_eta = Z_eta, logd = logd)
+}
+
+pi_sample <- function(N, cfg = config) {
+  ref <- eta_sample(N)
+  inv <- S_inv(ref$U_eta, cfg, ref$Z_eta)
+  list(X_pi = inv$X_pi, U_eta = ref$U_eta,
+       Z_eta = inv$Z_eta, logd = inv$logd)
+}
+
 sample_pi_df <- function(N, cfg = config) {
   samp <- pi_sample(N, cfg)
   logdet <- logdet_J(samp$logd)
