@@ -1,7 +1,7 @@
 ## Grundsetup ---------------------------------------------------------------
 # kurze Helfer und Beispiel-Configs für X_pi
 # Eingabe: `config_choice` (3 oder 4), Standard 3
-# Ausgabe: `config`, `K`, Funktionen wie `clip()` und `logsumexp()`
+# Ausgabe: `config`, `K`, Funktionen wie `softplus()` und `logsumexp()`
 SEED <- 24
 suppressPackageStartupMessages({
   library(extraDistr)
@@ -9,13 +9,11 @@ suppressPackageStartupMessages({
   library(trtf)
 })
 
-## clip ----------------------------------------------------------------------
-## Werte begrenzen gegen Extrembereiche
-clip <- function(x, lo = 1e-6, hi = 1e6) {
-  stopifnot(is.numeric(x), is.finite(lo), is.finite(hi))
-  res <- pmin(hi, pmax(lo, x))
-  stopifnot(all(is.finite(res)))
-  res
+## softplus ------------------------------------------------------------------
+## Glatte Positivabbildung für Parameterwerte
+softplus <- function(x) {
+  stopifnot(is.numeric(x))
+  ifelse(x > 50, x, log1p(exp(x)))
 }
 
 ## Softplus -------------------------------------------------------------------
@@ -56,7 +54,7 @@ config3 <- list(
   ## normal with mean 0, sd 1
   list(distr = "norm", parm = NULL),
   ## exponential rate depends on previous dimension
-  list(distr = "exp",  parm = function(d) list(rate = exp(d$X1))),
+  list(distr = "exp",  parm = function(d) list(rate = softplus(d$X1))),
   ## gamma shape depends on X2, fixed rate 1
   list(distr = "gamma", parm  = function(d)
     list(shape = softplus(d$X2), rate = 1))
