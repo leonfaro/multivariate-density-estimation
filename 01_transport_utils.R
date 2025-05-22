@@ -33,9 +33,12 @@ q_supports_logp <- c(
   norm    = TRUE,
   exp     = TRUE,
   gamma   = TRUE,
+  weibull = TRUE,
+  lnorm   = TRUE,
   pois    = TRUE,
   t       = TRUE,
   laplace = FALSE,
+  beta    = TRUE,
   logis   = TRUE,
   sn      = TRUE
 )
