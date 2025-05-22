@@ -18,6 +18,12 @@ clip <- function(x, lo = 1e-6, hi = 1e6) {
   res
 }
 
+## Softplus -------------------------------------------------------------------
+## strictly increasing map R->(0,Inf)
+softplus <- function(x) {
+  ifelse(x > 20, x, log1p(exp(x)))
+}
+
 ## Maschinen-Epsilon ~1e-10 für Log-Stabilität
 EPS <- 1e-10
 
@@ -53,7 +59,7 @@ config3 <- list(
   list(distr = "exp",  parm = function(d) list(rate = exp(d$X1))),
   ## gamma shape depends on X2, fixed rate 1
   list(distr = "gamma", parm  = function(d)
-    list(shape = clip(d$X2, EPS, 1e6), rate = 1))
+    list(shape = softplus(d$X2), rate = 1))
 )
 
 ## Alternative Config mit vier Verteilungen
@@ -61,9 +67,9 @@ config4 <- list(
   list(distr = "norm",    parm = NULL),
   list(distr = "t",       parm = function(d) list(df = 3 + 0.5 * d$X1)),
   list(distr = "laplace", parm = function(d)
-    list(m = 0.3 * d$X2, s = clip(1 + 0.1 * d$X2))),
+    list(m = 0.3 * d$X2, s = softplus(1 + 0.1 * d$X2))),
   list(distr = "logis",   parm = function(d)
-    list(location = 0.2 * d$X3, scale = clip(1 + 0.05 * d$X3)))
+    list(location = 0.2 * d$X3, scale = softplus(1 + 0.05 * d$X3)))
 )
 
 if (!exists("config_choice")) config_choice <- 3
