@@ -15,44 +15,95 @@ safe_optim <- function(par, fn, method = "BFGS", ...) {
   res
 }
 
+## distribution specific operations -----------------------------------------
+dist_ops <- list(
+  norm = list(
+    nll = function(par, xs, offset) {
+      mu <- par[1]; sd <- softplus(par[2])
+      -sum(dnorm(xs, mean = mu, sd = sd, log = TRUE))
+    },
+    logpdf = function(pars, xs, offset) {
+      mu <- pars[1]; sd <- softplus(pars[2])
+      dnorm(xs, mean = mu, sd = sd, log = TRUE)
+    },
+    mean_param = function(pars, xs, offset) pars[1]
+  ),
+  exp = list(
+    nll = function(par, xs, offset) {
+      rate <- softplus(par[1] * offset)
+      -sum(dexp(xs, rate = rate, log = TRUE))
+    },
+    logpdf = function(pars, xs, offset) {
+      rate <- softplus(pars[1] * offset)
+      dexp(xs, rate = rate, log = TRUE)
+    },
+    mean_param = function(pars, xs, offset) mean(softplus(pars[1] * offset))
+  ),
+  gamma = list(
+    nll = function(par, xs, offset) {
+      shape <- softplus(par[1] * offset); rate <- softplus(par[2])
+      -sum(dgamma(xs, shape = shape, rate = rate, log = TRUE))
+    },
+    logpdf = function(pars, xs, offset) {
+      shape <- softplus(pars[1] * offset); rate <- softplus(pars[2])
+      dgamma(xs, shape = shape, rate = rate, log = TRUE)
+    },
+    mean_param = function(pars, xs, offset) mean(softplus(pars[1] * offset))
+  ),
+  pois = list(
+    nll = function(par, xs, offset) {
+      lambda <- softplus(par[1] * offset)
+      -sum(dpois(xs, lambda = lambda, log = TRUE))
+    },
+    logpdf = function(pars, xs, offset) {
+      lambda <- softplus(pars[1] * offset)
+      dpois(xs, lambda = lambda, log = TRUE)
+    },
+    mean_param = function(pars, xs, offset) mean(softplus(pars[1] * offset))
+  ),
+  t = list(
+    nll = function(par, xs, offset) {
+      mu <- par[1]; -sum(dt(xs - mu, df = 5, log = TRUE))
+    },
+    logpdf = function(pars, xs, offset) {
+      mu <- pars[1]; dt(xs - mu, df = 5, log = TRUE)
+    },
+    mean_param = function(pars, xs, offset) pars[1]
+  ),
+  laplace = list(
+    nll = function(par, xs, offset) {
+      m <- par[1]; s <- softplus(par[2])
+      -sum(extraDistr::dlaplace(xs, m = m, s = s, log = TRUE))
+    },
+    logpdf = function(pars, xs, offset) {
+      m <- pars[1]; s <- softplus(pars[2])
+      extraDistr::dlaplace(xs, m = m, s = s, log = TRUE)
+    },
+    mean_param = function(pars, xs, offset) pars[1]
+  ),
+  logis = list(
+    nll = function(par, xs, offset) {
+      loc <- par[1]; sc <- softplus(par[2])
+      -sum(dlogis(xs, location = loc, scale = sc, log = TRUE))
+    },
+    logpdf = function(pars, xs, offset) {
+      loc <- pars[1]; sc <- softplus(pars[2])
+      dlogis(xs, location = loc, scale = sc, log = TRUE)
+    },
+    mean_param = function(pars, xs, offset) pars[1]
+  )
+)
+
 ## generisches Negativ-Loglikelihood -------------------------------------
 # Parametervektor je nach Verteilung unterschiedlich lang.
 # Bei k > 1 wirkt `pars[1]` als globaler Multiplikator auf einen
 # festen Offset aus `X_{k-1}`; weitere Einträge kodieren z.B. Skalen.
 nll_fun_from_cfg <- function(k, cfg) {
   dname <- cfg[[k]]$distr
+  ops   <- dist_ops[[dname]]
   function(par, xs, Xprev) {
-    if (dname == "norm") {
-      mu <- par[1]
-      sd <- softplus(par[2])
-      -sum(dnorm(xs, mean = mu, sd = sd, log = TRUE))
-    } else if (dname == "exp") {
-      offset <- if (k > 1) Xprev[, k - 1] else 1
-      rate <- softplus(par[1] * offset)
-      -sum(dexp(xs, rate = rate, log = TRUE))
-    } else if (dname == "gamma") {
-      offset <- if (k > 1) Xprev[, k - 1] else 1
-      shape <- softplus(par[1] * offset)
-      rate  <- softplus(par[2])
-      -sum(dgamma(xs, shape = shape, rate = rate, log = TRUE))
-    } else if (dname == "pois") {
-      offset <- if (k > 1) Xprev[, k - 1] else 1
-      lambda <- softplus(par[1] * offset)
-      -sum(dpois(xs, lambda = lambda, log = TRUE))
-    } else if (dname == "t") {
-      mu <- par[1]
-      -sum(dt(xs - mu, df = 5, log = TRUE))
-    } else if (dname == "laplace") {
-      m <- par[1]
-      s <- softplus(par[2])
-      -sum(extraDistr::dlaplace(xs, m = m, s = s, log = TRUE))
-    } else if (dname == "logis") {
-      loc <- par[1]
-      sc  <- softplus(par[2])
-      -sum(dlogis(xs, location = loc, scale = sc, log = TRUE))
-    } else {
-      stop("unsupported distribution")
-    }
+    offset <- if (k > 1) Xprev[, k - 1] else 1
+    ops$nll(par, xs, offset)
   }
 }
 
@@ -62,37 +113,9 @@ eval_ll_from_cfg <- function(k, pars, X, cfg) {
   xs    <- X[, k]
   Xprev <- if (k > 1) X[, 1:(k - 1), drop = FALSE] else NULL
   dname <- cfg[[k]]$distr
-  if (dname == "norm") {
-    mu <- pars[1]
-    sd <- softplus(pars[2])
-    dnorm(xs, mean = mu, sd = sd, log = TRUE)
-  } else if (dname == "exp") {
-    offset <- if (k > 1) Xprev[, k - 1] else 1
-    rate <- softplus(pars[1] * offset)
-    dexp(xs, rate = rate, log = TRUE)
-  } else if (dname == "gamma") {
-    offset <- if (k > 1) Xprev[, k - 1] else 1
-    shape <- softplus(pars[1] * offset)
-    rate  <- softplus(pars[2])
-    dgamma(xs, shape = shape, rate = rate, log = TRUE)
-  } else if (dname == "pois") {
-    offset <- if (k > 1) Xprev[, k - 1] else 1
-    lambda <- softplus(pars[1] * offset)
-    dpois(xs, lambda = lambda, log = TRUE)
-  } else if (dname == "t") {
-    mu <- pars[1]
-    dt(xs - mu, df = 5, log = TRUE)
-  } else if (dname == "laplace") {
-    m <- pars[1]
-    s <- softplus(pars[2])
-    extraDistr::dlaplace(xs, m = m, s = s, log = TRUE)
-  } else if (dname == "logis") {
-    loc <- pars[1]
-    sc  <- softplus(pars[2])
-    dlogis(xs, location = loc, scale = sc, log = TRUE)
-  } else {
-    stop("unsupported distribution")
-  }
+  ops   <- dist_ops[[dname]]
+  offset <- if (k > 1) Xprev[, k - 1] else 1
+  ops$logpdf(pars, xs, offset)
 }
 
 fit_param <- function(X_pi_train, X_pi_test, config) {
@@ -168,28 +191,11 @@ summarise_fit <- function(param_est, X_test, ll_delta_df, cfg = config) {
   K <- length(param_est)
   mean_param_test <- sapply(seq_len(K), function(k) {
     Xprev <- if (k > 1) X_test[, 1:(k - 1), drop = FALSE] else NULL
+    offset <- if (k > 1) Xprev[, k - 1] else 1
     pars  <- param_est[[k]]
     dname <- cfg[[k]]$distr
-    if (dname == "norm") {
-      pars[1]
-    } else if (dname == "exp") {
-      offset <- if (k > 1) Xprev[, k - 1] else 1
-      mean(softplus(pars[1] * offset))
-    } else if (dname == "gamma") {
-      offset <- if (k > 1) Xprev[, k - 1] else 1
-      mean(softplus(pars[1] * offset))
-    } else if (dname == "pois") {
-      offset <- if (k > 1) Xprev[, k - 1] else 1
-      mean(softplus(pars[1] * offset))
-    } else if (dname == "t") {
-      pars[1]
-    } else if (dname == "laplace") {
-      pars[1]
-    } else if (dname == "logis") {
-      pars[1]
-    } else {
-      NA_real_
-    }
+    ops   <- dist_ops[[dname]]
+    ops$mean_param(pars, Xprev, offset)
   })
   mle_param <- sapply(param_est, function(p) p[1])
   ll_delta_df$mean_param_test <- round(mean_param_test, 3)
