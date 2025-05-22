@@ -92,40 +92,24 @@ compute_distribution_parameters <- function(theta_vector, X_prev_matrix,
   output_params_list
 }
 
-make_nll <- function(family_name, x_prev, x_curr, registry = dist_registry) {
-  fam <- registry[[family_name]]
-  N_obs <- length(x_curr)
-  if (!is.null(x_prev)) {
-    if (is.null(dim(x_prev))) {
-      if (length(x_prev) != N_obs)
-        stop("x_prev dimension mismatch")
-      x_prev <- matrix(x_prev, ncol = 1)
-    } else if (nrow(x_prev) != N_obs) {
-      stop("x_prev dimension mismatch")
-    }
-  }
-  safe_support(x_curr, family_name)
+make_generalized_nll <- function(family_name_str, X_prev_data_matrix,
+                                 x_curr_vector, registry = dist_registry) {
+  family_spec <- registry[[family_name_str]]
+  safe_support(x_curr_vector, family_name_str)
   function(theta) {
-    pars <- compute_distribution_parameters(theta, x_prev, fam, N_obs)
-    logpdf <- do.call(fam$logpdf, c(list(x_curr), pars))
-    -sum(logpdf)
+    computed_params <- compute_distribution_parameters(
+      theta,
+      X_prev_data_matrix,
+      family_spec,
+      length(x_curr_vector)
+    )
+    logpdf_function <- family_spec$logpdf
+    log_pdf_values <- do.call(logpdf_function,
+                              c(list(x_curr_vector), computed_params))
+    if (any(!is.finite(log_pdf_values)))
+      return(Inf)
+    -sum(log_pdf_values)
   }
-}
-
-nll_fun_from_cfg <- function(k, cfg, xs, Xprev, registry = dist_registry) {
-  dname <- cfg[[k]]$distr
-  X_prev <- if (k > 1) Xprev[, 1:(k - 1), drop = FALSE] else NULL
-  make_nll(dname, X_prev, xs, registry)
-}
-
-eval_ll_from_cfg <- function(k, pars, X, cfg, registry = dist_registry) {
-  xs    <- X[, k]
-  X_prev <- if (k > 1) X[, 1:(k - 1), drop = FALSE] else NULL
-  dname <- cfg[[k]]$distr
-  fam   <- registry[[dname]]
-  N_obs <- length(xs)
-  pars_list <- compute_distribution_parameters(pars, X_prev, fam, N_obs)
-  do.call(fam$logpdf, c(list(xs), pars_list))
 }
 
 fit_param <- function(X_pi_train, X_pi_test, config, registry = dist_registry) {
@@ -140,11 +124,15 @@ fit_param <- function(X_pi_train, X_pi_test, config, registry = dist_registry) {
   for (k in seq_len(K)) {
     xs    <- X_pi_train[, k]
     Xprev <- if (k > 1) X_pi_train[, 1:(k - 1), drop = FALSE] else NULL
-    nll   <- nll_fun_from_cfg(k, config, xs, Xprev, registry)
+    dname <- config[[k]]$distr
+    nll <- make_generalized_nll(dname, Xprev, xs, registry)
     fit   <- safe_optim(init_vals[[k]], nll)
     param_est[[k]] <- fit$par
 
-    pll <- sum(eval_ll_from_cfg(k, param_est[[k]], X_pi_train, config, registry))
+    fam <- registry[[dname]]
+    pars_list <- compute_distribution_parameters(
+      param_est[[k]], Xprev, fam, length(xs))
+    pll <- sum(do.call(fam$logpdf, c(list(xs), pars_list)))
     tll <- sum(pdf_k(k, X_pi_train[, k],
                      if (k > 1) X_pi_train[, 1:(k - 1), drop = FALSE]
                      else numeric(0), config, log = TRUE))
@@ -162,9 +150,15 @@ fit_param <- function(X_pi_train, X_pi_test, config, registry = dist_registry) {
           config, log = TRUE)
   )
 
-  param_ll_mat_test <- sapply(seq_len(K), function(k)
-    eval_ll_from_cfg(k, param_est[[k]], X_pi_test, config, registry)
-  )
+  param_ll_mat_test <- sapply(seq_len(K), function(k) {
+    xs <- X_pi_test[, k]
+    X_prev <- if (k > 1) X_pi_test[, 1:(k - 1), drop = FALSE] else NULL
+    dname <- config[[k]]$distr
+    fam <- registry[[dname]]
+    pars_list <- compute_distribution_parameters(
+      param_est[[k]], X_prev, fam, length(xs))
+    do.call(fam$logpdf, c(list(xs), pars_list))
+  })
 
   ll_delta_df_test <- data.frame(
     dim          = seq_len(K),
