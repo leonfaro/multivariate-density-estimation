@@ -26,13 +26,15 @@ nll_fun_from_cfg <- function(k, cfg) {
       mu <- linpred
       -sum(dnorm(xs, mean = mu, sd = 1, log = TRUE))
     } else if (dname == "exp") {
-      rate <- clip(exp(linpred), EPS, 1e6)
+
+      rate <- softplus(linpred)
       -sum(dexp(xs, rate = rate, log = TRUE))
     } else if (dname == "gamma") {
-      shape <- clip(linpred, EPS, 1e6)
+      shape <- softplus(linpred)
       -sum(dgamma(xs, shape = shape, rate = 1, log = TRUE))
     } else if (dname == "pois") {
-      lambda <- clip(exp(linpred), EPS, 1e6)
+      lambda <- softplus(linpred)
+
       -sum(dpois(xs, lambda = lambda, log = TRUE))
     } else if (dname == "t") {
       mu <- linpred
@@ -62,7 +64,9 @@ grad_nll_from_cfg <- function(k, cfg) {
         for (j in 2:length(par)) grad[j] <- sum(diff * Xprev[, j - 1])
       }
     } else if (dname == "exp") {
-      rate <- clip(exp(linpred), EPS, 1e6)
+
+      rate <- softplus(linpred)
+
       g_common <- rate * xs - 1
       grad <- numeric(length(par))
       grad[1] <- sum(g_common)
@@ -70,7 +74,9 @@ grad_nll_from_cfg <- function(k, cfg) {
         for (j in 2:length(par)) grad[j] <- sum(g_common * Xprev[, j - 1])
       }
     } else if (dname == "gamma") {
-      shape <- clip(linpred, EPS, 1e6)
+
+      shape <- softplus(linpred)
+
       g_common <- digamma(shape) - log(xs)
       grad <- numeric(length(par))
       grad[1] <- sum(g_common)
@@ -94,13 +100,15 @@ eval_ll_from_cfg <- function(k, pars, X, cfg) {
     mu <- linpred
     dnorm(xs, mean = mu, sd = 1, log = TRUE)
   } else if (dname == "exp") {
-    rate <- clip(exp(linpred), EPS, 1e6)
+
+    rate <- softplus(linpred)
     dexp(xs, rate = rate, log = TRUE)
   } else if (dname == "gamma") {
-    shape <- clip(linpred, EPS, 1e6)
+    shape <- softplus(linpred)
     dgamma(xs, shape = shape, rate = 1, log = TRUE)
   } else if (dname == "pois") {
-    lambda <- clip(exp(linpred), EPS, 1e6)
+    lambda <- softplus(linpred)
+
     dpois(xs, lambda = lambda, log = TRUE)
   } else if (dname == "t") {
     mu <- linpred
@@ -187,9 +195,11 @@ summarise_fit <- function(param_est, X_test, ll_delta_df, cfg = config) {
       else 0
     dname <- cfg[[k]]$distr
     if (dname %in% c("exp", "pois")) {
-      mean(clip(exp(linpred), EPS, 1e6))
+
+      mean(softplus(linpred))
     } else if (dname == "gamma") {
-      mean(clip(linpred, EPS, 1e6))
+      mean(softplus(linpred))
+
     } else {
       mean(linpred)
     }
