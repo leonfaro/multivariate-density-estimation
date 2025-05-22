@@ -107,8 +107,6 @@ eval_ll_from_cfg <- function(k, pars, X, cfg) {
 }
 
 fit_param <- function(X_pi_train, X_pi_test, config) {
-  SAFE_PAR_COUNT <<- 0
-  SAFE_SUPPORT_COUNT <<- 0
 
   init_vals <- replicate(K, c(0, 0), simplify = FALSE)
   param_est <- vector("list", K)
@@ -167,9 +165,7 @@ fit_param <- function(X_pi_train, X_pi_test, config) {
     param_est = param_est,
     ll_delta_df_test = ll_delta_df_test,
     true_ll_mat_test = true_ll_mat_test,
-    param_ll_mat_test = param_ll_mat_test,
-    SAFE_PAR_COUNT = SAFE_PAR_COUNT,
-    SAFE_SUPPORT_COUNT = SAFE_SUPPORT_COUNT
+    param_ll_mat_test = param_ll_mat_test
   )
 }
 

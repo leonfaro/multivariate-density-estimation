@@ -13,7 +13,6 @@
 
 source("01_transport_utils.R")
 
-set.seed(2044)
 N_train <- as.integer(Sys.getenv("N_train", "500"))
 samp_train <- pi_sample(N_train)
 X_pi_train <- samp_train$X_pi
@@ -23,8 +22,6 @@ logd_train <- samp_train$logd
 
 logdet_J_train <- logdet_J(logd_train)
 ll_train <- loglik(Z_eta_train, logdet_J_train)
-
-set.seed(2045)
 N_test <- as.integer(Sys.getenv("N_test", "500"))
 samp_test <- pi_sample(N_test)
 X_pi_test <- samp_test$X_pi

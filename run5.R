@@ -8,12 +8,11 @@
 #   3. Loglikelihood-Abweichungen zusammenfassen und visualisieren
 
 N <- 50
-SEED <- 2023
 
 Sys.setenv(N_train = N, N_test = N)
 
 source("00_setup.R")
-set.seed(SEED)  # Seed hier überschreiben
+set.seed(SEED)
 config <- config4
 K <- length(config)
 

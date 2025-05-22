@@ -7,8 +7,6 @@
 #   2. U_eta durch `qtf_k` mappen, logd sammeln
 # Map ist monoton, daher invertierbar
 
-SAFE_PAR_COUNT <- 0
-SAFE_SUPPORT_COUNT <- 0
 
 clip_count <- function(x, lo, hi) {
   changed <- (x < lo) | (x > hi)
@@ -20,23 +18,19 @@ safe_pars <- function(pars, dname) {
   hi <- 1e6
   if (dname == "norm" && !is.null(pars$sd)) {
     res <- clip_count(pars$sd, lo, hi)
-    SAFE_PAR_COUNT <<- SAFE_PAR_COUNT + res$count
     pars$sd <- res$val
   }
   if (dname == "exp" && !is.null(pars$rate)) {
     res <- clip_count(pars$rate, lo, hi)
-    SAFE_PAR_COUNT <<- SAFE_PAR_COUNT + res$count
     pars$rate <- res$val
   }
   if (dname == "gamma") {
     if (!is.null(pars$shape)) {
       res <- clip_count(pars$shape, lo, hi)
-      SAFE_PAR_COUNT <<- SAFE_PAR_COUNT + res$count
       pars$shape <- res$val
     }
     if (!is.null(pars$rate)) {
       res <- clip_count(pars$rate, lo, hi)
-      SAFE_PAR_COUNT <<- SAFE_PAR_COUNT + res$count
       pars$rate <- res$val
     }
   }
@@ -44,50 +38,41 @@ safe_pars <- function(pars, dname) {
   if (dname == "weibull") {
     if (!is.null(pars$shape)) {
       res <- clip_count(pars$shape, lo, hi)
-      SAFE_PAR_COUNT <<- SAFE_PAR_COUNT + res$count
       pars$shape <- res$val
     }
     if (!is.null(pars$scale)) {
       res <- clip_count(pars$scale, lo, hi)
-      SAFE_PAR_COUNT <<- SAFE_PAR_COUNT + res$count
       pars$scale <- res$val
     }
   }
   if (dname == "lnorm" && !is.null(pars$sdlog)) {
     res <- clip_count(pars$sdlog, lo, hi)
-    SAFE_PAR_COUNT <<- SAFE_PAR_COUNT + res$count
     pars$sdlog <- res$val
   }
   if (dname == "pois" && !is.null(pars$lambda)) {
     res <- clip_count(pars$lambda, lo, hi)
-    SAFE_PAR_COUNT <<- SAFE_PAR_COUNT + res$count
     pars$lambda <- res$val
   }
   if (dname %in% c("bern", "binom") && !is.null(pars$prob)) {
     changed <- (pars$prob < lo) | (pars$prob > 1 - lo)
-    SAFE_PAR_COUNT <<- SAFE_PAR_COUNT + sum(changed)
     pars$prob <- pmin(1 - lo, pmax(lo, pars$prob))
   }
   if (dname == "binom" && !is.null(pars$size)) {
     res <- clip_count(pars$size, 1, hi)
-    SAFE_PAR_COUNT <<- SAFE_PAR_COUNT + res$count
     pars$size <- res$val
   }
   if (dname == "beta") {
     if (!is.null(pars$shape1)) {
       res <- clip_count(pars$shape1, lo, hi)
-      SAFE_PAR_COUNT <<- SAFE_PAR_COUNT + res$count
       pars$shape1 <- res$val
     }
     if (!is.null(pars$shape2)) {
       res <- clip_count(pars$shape2, lo, hi)
-      SAFE_PAR_COUNT <<- SAFE_PAR_COUNT + res$count
       pars$shape2 <- res$val
     }
   }
   if (dname == "logis" && !is.null(pars$scale)) {
     res <- clip_count(pars$scale, lo, hi)
-    SAFE_PAR_COUNT <<- SAFE_PAR_COUNT + res$count
     pars$scale <- res$val
   }
   pars
@@ -111,7 +96,6 @@ safe_support <- function(x, dname, pars = list()) {
     },
     x
   )
-  SAFE_SUPPORT_COUNT <<- SAFE_SUPPORT_COUNT + sum(old != res)
   res
 }
 
