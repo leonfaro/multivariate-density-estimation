@@ -11,7 +11,6 @@
 library(trtf)
 
 fit_forest <- function(X_pi_train, X_pi_test) {
-  set.seed(2046)
   data <- as.data.frame(X_pi_train)
   ymod <- lapply(names(data), function(y)
     BoxCox(as.formula(paste0(y, "~1")), data = data)

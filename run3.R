@@ -9,6 +9,7 @@ config_choice <- 3
 Sys.setenv(N_train = N, N_test = N)
 
 source("00_setup.R")
+set.seed(SEED)
 source("01_transport_utils.R")
 source("02_generate_data.R")
 
