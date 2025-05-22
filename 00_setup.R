@@ -12,20 +12,6 @@ softplus <- function(x) {
 
 EPS <- 1e-10
 
-logsumexp <- function(x) {
-  stopifnot(is.numeric(x))
-  m <- max(x)
-  res <- m + log(sum(exp(x - m)))
-  stopifnot(is.finite(res))
-  res
-}
-
-safe_logdens <- function(val, eps = EPS, hi = 1e6) {
-  res <- log(pmin(pmax(val, eps), hi))
-  stopifnot(all(is.finite(res)))
-  res
-}
-
 safe_cdf <- function(val, eps = EPS) {
   res <- pmax(eps, pmin(1 - eps, val))
   stopifnot(all(is.finite(res)))
