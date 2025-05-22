@@ -18,14 +18,11 @@ safe_cdf <- function(val, eps = EPS) {
   res
 }
 
-config3 <- list(
+config <- list(
   list(distr = "norm", parm = NULL),
   list(distr = "exp",  parm = function(d) list(rate = softplus(d$X1))),
-  list(distr = "gamma", parm  = function(d)
-    list(shape = softplus(d$X2), rate = 1))
+  list(distr = "gamma", parm  = function(d) list(shape = softplus(d$X2), rate = softplus(d$X1)))
 )
 
-if (!exists("config_choice")) config_choice <- 3
-config <- config3
 
 K <- length(config)
