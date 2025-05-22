@@ -4,7 +4,6 @@
 # Ausgabe: `config`, `K`, Funktionen wie `clip()` und `logsumexp()`
 # Notation siehe Notation.md
 SEED <- 24
-set.seed(SEED)
 suppressPackageStartupMessages({
   library(extraDistr)
   library(tram)
