@@ -2,7 +2,6 @@
 # kurze Helfer und Beispiel-Configs für X_pi
 # Eingabe: `config_choice` (3 oder 4), Standard 3
 # Ausgabe: `config`, `K`, Funktionen wie `clip()` und `logsumexp()`
-# Notation siehe Notation.md
 SEED <- 24
 suppressPackageStartupMessages({
   library(extraDistr)
