@@ -1,11 +1,4 @@
 
-# Hilfsfunktionen für triangulären Transport
-# Eingabe: Liste `config` mit K Verteilungen
-# Ausgabe: Funktionen `pdf_k`, `cdf_k`, `qtf_k`, `S_inv`, `pi_sample`
-# Ablauf k=1..K
-#   1. Parameter aus früheren X berechnen
-#   2. U_eta durch `qtf_k` mappen, logd sammeln
-# Map ist monoton, daher invertierbar
 
 
 
@@ -36,7 +29,6 @@ safe_pars <- function(pars, dname) {
   pars
 }
 
-## capability table for log.p in quantiles
 q_supports_logp <- c(
   norm    = TRUE,
   exp     = TRUE,

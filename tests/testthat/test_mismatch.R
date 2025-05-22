@@ -1,6 +1,5 @@
 library(testthat)
 
-## run tests from repository root
 if (file.exists('../../run5.R')) {
   capture.output(source('../../run5.R', chdir = TRUE))
 } else {
