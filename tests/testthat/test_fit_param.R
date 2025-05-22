@@ -4,10 +4,9 @@ set.seed(123)
 Sys.setenv(N_train = 500, N_test = 500)
 config_choice <- 3
 source("../../00_setup.R", chdir = TRUE)
-source("../../01_transport_utils.R", chdir = TRUE)
-source("../../02_generate_data.R", chdir = TRUE)
-source("../../03_param_baseline.R", chdir = TRUE)
-
+data <- generate_data()
+X_pi_train <- data$train$sample$X_pi
+X_pi_test  <- data$test$sample$X_pi
 res <- fit_param(X_pi_train, X_pi_test, config)
 mean_delta <- mean(abs(res$ll_delta_df_test$delta_ll_param_avg))
 

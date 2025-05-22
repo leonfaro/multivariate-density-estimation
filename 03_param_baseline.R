@@ -1,3 +1,4 @@
+# Optimisation utilities
 
 safe_optim <- function(par, fn, method = "BFGS", ...) {
   res <- optim(par, fn, method = method, ...)
@@ -8,59 +9,61 @@ safe_optim <- function(par, fn, method = "BFGS", ...) {
 
 link_fns <- list(identity = function(z) z, softplus = softplus)
 
-dist_registry <- list(
-  norm = list(
-    param_names = c("mu", "sigma"),
-    link_vector = c("identity", "softplus"),
-    logpdf = function(x, mu, sigma) dnorm(x, mean = mu, sd = sigma, log = TRUE),
-    invcdf = qnorm
-  ),
-  exp = list(
-    param_names = "rate",
-    link_vector = "softplus",
-    logpdf = function(x, rate) dexp(x, rate = rate, log = TRUE),
-    invcdf = qexp
-  ),
-  gamma = list(
-    param_names = c("shape", "rate"),
-    link_vector = c("softplus", "softplus"),
-    logpdf = function(x, shape, rate) dgamma(x, shape = shape, rate = rate, log = TRUE),
-    invcdf = qgamma
-  ),
-  weibull = list(
-    param_names = c("shape", "scale"),
-    link_vector = c("softplus", "softplus"),
-    logpdf = function(x, shape, scale) dweibull(x, shape = shape, scale = scale, log = TRUE),
-    invcdf = qweibull
-  ),
-  lnorm = list(
-    param_names = c("meanlog", "sdlog"),
-    link_vector = c("identity", "softplus"),
-    logpdf = function(x, meanlog, sdlog) dlnorm(x, meanlog = meanlog, sdlog = sdlog, log = TRUE),
-    invcdf = qlnorm
-  ),
-  pois = list(
-    param_names = "lambda",
-    link_vector = "softplus",
-    logpdf = function(x, lambda) dpois(x, lambda = lambda, log = TRUE),
-    invcdf = qpois
-  ),
-  beta = list(
-    param_names = c("shape1", "shape2"),
-    link_vector = c("softplus", "softplus"),
-    logpdf = function(x, shape1, shape2) dbeta(x, shape1 = shape1, shape2 = shape2, log = TRUE),
-    invcdf = qbeta
-  ),
-  logis = list(
-    param_names = c("location", "scale"),
-    link_vector = c("identity", "softplus"),
-    logpdf = function(x, location, scale) dlogis(x, location = location, scale = scale, log = TRUE),
-    invcdf = qlogis
+make_dist_registry <- function() {
+  reg <- list(
+    norm = list(
+      param_names = c("mu", "sigma"),
+      link_vector = c("identity", "softplus"),
+      logpdf = function(x, mu, sigma) dnorm(x, mean = mu, sd = sigma, log = TRUE),
+      invcdf = qnorm
+    ),
+    exp = list(
+      param_names = "rate",
+      link_vector = "softplus",
+      logpdf = function(x, rate) dexp(x, rate = rate, log = TRUE),
+      invcdf = qexp
+    ),
+    gamma = list(
+      param_names = c("shape", "rate"),
+      link_vector = c("softplus", "softplus"),
+      logpdf = function(x, shape, rate) dgamma(x, shape = shape, rate = rate, log = TRUE),
+      invcdf = qgamma
+    ),
+    weibull = list(
+      param_names = c("shape", "scale"),
+      link_vector = c("softplus", "softplus"),
+      logpdf = function(x, shape, scale) dweibull(x, shape = shape, scale = scale, log = TRUE),
+      invcdf = qweibull
+    ),
+    lnorm = list(
+      param_names = c("meanlog", "sdlog"),
+      link_vector = c("identity", "softplus"),
+      logpdf = function(x, meanlog, sdlog) dlnorm(x, meanlog = meanlog, sdlog = sdlog, log = TRUE),
+      invcdf = qlnorm
+    ),
+    pois = list(
+      param_names = "lambda",
+      link_vector = "softplus",
+      logpdf = function(x, lambda) dpois(x, lambda = lambda, log = TRUE),
+      invcdf = qpois
+    ),
+    beta = list(
+      param_names = c("shape1", "shape2"),
+      link_vector = c("softplus", "softplus"),
+      logpdf = function(x, shape1, shape2) dbeta(x, shape1 = shape1, shape2 = shape2, log = TRUE),
+      invcdf = qbeta
+    ),
+    logis = list(
+      param_names = c("location", "scale"),
+      link_vector = c("identity", "softplus"),
+      logpdf = function(x, location, scale) dlogis(x, location = location, scale = scale, log = TRUE),
+      invcdf = qlogis
+    )
   )
-)
-
-for (n in names(dist_registry))
-  dist_registry[[n]]$param_count <- length(dist_registry[[n]]$param_names) * 2
+  for (n in names(reg))
+    reg[[n]]$param_count <- length(reg[[n]]$param_names) * 2
+  reg
+}
 
 compute_params <- function(theta, offset, family) {
   npar <- length(family$param_names)
@@ -75,8 +78,8 @@ compute_params <- function(theta, offset, family) {
   params
 }
 
-make_nll <- function(family_name, x_prev, x_curr) {
-  fam <- dist_registry[[family_name]]
+make_nll <- function(family_name, x_prev, x_curr, registry = dist_registry) {
+  fam <- registry[[family_name]]
   offset <- if (is.null(x_prev)) rep(0, length(x_curr)) else x_prev
   safe_support(x_curr, family_name)
   function(theta) {
@@ -86,37 +89,34 @@ make_nll <- function(family_name, x_prev, x_curr) {
   }
 }
 
-
-nll_fun_from_cfg <- function(k, cfg, xs, Xprev) {
+nll_fun_from_cfg <- function(k, cfg, xs, Xprev, registry = dist_registry) {
   dname <- cfg[[k]]$distr
   offset <- if (k > 1) Xprev[, k - 1] else rep(0, length(xs))
-  make_nll(dname, offset, xs)
+  make_nll(dname, offset, xs, registry)
 }
 
-
-eval_ll_from_cfg <- function(k, pars, X, cfg) {
+eval_ll_from_cfg <- function(k, pars, X, cfg, registry = dist_registry) {
   xs    <- X[, k]
   Xprev <- if (k > 1) X[, k - 1] else NULL
   dname <- cfg[[k]]$distr
-  fam   <- dist_registry[[dname]]
+  fam   <- registry[[dname]]
   offset <- if (k > 1) X[, k - 1] else rep(0, length(xs))
   pars_list <- compute_params(pars, offset, fam)
   do.call(fam$logpdf, c(list(xs), pars_list))
 }
 
-fit_param <- function(X_pi_train, X_pi_test, config) {
-
-  param_len <- sapply(config, function(cf) dist_registry[[cf$distr]]$param_count)
+fit_param <- function(X_pi_train, X_pi_test, config, registry = dist_registry) {
+  param_len <- sapply(config, function(cf) registry[[cf$distr]]$param_count)
   init_vals <- lapply(param_len, function(n) rep(0, n))
   param_est <- vector("list", K)
   for (k in seq_len(K)) {
     xs    <- X_pi_train[, k]
     Xprev <- if (k > 1) X_pi_train[, 1:(k - 1), drop = FALSE] else NULL
-    nll   <- nll_fun_from_cfg(k, config, xs, Xprev)
+    nll   <- nll_fun_from_cfg(k, config, xs, Xprev, registry)
     fit   <- safe_optim(init_vals[[k]], nll)
     param_est[[k]] <- fit$par
 
-    pll <- sum(eval_ll_from_cfg(k, param_est[[k]], X_pi_train, config))
+    pll <- sum(eval_ll_from_cfg(k, param_est[[k]], X_pi_train, config, registry))
     tll <- sum(pdf_k(k, X_pi_train[, k],
                      if (k > 1) X_pi_train[, 1:(k - 1), drop = FALSE]
                      else numeric(0), config, log = TRUE))
@@ -135,9 +135,8 @@ fit_param <- function(X_pi_train, X_pi_test, config) {
   )
 
   param_ll_mat_test <- sapply(seq_len(K), function(k)
-    eval_ll_from_cfg(k, param_est[[k]], X_pi_test, config)
+    eval_ll_from_cfg(k, param_est[[k]], X_pi_test, config, registry)
   )
-
 
   ll_delta_df_test <- data.frame(
     dim          = seq_len(K),
@@ -157,13 +156,13 @@ fit_param <- function(X_pi_train, X_pi_test, config) {
   )
 }
 
-summarise_fit <- function(param_est, X_test, ll_delta_df, cfg = config) {
+summarise_fit <- function(param_est, X_test, ll_delta_df, cfg = config, registry = dist_registry) {
   K <- length(param_est)
   mean_param_test <- sapply(seq_len(K), function(k) {
     offset <- if (k > 1) X_test[, k - 1] else rep(0, nrow(X_test))
     pars  <- param_est[[k]]
     dname <- cfg[[k]]$distr
-    fam   <- dist_registry[[dname]]
+    fam   <- registry[[dname]]
     params <- compute_params(pars, offset, fam)
     mean(params[[1]])
   })
