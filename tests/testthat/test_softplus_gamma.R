@@ -17,7 +17,7 @@ shape <- softplus(true_theta[1] + true_theta[2] * x_prev)
 rate  <- softplus(true_theta[3] + true_theta[4] * x_prev)
 xs <- rgamma(N, shape = shape, rate = rate)
 
-nll <- make_nll("gamma", x_prev, xs)
+nll <- make_generalized_nll("gamma", matrix(x_prev, ncol = 1), xs)
 fit <- safe_optim(rep(0, 4), nll)
 
 shape_hat <- softplus(fit$par[1] + fit$par[2] * x_prev)
