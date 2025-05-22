@@ -1,6 +1,6 @@
 ## Grundsetup ---------------------------------------------------------------
 # kurze Helfer und Beispiel-Configs für X_pi
-# Eingabe: `config_choice` (3 oder 4), Standard 3
+# Eingabe: `config_choice` (nur 3), Standard 3
 # Ausgabe: `config`, `K`, Funktionen wie `softplus()` und `logsumexp()`
 SEED <- 24
 suppressPackageStartupMessages({
@@ -60,18 +60,8 @@ config3 <- list(
     list(shape = softplus(d$X2), rate = 1))
 )
 
-## Alternative Config mit vier Verteilungen
-config4 <- list(
-  list(distr = "norm",    parm = NULL),
-  list(distr = "t",       parm = function(d) list(df = 3 + 0.5 * d$X1)),
-  list(distr = "laplace", parm = function(d)
-    list(m = 0.3 * d$X2, s = softplus(1 + 0.1 * d$X2))),
-  list(distr = "logis",   parm = function(d)
-    list(location = 0.2 * d$X3, scale = softplus(1 + 0.05 * d$X3)))
-)
-
 if (!exists("config_choice")) config_choice <- 3
-config <- if (config_choice == 4) config4 else config3
+config <- config3
 
 ## Dimension K des Zielvektors X_pi
 K <- length(config)

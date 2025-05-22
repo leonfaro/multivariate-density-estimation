@@ -2,7 +2,7 @@ library(testthat)
 
 set.seed(123)
 Sys.setenv(N_train = 500, N_test = 500)
-config_choice <- 4
+config_choice <- 3
 source("../../00_setup.R", chdir = TRUE)
 source("../../01_transport_utils.R", chdir = TRUE)
 source("../../02_generate_data.R", chdir = TRUE)
