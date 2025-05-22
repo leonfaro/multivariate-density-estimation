@@ -114,25 +114,45 @@ make_generalized_nll <- function(family_name_str, X_prev_data_matrix,
 
 fit_param <- function(X_pi_train, X_pi_test, config, registry = dist_registry) {
   K <- length(config)
-  param_len <- sapply(seq_len(K), function(k) {
-    fam <- registry[[config[[k]]$distr]]
-    n_prev <- if (k > 1) k - 1 else 0
-    (n_prev + 1) * length(fam$param_names)
-  })
-  init_vals <- lapply(param_len, function(n) rep(0, n))
+
+  init_vals_list <- list()
+  for (k_loop_var in seq_len(K)) {
+    family_spec_init <- registry[[config[[k_loop_var]]$distr]]
+    num_dist_params_init <- length(family_spec_init$param_names)
+    num_betas_per_dist_param_init_k <-
+      if (k_loop_var == 1) 1 else (k_loop_var - 1) + 1
+    dynamic_theta_len_init_k <-
+      num_dist_params_init * num_betas_per_dist_param_init_k
+    init_vals_list[[k_loop_var]] <- rep(0, dynamic_theta_len_init_k)
+  }
+  init_vals <- init_vals_list
+
   param_est <- vector("list", K)
   for (k in seq_len(K)) {
-    xs    <- X_pi_train[, k]
-    Xprev <- if (k > 1) X_pi_train[, 1:(k - 1), drop = FALSE] else NULL
-    dname <- config[[k]]$distr
-    nll <- make_generalized_nll(dname, Xprev, xs, registry)
-    fit   <- safe_optim(init_vals[[k]], nll)
+    current_X_pi_train_k <- X_pi_train[, k]
+    current_X_prev_train_matrix <-
+      if (k == 1) NULL else X_pi_train[, 1:(k - 1), drop = FALSE]
+    dist_name_k <- config[[k]]$distr
+    nll <- make_generalized_nll(dist_name_k,
+                                current_X_prev_train_matrix,
+                                current_X_pi_train_k,
+                                registry)
+    fit <- safe_optim(init_vals[[k]], nll)
     param_est[[k]] <- fit$par
 
-    fam <- registry[[dname]]
-    pars_list <- compute_distribution_parameters(
-      param_est[[k]], Xprev, fam, length(xs))
-    pll <- sum(do.call(fam$logpdf, c(list(xs), pars_list)))
+    estimated_theta_k <- param_est[[k]]
+    family_spec_k <- registry[[config[[k]]$distr]]
+    computed_params_train <- compute_distribution_parameters(
+      estimated_theta_k,
+      current_X_prev_train_matrix,
+      family_spec_k,
+      length(current_X_pi_train_k)
+    )
+    logpdf_values_train <- do.call(family_spec_k$logpdf,
+                                   c(list(x = current_X_pi_train_k),
+                                     computed_params_train))
+    pll <- sum(logpdf_values_train)
+
     tll <- sum(pdf_k(k, X_pi_train[, k],
                      if (k > 1) X_pi_train[, 1:(k - 1), drop = FALSE]
                      else numeric(0), config, log = TRUE))
@@ -150,14 +170,22 @@ fit_param <- function(X_pi_train, X_pi_test, config, registry = dist_registry) {
           config, log = TRUE)
   )
 
-  param_ll_mat_test <- sapply(seq_len(K), function(k) {
-    xs <- X_pi_test[, k]
-    X_prev <- if (k > 1) X_pi_test[, 1:(k - 1), drop = FALSE] else NULL
-    dname <- config[[k]]$distr
-    fam <- registry[[dname]]
-    pars_list <- compute_distribution_parameters(
-      param_est[[k]], X_prev, fam, length(xs))
-    do.call(fam$logpdf, c(list(xs), pars_list))
+  param_ll_mat_test <- sapply(seq_len(K), function(k_sapply) {
+    current_X_pi_test_k <- X_pi_test[, k_sapply]
+    current_X_prev_test_matrix <- if (k_sapply == 1)
+      NULL else X_pi_test[, 1:(k_sapply - 1), drop = FALSE]
+    family_spec_test_k <- registry[[config[[k_sapply]]$distr]]
+    estimated_theta_k_from_train <- param_est[[k_sapply]]
+    computed_params_test <- compute_distribution_parameters(
+      estimated_theta_k_from_train,
+      current_X_prev_test_matrix,
+      family_spec_test_k,
+      length(current_X_pi_test_k)
+    )
+    logpdf_values_test_k <- do.call(family_spec_test_k$logpdf,
+                                    c(list(x = current_X_pi_test_k),
+                                      computed_params_test))
+    logpdf_values_test_k
   })
 
   ll_delta_df_test <- data.frame(
@@ -180,13 +208,20 @@ fit_param <- function(X_pi_train, X_pi_test, config, registry = dist_registry) {
 
 summarise_fit <- function(param_est, X_test, ll_delta_df, cfg = config, registry = dist_registry) {
   K <- length(param_est)
-  mean_param_test <- sapply(seq_len(K), function(k) {
-    X_prev <- if (k > 1) X_test[, 1:(k - 1), drop = FALSE] else NULL
-    pars  <- param_est[[k]]
-    dname <- cfg[[k]]$distr
-    fam   <- registry[[dname]]
-    params <- compute_distribution_parameters(pars, X_prev, fam, nrow(X_test))
-    mean(params[[1]])
+  mean_param_test <- sapply(seq_len(K), function(k_sapply) {
+    current_X_prev_test_matrix_summary <- if (k_sapply == 1)
+      NULL else X_test[, 1:(k_sapply - 1), drop = FALSE]
+    num_obs_test <- nrow(X_test)
+    family_spec_summary_k <- registry[[cfg[[k_sapply]]$distr]]
+    estimated_theta_k_summary <- param_est[[k_sapply]]
+    computed_dist_params_summary <- compute_distribution_parameters(
+      estimated_theta_k_summary,
+      current_X_prev_test_matrix_summary,
+      family_spec_summary_k,
+      num_obs_test
+    )
+    mean_val <- mean(computed_dist_params_summary[[1]])
+    mean_val
   })
   mle_param <- sapply(param_est, function(p) p[1])
   ll_delta_df$mean_param_test <- round(mean_param_test, 3)
