@@ -1,7 +1,5 @@
 library(testthat)
 source("../../00_setup.R", chdir = TRUE)
-source("../../01_transport_utils.R", chdir = TRUE)
-source("../../03_param_baseline.R", chdir = TRUE)
 
 # Softplus positivity
 vals <- seq(-100, 100, length.out = 201)
