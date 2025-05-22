@@ -9,16 +9,10 @@ suppressPackageStartupMessages({
   library(trtf)
 })
 
-## softplus ------------------------------------------------------------------
-## Glatte Positivabbildung für Parameterwerte
+## Softplus -------------------------------------------------------------------
+## Glatte Positivabbildung, strictly increasing map R->(0,Inf)
 softplus <- function(x) {
   stopifnot(is.numeric(x))
-  ifelse(x > 50, x, log1p(exp(x)))
-}
-
-## Softplus -------------------------------------------------------------------
-## strictly increasing map R->(0,Inf)
-softplus <- function(x) {
   ifelse(x > 20, x, log1p(exp(x)))
 }
 
