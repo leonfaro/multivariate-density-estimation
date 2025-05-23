@@ -1,3 +1,4 @@
+## DO NOT CHANGE 00_setup.R or 01_map_definition_S.R or 02_sampling.R or 03_baseline.R or run3.R
 # Gemeinsame Bewertung der Schätzer -------------------------------------
 # Eingabe:
 #   * `Z_eta_test` Referenz-Stichprobe
