@@ -1,3 +1,4 @@
+## DO NOT CHANGE 00_setup.R or 01_map_definition_S.R or 02_sampling.R or 03_baseline.R or run3.R
 # Sequentielle Kernel-Glättung für Logdichten
 # Eingabe: Datenmatrix `X_pi_train` (N x K)
 # Ausgabe: Objekt `ks_model`; `predict()` liefert N_test x K Logdichten
