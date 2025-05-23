@@ -75,12 +75,8 @@ safe_support <- function(x, dname, pars = list()) {
   x
 }
 
-config <- list(
-  list(distr = "norm", parm = NULL),
-  list(distr = "exp",  parm = function(d) list(rate = softplus(d$X1))),
-  list(distr = "gamma", parm  = function(d) list(shape = softplus(d$X2), rate = softplus(d$X1)))
-)
-
+if (!exists("config"))
+  stop("config must be defined before sourcing 00_setup.R")
 
 K <- length(config)
 
