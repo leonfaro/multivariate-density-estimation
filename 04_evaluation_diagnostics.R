@@ -106,3 +106,16 @@ save_detailed_comparison_data <- function(data_matrix, param_ests_list,
   }
 }
 
+
+run_all_diagnostics <- function(X_train, X_test, param_ests, config_list,
+                                dist_registry_obj, output_dir_base) {
+  save_estimated_betas(param_ests, config_list,
+                       dist_registry_obj, output_dir_base)
+  save_detailed_comparison_data(X_train, param_ests, config_list,
+                                dist_registry_obj, output_dir_base,
+                                data_label_str = "train")
+  save_detailed_comparison_data(X_test, param_ests, config_list,
+                                dist_registry_obj, output_dir_base,
+                                data_label_str = "test")
+  message(sprintf("Diagnostic CSVs for analysis saved to: %s", output_dir_base))
+}
