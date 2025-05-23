@@ -222,7 +222,9 @@ summary_table <- function(X_train, cfg, theta_hat,
                                             fam, nrow(X_train))
     mean_p1[k] <- mean(pars[[1]])
     if (length(pars) >= 2) {
+
       mean_p2[k] <- sprintf("%.6f", mean(pars[[2]]))
+
     } else {
       mean_p2[k] <- "none"
     }
@@ -231,7 +233,9 @@ summary_table <- function(X_train, cfg, theta_hat,
                                                fam, 1)
     mle_p1[k] <- pars_ref[[1]][1]
     if (length(pars_ref) >= 2) {
+
       mle_p2[k] <- sprintf("%.6f", pars_ref[[2]][1])
+
     } else {
       mle_p2[k] <- "none"
     }
@@ -239,6 +243,7 @@ summary_table <- function(X_train, cfg, theta_hat,
   out$mean_param1 <- round(mean_p1, 6)
   out$mean_param2 <- mean_p2
   out$mle_param1 <- round(mle_p1, 6)
+
   out$mle_param2 <- mle_p2
   out
 }
