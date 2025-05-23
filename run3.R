@@ -5,12 +5,12 @@ args <- commandArgs(trailingOnly = TRUE)
 if (length(args) > 0 && args[1] == "big") N <- 10000
 
 config_choice <- 3
-Sys.setenv(N_train = N, N_test = N)
+Sys.setenv(N_total = N)
 
 source("00_setup.R")
 options(width = 150)
 set.seed(SEED)
-data <- generate_data()
+data <- generate_data(N_total = N)
 write_data(data)
 
 train_df <- data$train$df
@@ -179,8 +179,8 @@ run_all_diagnostics <- function(X_train, X_test, param_ests, config_list,
 }
 
 run_pipeline <- function(N_local = N) {
-  Sys.setenv(N_train = N_local, N_test = N_local)
-  data <- generate_data(N_train = N_local, N_test = N_local, cfg = config)
+  Sys.setenv(N_total = N_local)
+  data <- generate_data(N_total = N_local, cfg = config)
   param_res <- fit_param(data$train$sample$X_pi, data$test$sample$X_pi, config)
   tbl <- summary_table(
     data$train$sample$X_pi,
