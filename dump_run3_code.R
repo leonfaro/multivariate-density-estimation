@@ -2,7 +2,6 @@ files <- c(
   "00_setup.R",
   "01_map_definition_S.R",
   "02_sampling.R",
-  "03_param_baseline.R",
   "run3.R"
 )
 code_lines <- lapply(files, function(f) {
