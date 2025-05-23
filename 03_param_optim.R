@@ -19,7 +19,8 @@
 # | **9b** | **`LL_test_param()`**                          | `X_test, cfg*`                            | `LL_param_avg`                                                                   | same formula on test batch                                                                                                                                                           |
 # | **9c** | **`LL_test_true()`**                           | `X_test, cfg_true`                        | `LL_true_avg`                                                                    | use ground-truth cfg_true                                                                                                                                                           |
 # | **10** | **`metrics()`**                                | `LL_true_avg, LL_param_avg`               | `Δ = (LL_true_avg − LL_param_avg)`                                               | expect Δ≈0 under perfect fit                                                                                                                                                         |
-# | **11** | **`summary_table()`**                          | `cfg*, thetâ, LL_true_avg, LL_param_avg` | `data.frame` cols: <br>`dim, distr, ll_true_avg, ll_param_avg, delta, mle_param` | row per k: `mle_param ← list(thetâ_k)`                                                                                                                                              |
+# | **11** | **`summary_table()`**                          | `(X_train ∈ ℝ^{N×K}, cfg* list[K], θ̂ list[K], LL_true_avg, LL_param_avg)` | `data.frame` columns →<br>• `dim` (k)<br>• `distr` (cfg*[[k]])<br>• `ll_true_avg` (= LL_true_avg)<br>• `ll_param_avg` (= LL_param_avg)<br>• `delta` (= ll_true_avg − ll_param_avg)<br>• `mean_param1`, `mean_param2`<br>• `mle_param1`, `mle_param2` | **For each k = 1…K**<br>1. `X_prev ← X_train[,1:(k-1)]` ; `D_k ← design_k(X_prev)`<br>2. `Pars ← link_k(θ̂_k, D_k, distr_k)` ⇒ matrix N×M_k (M_k = #param-groups)<br>3. `mean_param1 ← mean(Pars[,1])`<br>  `mean_param2 ← if (M_k≥2) mean(Pars[,2]) else "none"`<br>4. `D_ref ← c(1, rep(0,k-1))` ; `Pars_ref ← link_k(θ̂_k, matrix(D_ref, nrow=1), distr_k)`<br>5. `mle_param1 ← Pars_ref[1]`<br>  `mle_param2 ← if (M_k≥2) Pars_ref[2] else "none"`<br>6. append row with above values |
+
 #
 # ### Data-Shapes & Constants
 #
@@ -198,21 +199,48 @@ fit_param <- function(X_pi_train, X_pi_test, config, registry = dist_registry) {
        param_ll_mat_test = param_ll_mat_test)
 }
 
-summarise_fit <- function(param_est, X_test, ll_delta_df,
-                          cfg = config, registry = dist_registry) {
-  K <- length(param_est)
-  mean_param_test <- sapply(seq_len(K), function(k) {
-    X_prev <- if (k > 1) X_test[, 1:(k - 1), drop = FALSE] else NULL
-    dname <- cfg[[k]]$distr
-    fam <- registry[[dname]]
-    params <- compute_distribution_parameters(param_est[[k]], X_prev,
-                                              fam, nrow(X_test))
-    mean(params[[1]])
-  })
-  mle_param <- sapply(param_est, function(p) p[1])
-  ll_delta_df$mean_param_test <- round(mean_param_test, 3)
-  ll_delta_df$mle_param <- round(mle_param, 3)
-  ll_delta_df
+summary_table <- function(X_train, cfg, theta_hat,
+                          LL_true_avg, LL_param_avg,
+                          registry = dist_registry) {
+  K <- length(theta_hat)
+  out <- data.frame(
+    dim = seq_len(K),
+    distr = sapply(cfg, `[[`, "distr"),
+    ll_true_avg = LL_true_avg,
+    ll_param_avg = LL_param_avg,
+    delta = LL_true_avg - LL_param_avg,
+    stringsAsFactors = FALSE
+  )
+  mean_p1 <- numeric(K)
+  mean_p2 <- character(K)
+  mle_p1 <- numeric(K)
+  mle_p2 <- character(K)
+  for (k in seq_len(K)) {
+    X_prev <- if (k > 1) X_train[, 1:(k - 1), drop = FALSE] else NULL
+    fam <- registry[[out$distr[k]]]
+    pars <- compute_distribution_parameters(theta_hat[[k]], X_prev,
+                                            fam, nrow(X_train))
+    mean_p1[k] <- mean(pars[[1]])
+    if (length(pars) >= 2) {
+      mean_p2[k] <- sprintf("%.3f", mean(pars[[2]]))
+    } else {
+      mean_p2[k] <- "none"
+    }
+    X0 <- if (k > 1) matrix(0, nrow = 1, ncol = k - 1) else NULL
+    pars_ref <- compute_distribution_parameters(theta_hat[[k]], X0,
+                                               fam, 1)
+    mle_p1[k] <- pars_ref[[1]][1]
+    if (length(pars_ref) >= 2) {
+      mle_p2[k] <- sprintf("%.3f", pars_ref[[2]][1])
+    } else {
+      mle_p2[k] <- "none"
+    }
+  }
+  out$mean_param1 <- round(mean_p1, 3)
+  out$mean_param2 <- mean_p2
+  out$mle_param1 <- round(mle_p1, 3)
+  out$mle_param2 <- mle_p2
+  out
 }
 
 save_estimated_betas <- function(param_est_list, config_list,
