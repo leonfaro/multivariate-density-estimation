@@ -1,10 +1,15 @@
 
+config <- list(
+  list(distr = "norm", parm = NULL),
+  list(distr = "exp",  parm = function(d) list(rate = softplus(d$X1))),
+  list(distr = "gamma", parm  = function(d) list(shape = softplus(d$X2), rate = softplus(d$X1))),
+  list(distr = "beta",  parm  = function(d) list(shape1 = softplus(d$X1) + 2, shape2 = softplus(d$X3) + 1))
+)
 
 N <- 50
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) > 0 && args[1] == "big") N <- 10000
 
-config_choice <- 3
 Sys.setenv(N_total = N)
 
 source("00_setup.R")
