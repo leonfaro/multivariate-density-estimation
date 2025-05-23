@@ -200,15 +200,15 @@ fit_param <- function(X_pi_train, X_pi_test, config, registry = dist_registry) {
 }
 
 summary_table <- function(X_train, cfg, theta_hat,
-                          LL_true_avg, LL_param_avg,
+                          LL_true_avg, LL_base_avg,
                           registry = dist_registry) {
   K <- length(theta_hat)
   out <- data.frame(
     dim = seq_len(K),
     distr = sapply(cfg, `[[`, "distr"),
     ll_true_avg = LL_true_avg,
-    ll_param_avg = LL_param_avg,
-    delta = LL_true_avg - LL_param_avg,
+    ll_base_avg = LL_base_avg,
+    delta_base = LL_true_avg - LL_base_avg,
     stringsAsFactors = FALSE
   )
   mean_p1 <- numeric(K)
@@ -240,11 +240,11 @@ summary_table <- function(X_train, cfg, theta_hat,
       mle_p2[k] <- "none"
     }
   }
-  out$mean_param1 <- round(mean_p1, 6)
+  out$true_param1 <- round(mean_p1, 6)
   out$mean_param2 <- mean_p2
-  out$mle_param1 <- round(mle_p1, 6)
+  out$mle_base1 <- round(mle_p1, 6)
 
-  out$mle_param2 <- mle_p2
+  out$mle_base2 <- mle_p2
   out
 }
 
