@@ -228,3 +228,132 @@ summarise_fit <- function(param_est, X_test, ll_delta_df, cfg = config, registry
   ll_delta_df$mle_param <- round(mle_param, 3)
   ll_delta_df
 }
+
+## Public API ---------------------------------------------------------------
+
+
+##' Fit conditional distributions component-wise
+##'
+##' @param X Numeric matrix of observations with K columns
+##' @param CONFIG List describing each component
+##' @param optim_method Optimisation method for \code{optim}
+##' @param parallel Logical; optimise components in parallel
+##' @param cores Integer number of cores if \code{parallel = TRUE}
+##' @return List with elements \code{theta}, \code{nll}, \code{total_nll},
+##'   \code{convergence}, \code{hessian}, and \code{config}
+fit <- function(X, CONFIG, optim_method = "BFGS",
+                parallel = FALSE, cores = 1) {
+  if (!is.matrix(X) || !is.numeric(X))
+    stop("X must be a numeric matrix")
+  if (any(!is.finite(X)))
+    stop("X contains non-finite values")
+  K <- ncol(X)
+  if (length(CONFIG) != K)
+    stop("CONFIG length does not match number of columns in X")
+
+  id <- function(z) z
+
+  build_nll <- function(k) {
+    cfgk <- CONFIG[[k]]
+    logpdf_k <- cfgk$logpdf
+    link_k <- if (!is.null(cfgk$link)) cfgk$link else id
+    preds <- cfgk$predictors
+    function(theta_raw) {
+      theta <- link_k(theta_raw)
+      acc <- 0
+      for (i in seq_len(nrow(X))) {
+        pr <- if (is.null(preds)) numeric(0) else X[i, preds]
+        val <- logpdf_k(X[i, k], theta, pr)
+        if (!is.finite(val))
+          return(Inf)
+        acc <- acc - val
+      }
+      acc
+    }
+  }
+
+  worker <- function(k) {
+    nll_k <- build_nll(k)
+    start_k <- CONFIG[[k]]$start
+    res <- optim(start_k, nll_k, method = optim_method, hessian = TRUE)
+    list(
+      theta = (if (!is.null(CONFIG[[k]]$link)) CONFIG[[k]]$link else id)(res$par),
+      nll = res$value,
+      convergence = res$convergence,
+      hessian = res$hessian
+    )
+  }
+
+  fits <- if (parallel)
+    parallel::mclapply(seq_len(K), worker, mc.cores = cores)
+  else
+    lapply(seq_len(K), worker)
+
+  theta <- lapply(fits, "[[", "theta")
+  nll <- vapply(fits, "[[", numeric(1), "nll")
+  conv <- vapply(fits, "[[", numeric(1), "convergence")
+  hess <- lapply(fits, "[[", "hessian")
+
+  list(theta = theta, nll = nll, total_nll = sum(nll),
+       convergence = conv, hessian = hess, config = CONFIG)
+}
+
+##' Compute log-likelihood under a fitted model
+##'
+##' @param X Numeric matrix of observations
+##' @param RESULT Object returned by \code{fit}
+##' @return Numeric log-likelihood or vector for legacy usage
+loglik <- function(X, RESULT) {
+  if (!is.list(RESULT) || is.null(RESULT$theta)) {
+    Z_eta <- X
+    logdet_J <- RESULT
+    return(-0.5 * rowSums(Z_eta^2) - (ncol(Z_eta)/2) * log(2 * pi) + logdet_J)
+  }
+  if (!is.matrix(X) || !is.numeric(X))
+    stop("X must be a numeric matrix")
+  if (any(!is.finite(X)))
+    stop("X contains non-finite values")
+  CONFIG <- RESULT$config
+  K <- length(CONFIG)
+  if (ncol(X) != K)
+    stop("Column mismatch between X and RESULT")
+  total <- 0
+  for (i in seq_len(nrow(X))) {
+    for (k in seq_len(K)) {
+      preds <- CONFIG[[k]]$predictors
+      pr <- if (is.null(preds)) numeric(0) else X[i, preds]
+      val <- CONFIG[[k]]$logpdf(X[i, k], RESULT$theta[[k]], pr)
+      if (!is.finite(val))
+        return(NaN)
+      total <- total + val
+    }
+  }
+  total
+}
+
+##' Draw samples from fitted conditionals
+##'
+##' @param n_samples Number of samples to generate
+##' @param RESULT Object returned by \code{fit}
+##' @return Numeric matrix with \code{n_samples} rows
+simulate <- function(n_samples, RESULT) {
+  if (!is.list(RESULT) || is.null(RESULT$theta))
+    stop("RESULT must come from fit()")
+  n_samples <- as.integer(n_samples[1])
+  if (n_samples < 1)
+    stop("n_samples must be positive")
+  K <- length(RESULT$theta)
+  X_sim <- matrix(NA_real_, n_samples, K)
+  for (i in seq_len(n_samples)) {
+    for (k in seq_len(K)) {
+      cfgk <- RESULT$config[[k]]
+      icdf_k <- cfgk$icdf
+      if (is.null(icdf_k))
+        stop("icdf missing for component ", k)
+      preds <- cfgk$predictors
+      pr <- if (is.null(preds)) numeric(0) else X_sim[i, preds]
+      X_sim[i, k] <- icdf_k(runif(1), RESULT$theta[[k]], pr)
+    }
+  }
+  X_sim
+}
