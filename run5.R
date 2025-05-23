@@ -1,3 +1,5 @@
+## DO NOT CHANGE 00_setup.R or 01_map_definition_S.R or 02_sampling.R or 03_baseline.R or run3.R
+# CHANGE run5.R so it works like run3.R but with addition of 04_forest_models.R and 05_joint_evaluation.R and 06_kernel_smoothing.R
 # Beispiel-Run --------------------------------------------------------------
 # Erstellt kleine Beispieldaten und vergleicht drei Dichteschätzer
 # Eingabe: keine (N siehe unten)
