@@ -1,5 +1,5 @@
 library(testthat)
-source("../../00_setup.R", chdir = TRUE)
+source("../../run3.R", chdir = TRUE)
 
 test_that("save_detailed_comparison_data outputs CSV", {
   set.seed(42)
