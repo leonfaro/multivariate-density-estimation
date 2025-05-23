@@ -3,7 +3,7 @@ source("../../run3.R", chdir = TRUE)
 
 test_that("save_detailed_comparison_data outputs CSV", {
   set.seed(42)
-  data <- generate_data(N_train = 10, N_test = 10)
+  data <- generate_data(N_total = 20)
   X <- data$train$sample$X_pi
   param_ests <- lapply(seq_len(K), function(k) {
     family_spec <- dist_registry[[config[[k]]$distr]]

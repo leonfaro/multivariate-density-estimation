@@ -1,7 +1,7 @@
 library(testthat)
 
 set.seed(123)
-Sys.setenv(N_train = 500, N_test = 500)
+Sys.setenv(N_total = 1000)
 config_choice <- 3
 source("../../00_setup.R", chdir = TRUE)
 data <- generate_data()
