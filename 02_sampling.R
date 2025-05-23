@@ -58,11 +58,27 @@ sample_pi_df <- function(N, cfg = config) {
   list(df = df, sample = samp)
 }
 
-generate_data <- function(N_train = as.integer(Sys.getenv("N_train", "500")),
-                          N_test = as.integer(Sys.getenv("N_test", "500")),
-                          cfg = config) {
-  train <- sample_pi_df(N_train, cfg)
-  test  <- sample_pi_df(N_test, cfg)
+generate_data <- function(N_total = as.integer(Sys.getenv("N_total", "1000")),
+                          cfg = config, split_ratio = 0.7) {
+  all_dat <- sample_pi_df(N_total, cfg)
+  n_train <- floor(split_ratio * N_total)
+  idx_train <- seq_len(n_train)
+  idx_test <- setdiff(seq_len(N_total), idx_train)
+
+  slice_sample <- function(samp, idx) {
+    lapply(samp, function(x) {
+      if (is.matrix(x)) x[idx, , drop = FALSE] else x[idx]
+    })
+  }
+
+  train <- list(
+    df = all_dat$df[idx_train, , drop = FALSE],
+    sample = slice_sample(all_dat$sample, idx_train)
+  )
+  test <- list(
+    df = all_dat$df[idx_test, , drop = FALSE],
+    sample = slice_sample(all_dat$sample, idx_test)
+  )
   list(train = train, test = test)
 }
 
