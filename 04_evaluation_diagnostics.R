@@ -33,3 +33,58 @@ save_estimated_betas <- function(param_est_list, config_list,
     write.csv(df, csv_filename, row.names = FALSE)
   }
 }
+
+save_detailed_comparison_data <- function(data_matrix, param_ests, config,
+                                           dist_registry, output_dir,
+                                           label = c("train", "test")) {
+  label <- match.arg(label)
+  if (!dir.exists(output_dir))
+    dir.create(output_dir, recursive = TRUE)
+  for (k in seq_along(config)) {
+    dist_name <- config[[k]]$distr
+    theta_k <- param_ests[[k]]
+    family_spec <- dist_registry[[dist_name]]
+    X_prev <- if (k == 1) NULL else data_matrix[, 1:(k - 1), drop = FALSE]
+    X_k_obs <- data_matrix[, k]
+    N_obs <- nrow(data_matrix)
+
+    if (is.null(config[[k]]$parm)) {
+      true_params_table <- data.frame(matrix(nrow = N_obs, ncol = 0))
+    } else {
+      true_params_map <- get_pars(k,
+        if (k == 1) matrix(nrow = N_obs, ncol = 0) else X_prev,
+        config)
+      true_params_table <- as.data.frame(true_params_map)
+      colnames(true_params_table) <-
+        paste0("true_", colnames(true_params_table))
+    }
+
+    fitted_params_map <- compute_distribution_parameters(
+      theta_k, X_prev, family_spec, N_obs
+    )
+    fitted_params_table <- as.data.frame(fitted_params_map)
+    colnames(fitted_params_table) <-
+      paste0("fitted_", colnames(fitted_params_table))
+
+    true_logpdf_vec <- pdf_k(k, X_k_obs,
+                             if (k == 1) numeric(0) else X_prev,
+                             config, log = TRUE)
+    fitted_logpdf_vec <- do.call(family_spec$logpdf,
+                                 c(list(x = X_k_obs), fitted_params_map))
+
+    output_table <- data.frame(
+      X_k_obs = X_k_obs,
+      true_params_table,
+      fitted_params_table,
+      true_logpdf = true_logpdf_vec,
+      fitted_logpdf = fitted_logpdf_vec,
+      check.names = FALSE
+    )
+
+    csv_name <- file.path(output_dir,
+                          paste0("dim", k, "_", dist_name,
+                                 "_params_logpdf_", label, ".csv"))
+    write.csv(output_table, csv_name, row.names = FALSE)
+  }
+}
+
