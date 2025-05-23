@@ -63,13 +63,13 @@ tbl <- summary_table(
 tbl_out <- tbl[
 
   , c(
-    "dim", "distr", "ll_true_avg", "ll_param_avg", "delta",
-    "mean_param1", "mean_param2", "mle_param1", "mle_param2"
+    "dim", "distr", "ll_true_avg", "ll_base_avg", "delta_base",
+    "true_param1", "mean_param2", "mle_base1", "mle_base2"
   )
 ]
 num_cols <- intersect(
-  c("ll_true_avg", "ll_param_avg", "delta",
-    "mean_param1", "mean_param2", "mle_param1", "mle_param2"),
+  c("ll_true_avg", "ll_base_avg", "delta_base",
+    "true_param1", "mean_param2", "mle_base1", "mle_base2"),
   names(tbl_out)
 )
 tbl_out[num_cols] <- lapply(tbl_out[num_cols], function(x) {
