@@ -2,7 +2,11 @@ library(testthat)
 
 set.seed(123)
 Sys.setenv(N_total = 1000)
-config_choice <- 3
+config <- list(
+  list(distr = "norm", parm = NULL),
+  list(distr = "exp",  parm = function(d) list(rate = softplus(d$X1))),
+  list(distr = "gamma", parm  = function(d) list(shape = softplus(d$X2), rate = softplus(d$X1)))
+)
 source("../../00_setup.R", chdir = TRUE)
 data <- generate_data()
 X_pi_train <- data$train$sample$X_pi
