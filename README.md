@@ -55,7 +55,3 @@ bash lint.sh
 The new tests verify positivity of `softplus`, successful recovery of synthetic
 Gamma parameters and monotonic improvement of the likelihood.
 
-## Example
-
-The script `example_bivariate_fit.R` performs a small bivariate fit and prints a
-summary table.
