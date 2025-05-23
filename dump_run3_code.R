@@ -2,7 +2,7 @@ files <- c(
   "00_setup.R",
   "01_map_definition_S.R",
   "02_sampling.R",
-  "run3.R"
+  "03_param_optim.R"
 )
 code_lines <- lapply(files, function(f) {
   lines <- readLines(f)
@@ -11,7 +11,15 @@ code_lines <- lapply(files, function(f) {
   lines <- lines[nzchar(lines)]
   c(paste0("###start_", f, "###"), lines, paste0("###end_", f, "###"))
 })
-code_text <- unlist(code_lines)
+# extract only N assignment lines from run3.R
+run3_lines <- readLines("run3.R")
+run3_N_lines <- grep("N\\s*<-", run3_lines, value = TRUE)
+run3_N_lines <- gsub("#.*$", "", run3_N_lines)
+run3_N_lines <- trimws(run3_N_lines)
+run3_N_lines <- run3_N_lines[nzchar(run3_N_lines)]
+n_section <- c("###start_N_run3.R###", run3_N_lines, "###end_N_run3.R###")
+
+code_text <- unlist(c(code_lines, list(n_section)))
 if (!dir.exists("results")) dir.create("results")
 out_file <- file.path("results", "code_and_output.txt")
 writeLines(code_text, out_file)
