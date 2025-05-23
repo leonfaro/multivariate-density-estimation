@@ -1,5 +1,5 @@
 
-N <- 50
+N <- 10000
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) > 0 && args[1] == "big") N <- 10000
 
@@ -110,3 +110,4 @@ if (K >= 3 && config[[3]]$distr == "gamma") {
 }
 
 source("dump_run3_code.R")
+
