@@ -1,3 +1,7 @@
+source("00_setup.R")
+source("01_map_definition_S.R")
+source("02_sampling.R")
+
 # **Parametric Optimization – Detail-Workflow**
 # *(R-Codex-ready: minimal prose, maximal formal spec)*
 #
