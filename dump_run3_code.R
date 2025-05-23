@@ -32,6 +32,53 @@ output_lines <- c("###start_output_run3.R###", capture.output({
   print(ll_delta_df_test[
     , c("dim", "distribution", "ll_true_avg", "ll_param_avg", "delta_ll_param_avg", "mean_param_test", "mle_param")
   ])
+
+  diag_folder_path <- diagnostics_dir
+  if (K >= 3 && config[[3]]$distr == "gamma") {
+    betas_csv_path <- file.path(diag_folder_path,
+                                "dim3_gamma_estimated_betas.csv")
+    if (file.exists(betas_csv_path)) {
+      betas_table <- read.csv(betas_csv_path)
+      cat("\n--- Dim 3 (Gamma) Estimated Beta Coefficients ---\n")
+      print(betas_table)
+    }
+
+    params_train_csv_path <- file.path(diag_folder_path,
+                                       "dim3_gamma_params_logpdf_train.csv")
+    if (file.exists(params_train_csv_path)) {
+      params_train_table <- read.csv(params_train_csv_path)
+      cat("\n--- Dim 3 (Gamma) Diagnostics (Train Data) ---\n")
+      if (all(c("true_shape", "fitted_shape") %in% colnames(params_train_table))) {
+        mse_shape <- mean((params_train_table$true_shape -
+                           params_train_table$fitted_shape)^2,
+                          na.rm = TRUE)
+        cat(sprintf("MSE (true_shape vs fitted_shape): %.6f\n", mse_shape))
+        cat("Summary true_shape:\n")
+        print(summary(params_train_table$true_shape))
+        cat("Summary fitted_shape:\n")
+        print(summary(params_train_table$fitted_shape))
+      }
+      if (all(c("true_rate", "fitted_rate") %in% colnames(params_train_table))) {
+        mse_rate <- mean((params_train_table$true_rate -
+                          params_train_table$fitted_rate)^2,
+                         na.rm = TRUE)
+        cat(sprintf("MSE (true_rate vs fitted_rate): %.6f\n", mse_rate))
+        cat("Summary true_rate:\n")
+        print(summary(params_train_table$true_rate))
+        cat("Summary fitted_rate:\n")
+        print(summary(params_train_table$fitted_rate))
+      }
+      sum_true_ll <- sum(params_train_table$true_log_pdf, na.rm = TRUE)
+      sum_fitted_ll <- sum(params_train_table$fitted_log_pdf, na.rm = TRUE)
+      cat(sprintf("Sum of true_log_pdf (train): %.6f\n", sum_true_ll))
+      cat(sprintf("Sum of fitted_log_pdf (train): %.6f\n", sum_fitted_ll))
+      delta_ll_dim3_train <- sum_true_ll - sum_fitted_ll
+      cat(sprintf("Delta LL (true - fitted, train, dim3): %.6f\n",
+                  delta_ll_dim3_train))
+    }
+  } else {
+    message("Skipping detailed Gamma Dim 3 EDA.")
+  }
 }), "###end_output_run3.R###")
 
 con <- file(out_file, open = "a")
