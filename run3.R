@@ -1,5 +1,5 @@
 
-N <- 10000
+N <- 50
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) > 0 && args[1] == "big") N <- 10000
 
@@ -7,6 +7,7 @@ config_choice <- 3
 Sys.setenv(N_train = N, N_test = N)
 
 source("00_setup.R")
+options(width = 150)
 set.seed(SEED)
 data <- generate_data()
 write_data(data)
@@ -45,14 +46,29 @@ print(summary_stats)
 
 param_res <- fit_param(X_pi_train, X_pi_test, config)
 param_est <- param_res$param_est
-ll_delta_df_test <- summarise_fit(param_est, X_pi_test, param_res$ll_delta_df_test, config)
+tbl <- summary_table(
+  X_pi_train,
+  config,
+  param_est,
+  param_res$ll_delta_df_test$ll_true_avg,
+  param_res$ll_delta_df_test$ll_param_avg
+)
 
-print(ll_delta_df_test[
+tbl_out <- tbl[
   , c(
-    "dim", "distribution", "ll_true_avg", "ll_param_avg", "delta_ll_param_avg",
-    "mean_param_test", "mle_param"
+    "dim", "distr", "ll_true_avg", "ll_param_avg", "delta",
+    "mean_param1", "mean_param2", "mle_param1", "mle_param2"
   )
-])
+]
+num_cols <- intersect(
+  c("ll_true_avg", "ll_param_avg", "delta",
+    "mean_param1", "mean_param2", "mle_param1", "mle_param2"),
+  names(tbl_out)
+)
+tbl_out[num_cols] <- lapply(tbl_out[num_cols], function(x) {
+  if (is.numeric(x)) sprintf("%.6f", x) else x
+})
+print(tbl_out, row.names = FALSE)
 
 diagnostics_dir <- "diagnostics_output"
 run_all_diagnostics(X_pi_train, X_pi_test, param_est,
