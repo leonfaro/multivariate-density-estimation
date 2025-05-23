@@ -1,5 +1,5 @@
 ## -------------------------------------------------------------------
-## Übersicht
+## DO NOT CHANGE 00_setup.R or 01_map_definition_S.R or 02_sampling.R or 03_baseline.R or run3.R
 ## Ziel: Transformation-Forest auf `X_pi_train` fitten und
 ##       Logdichten auf `X_pi_test` berechnen
 ## Ausgabe: Modell `model` und Matrix `LD_hat`
