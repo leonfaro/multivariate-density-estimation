@@ -1,0 +1,6 @@
+source("00_setup.R")
+set.seed(123)
+dat <- generate_data(N_train = 5, N_test = 5)
+stopifnot(!any(is.na(dat$train$df)))
+stopifnot(!any(is.na(dat$test$df)))
+cat("basic tests passed\n")
