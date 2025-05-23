@@ -7,6 +7,7 @@ config_choice <- 3
 Sys.setenv(N_train = N, N_test = N)
 
 source("00_setup.R")
+source("04_evaluation_diagnostics.R")
 set.seed(SEED)
 data <- generate_data()
 write_data(data)
@@ -53,5 +54,9 @@ print(ll_delta_df_test[
     "mean_param_test", "mle_param"
   )
 ])
+
+diagnostics_dir <- "diagnostics_output"
+run_all_diagnostics(X_pi_train, X_pi_test, param_est,
+                    config, dist_registry, diagnostics_dir)
 
 source("dump_run3_code.R")
