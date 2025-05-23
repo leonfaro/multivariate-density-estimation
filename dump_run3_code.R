@@ -28,9 +28,7 @@ output_lines <- c("###start_output_run3.R###", capture.output({
   cat("- log_det(J)_test Range: [", round(min(test_df$det_J), 3), ",", round(max(test_df$det_J), 3), "]\n\n")
 
   print(summary_stats)
-  print(ll_delta_df_test[
-    , c("dim", "distribution", "ll_true_avg", "ll_param_avg", "delta_ll_param_avg", "mean_param_test", "mle_param")
-  ])
+  print(tbl_out)
 
   diag_folder_path <- diagnostics_dir
   if (K >= 3 && config[[3]]$distr == "gamma") {

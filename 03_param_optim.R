@@ -192,7 +192,7 @@ fit_param <- function(X_pi_train, X_pi_test, config, registry = dist_registry) {
   )
   ll_delta_df_test$delta_ll_param_avg <-
     ll_delta_df_test$ll_true_avg - ll_delta_df_test$ll_param_avg
-  ll_delta_df_test[, 3:5] <- round(ll_delta_df_test[, 3:5], 3)
+  ll_delta_df_test[, 3:5] <- round(ll_delta_df_test[, 3:5], 6)
   list(param_est = param_est,
        ll_delta_df_test = ll_delta_df_test,
        true_ll_mat_test = true_ll_mat_test,
@@ -222,7 +222,9 @@ summary_table <- function(X_train, cfg, theta_hat,
                                             fam, nrow(X_train))
     mean_p1[k] <- mean(pars[[1]])
     if (length(pars) >= 2) {
-      mean_p2[k] <- sprintf("%.3f", mean(pars[[2]]))
+
+      mean_p2[k] <- sprintf("%.6f", mean(pars[[2]]))
+
     } else {
       mean_p2[k] <- "none"
     }
@@ -231,14 +233,17 @@ summary_table <- function(X_train, cfg, theta_hat,
                                                fam, 1)
     mle_p1[k] <- pars_ref[[1]][1]
     if (length(pars_ref) >= 2) {
-      mle_p2[k] <- sprintf("%.3f", pars_ref[[2]][1])
+
+      mle_p2[k] <- sprintf("%.6f", pars_ref[[2]][1])
+
     } else {
       mle_p2[k] <- "none"
     }
   }
-  out$mean_param1 <- round(mean_p1, 3)
+  out$mean_param1 <- round(mean_p1, 6)
   out$mean_param2 <- mean_p2
-  out$mle_param1 <- round(mle_p1, 3)
+  out$mle_param1 <- round(mle_p1, 6)
+
   out$mle_param2 <- mle_p2
   out
 }
