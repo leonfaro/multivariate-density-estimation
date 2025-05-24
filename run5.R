@@ -44,6 +44,16 @@ run_pipeline <- function(N_local = N) {
   kernel_mismatch <<- sum(loglik_kernel) - target_ll
 
   eval_tab <<- read.csv("results/evaluation_summary.csv")
+  num_cols <- names(eval_tab)[sapply(eval_tab, is.numeric)]
+  sum_row <- eval_tab[1, , drop = FALSE]
+  for (col in names(sum_row)) {
+    if (col %in% num_cols) {
+      sum_row[[col]] <- sum(abs(eval_tab[[col]]))
+    } else {
+      sum_row[[col]] <- "sum"
+    }
+  }
+  eval_tab <- rbind(eval_tab, sum_row)
   print(eval_tab)
   invisible(eval_tab)
   source("dump_run5_code.R")
