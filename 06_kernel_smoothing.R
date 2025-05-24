@@ -10,6 +10,21 @@
 #       - gewichtete Dichte berechnen
 #       - Logdichte via `safe_logdens()` speichern
 
+if (!exists("logsumexp")) {
+  logsumexp <- function(x) {
+    m <- max(x)
+    m + log(sum(exp(x - m)))
+  }
+}
+
+if (!exists("safe_logdens")) {
+  safe_logdens <- function(dens, eps = EPS) {
+    res <- pmax(log(eps), log(dens))
+    stopifnot(all(is.finite(res)))
+    res
+  }
+}
+
 fit_kernel <- function(data) {
   N <- nrow(data)
   K <- ncol(data)
