@@ -35,6 +35,9 @@ $$\theta(x_{k-1}) = \ell\big(\beta_0 + \beta_1 x_{k-1}\big),$$
 where $\ell$ is `identity` for unconstrained parameters and `softplus` for
 positive ones.
 Optimization uses `optim` with the BFGS method on the negative log-likelihood.
+All densities and likelihoods are computed in log-space from `00_setup.R`
+through `run5.R`; only the final presentation of summary metrics converts them
+back to standard scale.
 
 ## Configuration Syntax
 
