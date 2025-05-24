@@ -45,12 +45,14 @@ print(summary_stats)
 
 param_res <- fit_param(X_pi_train, X_pi_test, config)
 param_est <- param_res$param_est
-ll_delta_df_test <- summarise_fit(param_est, X_pi_test, param_res$ll_delta_df_test, config)
+ll_delta_df_test <- summarise_fit(param_est, X_pi_test,
+                                  param_res$ll_delta_df_test, config)
 
 print(ll_delta_df_test[
   , c(
-    "dim", "distribution", "ll_true_avg", "ll_param_avg", "delta_ll_param_avg",
-    "mean_param_test", "mle_param"
+    "dim", "distribution", "ll_true_avg", "ll_param_avg",
+    "delta_ll_param_avg", "mean_param1", "mean_param2",
+    "mle_param1", "mle_param2"
   )
 ])
 

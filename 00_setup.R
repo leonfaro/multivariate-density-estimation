@@ -86,5 +86,6 @@ K <- length(config)
 
 source("01_map_definition_S.R")
 source("02_sampling.R")
+source("03_param_optim.R")
 
 dist_registry <- make_dist_registry()
