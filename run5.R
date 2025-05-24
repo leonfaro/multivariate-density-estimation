@@ -26,6 +26,8 @@ run_pipeline <- function(N_local = N) {
   Sys.setenv(N_total = N_local)
   set.seed(SEED)
   data <- generate_data(N_total = N_local, cfg = config)
+  train_df <<- data$train$df
+  test_df  <<- data$test$df
   X_pi_train <<- data$train$sample$X_pi
   X_pi_test  <<- data$test$sample$X_pi
   ll_test <<- data$test$df$ll_true
@@ -52,6 +54,7 @@ run_pipeline <- function(N_local = N) {
   eval_tab <<- read.csv("results/evaluation_summary.csv")
   print(eval_tab)
   invisible(eval_tab)
+  source("dump_run5_code.R")
 }
 
 run_pipeline(N)
