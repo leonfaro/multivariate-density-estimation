@@ -26,12 +26,23 @@ cdf_k <- function(k, xk, x_prev, cfg, log = TRUE) {
   dname <- cfg[[k]]$distr
   pars  <- get_pars(k, x_prev, cfg)
   xk    <- safe_support(xk, dname, pars)
-  args  <- c(if (dname == "sn") list(x = xk) else list(q = xk),
-             pars,
-             list(log.p = FALSE))
-  cdfv <- do.call(dist_fun("p", dname), args)
-  cdfv <- safe_cdf(cdfv)
-  if (log) log(cdfv) else cdfv
+  support <- p_supports_logp[dname]
+  if (is.na(support))
+    stop("log.p capability not specified for distribution ", dname)
+  if (log && support) {
+    args <- c(if (dname == "sn") list(x = xk) else list(q = xk),
+              pars,
+              list(log.p = TRUE))
+    cdfv <- do.call(dist_fun("p", dname), args)
+    safe_logcdf(cdfv)
+  } else {
+    args <- c(if (dname == "sn") list(x = xk) else list(q = xk),
+              pars,
+              list(log.p = FALSE))
+    cdfv <- do.call(dist_fun("p", dname), args)
+    cdfv <- safe_cdf(cdfv)
+    if (log) log(cdfv) else cdfv
+  }
 }
 
 qtf_k <- function(k, u, x_prev, cfg, log.p = FALSE) {
