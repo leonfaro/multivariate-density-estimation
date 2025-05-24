@@ -9,14 +9,19 @@
 #   2. Parametrisch, Forest und Kernel fitten
 #   3. Loglikelihood-Abweichungen zusammenfassen und visualisieren
 
+config <- list(
+  list(distr = "norm", parm = NULL),
+  list(distr = "exp",  parm = function(d) list(rate = softplus(d$X1))),
+  list(distr = "beta", parm  = function(d) list(shape1 = softplus(d$X2), shape2 = 1))
+)
+
 N <- 50
 
 Sys.setenv(N_train = N, N_test = N)
 
 source("00_setup.R")
 set.seed(SEED)
-config <- config4
-K <- length(config)
+
 
 source("01_transport_utils.R")
 source("02_generate_data.R")
