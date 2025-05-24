@@ -39,13 +39,13 @@ kernel_df$delta <- kernel_df$ell_true_avg - kernel_df$loglik_kernel
 ## Ergebnisse zusammenführen
 eval_df <- data.frame(
   dim = ll_delta_df_test$dim,
-  distribution = ll_delta_df_test$distribution,
-  ll_true_avg = ll_delta_df_test$ll_true_avg,
-  ll_param_avg = ll_delta_df_test$ll_param_avg,
-  ll_trtf_avg = forest_df$loglik_trtf,
-  ll_kernel_avg = kernel_df$loglik_kernel,
-  delta_ll_param_avg = if ("delta_ll_param_avg" %in% names(ll_delta_df_test))
-    ll_delta_df_test$delta_ll_param_avg else ll_delta_df_test$delta_ll,
+  distr = ll_delta_df_test$distr,
+  ll_true = ll_delta_df_test$ll_true,
+  ll_param = ll_delta_df_test$ll_param,
+  ll_trtf = forest_df$loglik_trtf,
+  ll_kernel = kernel_df$loglik_kernel,
+  delta_ll_param = if ("delta_ll_param" %in% names(ll_delta_df_test))
+    ll_delta_df_test$delta_ll_param else ll_delta_df_test$delta_ll,
   delta_ll_trtf = forest_df$delta,
   delta_ll_kernel = kernel_df$delta
 )
@@ -54,9 +54,9 @@ write.csv(eval_df, "results/evaluation_summary.csv", row.names = FALSE)
 plot(ld_hat, ld_true, xlab = "estimated", ylab = "true")
 abline(a = 0, b = 1)
 info_text <- sprintf(
-  "N = %d | sum(delta_ll_param_avg) = %.3f | sum(delta_ll_trtf) = %.3f | sum(delta_ll_kernel) = %.3f",
+  "N = %d | sum(delta_ll_param) = %.3f | sum(delta_ll_trtf) = %.3f | sum(delta_ll_kernel) = %.3f",
   N_test,
-  sum(eval_df$delta_ll_param_avg),
+  sum(eval_df$delta_ll_param),
   sum(eval_df$delta_ll_trtf),
   sum(eval_df$delta_ll_kernel)
 )
