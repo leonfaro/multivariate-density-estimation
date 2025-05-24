@@ -16,7 +16,7 @@
 #   4. Abweichungen zusammenfassen und speichern
 # Notation siehe Notation.md
 
-source("03_param_baseline.R")
+source("03_baseline.R")
 source("04_forest_models.R")
 ## `KS_hat` aus Kernelglättung muss vorhanden sein
 ## gemeinsame Loglikelihoods der Schätzer ---------------------------
