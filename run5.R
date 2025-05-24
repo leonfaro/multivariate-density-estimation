@@ -7,20 +7,12 @@ config <- list(
 )
 
 N <- 50
-args <- commandArgs(trailingOnly = TRUE)
-if (length(args) > 0 && args[1] == "big") N <- 10000
 
 source("00_setup.R")
 source("01_map_definition_S.R")
 source("02_sampling.R")
 source("03_baseline.R")
 
-logsumexp <- function(v) {
-  m <- max(v)
-  m + log(sum(exp(v - m)))
-}
-
-safe_logdens <- function(x) log(pmax(EPS, x))
 
 run_pipeline <- function(N_local = N) {
   Sys.setenv(N_total = N_local)
