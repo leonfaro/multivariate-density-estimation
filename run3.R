@@ -55,8 +55,8 @@ tbl <- summary_table(
   X_pi_train,
   config,
   param_est,
-  param_res$ll_delta_df_test$ll_true_avg,
-  param_res$ll_delta_df_test$ll_param_avg
+  param_res$ll_delta_df_test$ll_true,
+  param_res$ll_delta_df_test$ll_param
 )
 
 tbl_out <- tbl[
@@ -190,8 +190,8 @@ run_pipeline <- function(N_local = N) {
     data$train$sample$X_pi,
     config,
     param_res$param_est,
-    param_res$ll_delta_df_test$ll_true_avg,
-    param_res$ll_delta_df_test$ll_param_avg
+    param_res$ll_delta_df_test$ll_true,
+    param_res$ll_delta_df_test$ll_param
   )
   print(tbl)
   invisible(tbl)
