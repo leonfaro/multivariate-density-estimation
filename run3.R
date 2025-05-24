@@ -66,14 +66,20 @@ tbl_out <- tbl[
     "true_param1", "mean_param2", "mle_base1", "mle_base2"
   )
 ]
-num_cols <- intersect(
-  c("ll_true_avg", "ll_base_avg", "delta_base",
-    "true_param1", "mean_param2", "mle_base1", "mle_base2"),
-  names(tbl_out)
-)
+num_cols <- names(tbl_out)[sapply(tbl_out, is.numeric)]
+sum_row <- tbl_out[1, , drop = FALSE]
+for (col in names(sum_row)) {
+  if (col %in% num_cols) {
+    sum_row[[col]] <- sum(abs(tbl_out[[col]]))
+  } else {
+    sum_row[[col]] <- "sum"
+  }
+}
 tbl_out[num_cols] <- lapply(tbl_out[num_cols], function(x) {
-  if (is.numeric(x)) sprintf("%.6f", x) else x
+  sprintf("%.6f", x)
 })
+sum_row[num_cols] <- lapply(sum_row[num_cols], function(x) sprintf("%.6f", x))
+tbl_out <- rbind(tbl_out, sum_row)
 print(tbl_out, row.names = FALSE)
 
 
