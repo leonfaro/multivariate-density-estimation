@@ -186,12 +186,12 @@ fit_param <- function(X_pi_train, X_pi_test, config, registry = dist_registry) {
   })
   ll_delta_df_test <- data.frame(
     dim = seq_len(K),
-    distribution = sapply(config, `[[`, "distr"),
-    ll_true_avg = apply(true_ll_mat_test, 2, mean),
-    ll_param_avg = colMeans(param_ll_mat_test)
+    distr = sapply(config, `[[`, "distr"),
+    ll_true = apply(true_ll_mat_test, 2, mean),
+    ll_param = colMeans(param_ll_mat_test)
   )
-  ll_delta_df_test$delta_ll_param_avg <-
-    ll_delta_df_test$ll_true_avg - ll_delta_df_test$ll_param_avg
+  ll_delta_df_test$delta_ll_param <-
+    ll_delta_df_test$ll_true - ll_delta_df_test$ll_param
   ll_delta_df_test[, 3:5] <- round(ll_delta_df_test[, 3:5], 6)
   list(param_est = param_est,
        ll_delta_df_test = ll_delta_df_test,
