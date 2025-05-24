@@ -9,7 +9,7 @@ if (file.exists('../../run5.R')) {
 test_that('joint mismatches are finite', {
   expect_true(is.finite(forest_mismatch))
   expect_true(is.finite(kernel_mismatch))
-  expect_true(all(is.finite(eval_tab$delta_ll_param_avg)))
+  expect_true(all(is.finite(eval_tab$delta_ll_param)))
   expect_true(all(is.finite(eval_tab$delta_ll_trtf)))
   expect_true(all(is.finite(eval_tab$delta_ll_kernel)))
 })
