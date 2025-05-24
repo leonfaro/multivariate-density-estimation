@@ -1,27 +1,8 @@
 ## DO NOT CHANGE 00_setup.R or 01_map_definition_S.R or 02_sampling.R or 03_baseline.R or run3.R
-# Gemeinsame Bewertung der Schätzer -------------------------------------
-# Eingabe:
-#   * `Z_eta_test` Referenz-Stichprobe
-#   * `LD_hat` Logdichte-Matrix der Transformation-Forest
-#   * `true_ll_mat_test` wahre Logdichte pro Dimension
-#   * `ll_test` wahre gemeinsame Loglikelihood
-#   * `ll_delta_df_test` Zusammenfassung des parametrischen Fits
-# Ausgabe:
-#   * `results/evaluation_summary.csv` mit Summen je Dimension
-#   * `results/joint_logdensity_scatterplot.png` Vergleich wahr/geschätzt
-# Schritte:
-#   1. Vorherige Objekte laden
-#   2. Loglikelihoods mit `loglik()` prüfen
-#   3. Wahre vs geschätzte Logdichten plotten
-#   4. Abweichungen zusammenfassen und speichern
-# Notation siehe Notation.md
 
 source("03_baseline.R")
 source("04_forest_models.R")
-## `KS_hat` aus Kernelglättung muss vorhanden sein
-## gemeinsame Loglikelihoods der Schätzer ---------------------------
-## LD_hat enthält schon Logdichten der Originaldaten
-## daher Zeilensummen ohne Zusatzterme
+
 loglik_trtf <- rowMeans(LD_hat)
 loglik_kernel <- rowMeans(KS_hat)
 
@@ -30,8 +11,6 @@ delta_check <- sum(loglik_trtf) - sum(ll_test)
 message(sprintf("trtf log-likelihood mismatch = %.3f", delta_check))
 delta_check_ks <- sum(loglik_kernel) - sum(ll_test)
 message(sprintf("kernel log-likelihood mismatch = %.3f", delta_check_ks))
-
-
 
 
 ## Plot wahr vs geschätzt für gemeinsame Logdichte
@@ -72,7 +51,6 @@ eval_df <- data.frame(
 )
 write.csv(eval_df, "results/evaluation_summary.csv", row.names = FALSE)
 
-png("results/joint_logdensity_scatterplot.png")
 plot(ld_hat, ld_true, xlab = "estimated", ylab = "true")
 abline(a = 0, b = 1)
 info_text <- sprintf(
@@ -83,4 +61,4 @@ info_text <- sprintf(
   sum(eval_df$delta_ll_kernel)
 )
 mtext(info_text, side = 1, line = 3)
-dev.off()
+
