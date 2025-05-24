@@ -18,6 +18,14 @@ safe_cdf <- function(val, eps = EPS) {
   res
 }
 
+safe_logcdf <- function(val, eps = EPS) {
+  lo <- log(eps)
+  hi <- log1p(-eps)
+  res <- pmax(lo, pmin(hi, val))
+  stopifnot(all(is.finite(res)))
+  res
+}
+
 safe_pars <- function(pars, dname) {
   if (dname == "norm" && !is.null(pars$sd)) stopifnot(all(pars$sd > 0))
   if (dname == "exp"  && !is.null(pars$rate)) stopifnot(all(pars$rate > 0))
@@ -56,6 +64,8 @@ q_supports_logp <- c(
   sn      = TRUE
 )
 
+p_supports_logp <- q_supports_logp
+
 safe_support <- function(x, dname, pars = list()) {
   valid <- switch(dname,
     exp     = x > 0,
@@ -80,8 +90,8 @@ if (!exists("config"))
 
 K <- length(config)
 
-source("01_map_definition_S.R")
-source("02_sampling.R")
-source("03_baseline.R")
+source("01_map_definition_S.R", local = TRUE)
+source("02_sampling.R", local = TRUE)
+source("03_baseline.R", local = TRUE)
 
 dist_registry <- make_dist_registry()
