@@ -17,6 +17,9 @@ This repository is a research notebook rather than a software project. All scrip
 - Check numeric results for unexpected NaN or NA values and inspect the full output for numerical plausibility.
 - Before sending PR-Message, check if change changes lead to conflicts with algorithmic workflow of `Theory.md`.
 - Pure documentation or comment changes do not require running tests or lint checks.
+- Jeder Commit-Kommentar muss auf Deutsch verfasst sein.
+- Bei Bugfixes eine kurze Zusammenfassung im Titel, z.B. "Clamp probabilities in qtf_k to avoid beta support violations." schreiben.
+- Anschließend einen Body mit Erläuterung der Änderung und eventuellen Nebenwirkungen anfügen.
   
 ### Testing, Debugging, Reproducibility
 
