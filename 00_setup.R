@@ -15,40 +15,6 @@ safe_pars <- function(pars, dname) {
   pars
 }
 
-q_supports_logp <- c(
-  norm    = TRUE,
-  exp     = TRUE,
-  gamma   = TRUE,
-  weibull = TRUE,
-  lnorm   = TRUE,
-  pois    = TRUE,
-  t       = TRUE,
-  laplace = TRUE,
-  beta    = TRUE,
-  logis   = TRUE
-)
-
-p_supports_logp <- q_supports_logp
-
-safe_support <- function(x, dname, pars = list()) {
-  valid <- switch(dname,
-    exp     = x > 0,
-    gamma   = x > 0,
-    weibull = x > 0,
-    lnorm   = x > 0,
-    beta    = x > 0 & x < 1,
-    pois    = x >= 0 & floor(x) == x,
-    bern    = x %in% c(0, 1),
-    binom   = {
-      size <- if (!is.null(pars$size)) pars$size else Inf
-      x >= 0 & x <= size & floor(x) == x
-    },
-    TRUE
-  )
-  if (!all(valid)) stop("value outside support for ", dname)
-  x
-}
-
 if (!exists("config"))
   stop("config must be defined before sourcing 00_setup.R")
 

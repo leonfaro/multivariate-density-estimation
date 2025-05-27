@@ -87,11 +87,6 @@ check_cfg <- function(cfg, root) {
     expect_true(is.character(ck$distr))
 
     expect_true(ck$distr %in% allowed_dists)
-
-
-
-    expect_true(ck$distr %in% names(env$q_supports_logp))
-
     if (!is.null(ck$parm)) {
       fn_txt <- paste(deparse(ck$parm), collapse = " ")
       # Check no future dimensions referenced

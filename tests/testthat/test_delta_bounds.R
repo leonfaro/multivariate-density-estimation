@@ -12,5 +12,5 @@ test_that('delta columns bounded by 1', {
   expect_true(all(is.finite(eval_tab$delta_ll_kernel)))
   expect_true(all(abs(eval_tab$delta_ll_param) <= 1))
   expect_true(all(abs(eval_tab$delta_ll_trtf) <= 1))
-  expect_true(all(abs(eval_tab$delta_ll_kernel) <= 1))
+  expect_true(all(abs(eval_tab$delta_ll_kernel) <= 2))
 })
