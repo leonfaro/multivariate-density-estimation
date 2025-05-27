@@ -11,8 +11,8 @@ source("../../00_setup.R", chdir = TRUE)
 data <- generate_data()
 X_pi_train <- data$train$sample$X_pi
 X_pi_test  <- data$test$sample$X_pi
-res <- fit_param(X_pi_train, X_pi_test, config)
-mean_delta <- mean(abs(res$ll_delta_df_test$delta_ll_param))
+res <- fit_joint_param(X_pi_train, X_pi_test, config)
+mean_delta <- mean(abs(res$ll_delta_df_test$delta_joint))
 
 test_that("parametric fit delta_ll finite", {
   expect_true(is.finite(mean_delta))
