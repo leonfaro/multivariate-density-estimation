@@ -32,7 +32,7 @@ run_pipeline <- function(N_local = N, cfg = config, perm = NULL) {
     X_pi_test  <<- permute_data(X_pi_test, perm)
     cfg <- cfg[perm]
   }
-  param_res <- fit_param(X_pi_train, X_pi_test, cfg)
+  param_res <- fit_joint_param(X_pi_train, X_pi_test, cfg)
   ll_delta_df_test <<- param_res$ll_delta_df_test
   true_ll_mat_test <<- param_res$true_ll_mat_test
 

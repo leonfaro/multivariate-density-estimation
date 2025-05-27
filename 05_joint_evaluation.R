@@ -41,11 +41,10 @@ eval_df <- data.frame(
   dim = ll_delta_df_test$dim,
   distr = ll_delta_df_test$distr,
   ll_true = ll_delta_df_test$ll_true,
-  ll_param = ll_delta_df_test$ll_param,
+  ll_joint = ll_delta_df_test$ll_joint,
   ll_trtf = forest_df$loglik_trtf,
   ll_kernel = kernel_df$loglik_kernel,
-  delta_ll_param = if ("delta_ll_param" %in% names(ll_delta_df_test))
-    ll_delta_df_test$delta_ll_param else ll_delta_df_test$delta_ll,
+  delta_ll_joint = ll_delta_df_test$delta_joint,
   delta_ll_trtf = forest_df$delta,
   delta_ll_kernel = kernel_df$delta
 )
@@ -54,9 +53,9 @@ write.csv(eval_df, "results/evaluation_summary.csv", row.names = FALSE)
 plot(ld_hat, ld_true, xlab = "estimated", ylab = "true")
 abline(a = 0, b = 1)
 info_text <- sprintf(
-  "N = %d | sum(delta_ll_param) = %.3f | sum(delta_ll_trtf) = %.3f | sum(delta_ll_kernel) = %.3f",
+  "N = %d | sum(delta_ll_joint) = %.3f | sum(delta_ll_trtf) = %.3f | sum(delta_ll_kernel) = %.3f",
   N_test,
-  sum(eval_df$delta_ll_param),
+  sum(eval_df$delta_ll_joint),
   sum(eval_df$delta_ll_trtf),
   sum(eval_df$delta_ll_kernel)
 )
