@@ -12,7 +12,6 @@ get_pars <- function(k, x_prev, cfg) {
   }
   pars <- ck$parm(x_df)
   pars <- apply_links(pars, ck$distr)
-  safe_pars(pars, ck$distr)
 }
 
 pdf_k <- function(k, xk, x_prev, cfg, log = TRUE) {
