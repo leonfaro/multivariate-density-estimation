@@ -1,0 +1,21 @@
+### Glattheits-Matrix für die 13 „log.p-fähigen“ stetigen Verteilungen
+| #  | Verteilung         | **a) Support**                                                       | **b) Zulässiger Parameter­bereich**                     | **c) Glattheit auf dem *ganzen* Support**                   | **d) Glattheit im Inneren (ohne Ränder)** |
+| -- | ------------------ | -------------------------------------------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------- | ----------------------------------------- |
+| 1  | Normal             | $(-\infty,\infty)$                                                   | $\mu\in\mathbb R,\;\sigma>0$                            | **C∞**                                                      | **C∞**                                    |
+| 2  | Lognormal          | $(0,\infty)$                                                         | zugrundeliegend: $\mu\in\mathbb R,\;\sigma>0$           | cusp bei $x\!\to\!0^+$  → nicht C¹                          | **C∞**                                    |
+| 3  | Student-t          | $(-\infty,\infty)$                                                   | $\mu\in\mathbb R,\;\sigma>0,\;\nu>0$                    | **C∞**                                                      | **C∞**                                    |
+| 4  | Skew-t (Hansen)    | $(-\infty,\infty)$                                                   | $\mu\in\mathbb R,\;\sigma>0,\;\nu>2,\;\lambda\in(-1,1)$ | **C∞**                                                      | **C∞**                                    |
+| 5  | Exponential        | $(0,\infty)$                                                         | $\lambda>0$                                             | **C∞** (auch am Rand)                                       | **C∞**                                    |
+| 6  | Weibull            | $(0,\infty)$                                                         | $k>0,\;\lambda>0$                                       | **k ≥ 1**: C∞ · **k < 1**: cusp bei $0^+$                   | **C∞** ab $x>0$                           |
+| 7  | Laplace            | $(-\infty,\infty)$                                                   | $\mu\in\mathbb R,\;b>0$                                 | cusp bei $x=\mu$  → nicht C¹                                | cusp bleibt — nicht C¹                    |
+| 8  | Generalized Pareto | $[\,\mu,\,\mu\!-\!\sigma/\xi)$ falls $\xi<0$, sonst $[\,\mu,\infty)$ | $\sigma>0,\;\xi\in\mathbb R,\;\mu\in\mathbb R$          | **ξ ≥ 1**: C¹/C² · **ξ < 1**: cusp bei $x=\mu$              | **C∞** für $x>\mu$ (bzw. < Obergrenze)    |
+| 9  | Burr XII           | $(0,\infty)$                                                         | $c>0,\;k>0,\;\lambda>0$                                 | **c ≥ 1**: C∞ · **c < 1**: cusp bei $0^+$                   | **C∞** ab $x>0$                           |
+| 10 | Inverse-Gaussian   | $(0,\infty)$                                                         | $\mu>0,\;\lambda>0$                                     | cusp bei $0^+$ (Singularität $x^{-3/2}$)                    | **C∞** für $x>0$                          |
+| 11 | Non-central χ²     | $(0,\infty)$                                                         | $\nu>0,\;\lambda\ge0$                                   | **ν ≥ 2**: C∞ · **ν < 2**: cusp bei $0^+$                   | **C∞** ab $x>0$                           |
+| 12 | Gamma              | $(0,\infty)$                                                         | $\alpha>0,\;\theta>0$                                   | **α ≥ 2**: C∞ · **1 ≤ α<2**: C¹ · **α < 1**: cusp bei $0^+$ | **C∞** für $x>0$                          |
+| 13 | Beta               | $(0,1)$                                                              | $\alpha>0,\;\beta>0$                                    | glatt **nur wenn α>1 & β>1**; sonst cusps an 0 bzw. 1       | **C∞** auf $(0,1)$                        |
+
+**Legende**
+* **C∞** Funktion beliebig oft stetig differenzierbar.
+* **C¹ / C²** nur bis zur angegebenen Ordnung glatt.
+* **cusp** Knick/Singularität; nicht einmal erste Ableitung endlich.
