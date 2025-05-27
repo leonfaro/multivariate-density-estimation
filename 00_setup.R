@@ -97,7 +97,9 @@ dist_fun <- function(pref, name) get(paste0(pref, name))
 get_pars <- function(k, x_prev, cfg) {
   ck <- cfg[[k]]
   if (is.null(ck$parm)) return(list())
-  if (is.null(dim(x_prev))) {
+  if (length(x_prev) == 0) {
+    x_df <- data.frame()
+  } else if (is.null(dim(x_prev))) {
     names(x_prev) <- paste0("X", seq_along(x_prev))
     x_df <- as.data.frame(as.list(x_prev))
   } else {
@@ -105,6 +107,7 @@ get_pars <- function(k, x_prev, cfg) {
     x_df <- as.data.frame(x_prev)
   }
   pars <- ck$parm(x_df)
+  pars <- lapply(pars, function(x) if (is.null(x)) 1 else x)
   pars <- apply_links(pars, ck$distr)
 }
 
