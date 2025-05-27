@@ -50,11 +50,10 @@ summary_stats <- data.frame(
 print(summary_stats)
 
 param_res <- fit_joint_param(X_pi_train, X_pi_test, config)
-theta_hat <- param_res$theta_hat
 tbl <- summary_table(
   X_pi_train,
   config,
-  theta_hat,
+  param_res,
   param_res$ll_delta_df_test$ll_true,
   param_res$ll_delta_df_test$ll_joint
 )
@@ -195,7 +194,7 @@ run_pipeline <- function(N_local = N) {
   tbl <- summary_table(
     data$train$sample$X_pi,
     config,
-    param_res$theta_hat,
+    param_res,
     param_res$ll_delta_df_test$ll_true,
     param_res$ll_delta_df_test$ll_joint
   )
