@@ -54,7 +54,7 @@ check_cfg <- function(cfg, root) {
   allowed_dists <- c(
     "norm", "lnorm", "t", "skewt",
     "exp", "weibull", "laplace", "gpd", "burrxii",
-    "invgauss", "ncchisq", "gamma", "beta"
+    "invgauss", "ncchisq", "gamma", "beta", "logis"
   )
   pos_pars <- list(
     norm    = "sigma",

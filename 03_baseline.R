@@ -65,7 +65,6 @@ safe_optim <- function(par, fn, method = "BFGS", ...) {
   res
 }
 
-
 compute_distribution_parameters <- function(theta_vector, X_prev_matrix,
                                             family_spec, N_observations) {
   if (is.null(X_prev_matrix) || ncol(as.matrix(X_prev_matrix)) == 0) {
@@ -87,72 +86,127 @@ compute_distribution_parameters <- function(theta_vector, X_prev_matrix,
   res
 }
 
-make_generalized_nll <- function(family_name_str, X_prev_data_matrix,
-                                 x_curr_vector, registry = dist_registry) {
-  family_spec <- registry[[family_name_str]]
-  function(theta) {
-    pars <- compute_distribution_parameters(theta, X_prev_data_matrix,
-                                            family_spec, length(x_curr_vector))
-    logpdf_vals <- do.call(family_spec$logpdf, c(list(x_curr_vector), pars))
-    if (any(!is.finite(logpdf_vals)))
-      return(Inf)
-    -sum(logpdf_vals)
+param_names_global <- character()
+
+parse_param_spec <- function(config, registry) {
+  fam_seen <- character()
+  names_out <- character()
+  for (k in seq_along(config)) {
+    dname <- config[[k]]$distr
+    if (dname %in% fam_seen) next
+    fam_seen <- c(fam_seen, dname)
+    fam_names <- switch(dname,
+      norm = c("mu", "log_sigma"),
+      exp = c("alpha", "beta"),
+      beta = c("alpha1", "beta1", "alpha2", "beta2"),
+      gamma = c("shape_alpha", "shape_beta", "rate_alpha", "rate_beta"),
+      weibull = c("wshape_alpha", "wshape_beta", "wscale_alpha", "wscale_beta"),
+      logis = c("loc_alpha", "loc_beta", "scale_alpha", "scale_beta"),
+      stop(sprintf("Unsupported distribution: %s", dname))
+    )
+    names_out <- c(names_out, fam_names)
   }
+  assign("param_names_global", names_out, envir = .GlobalEnv)
+  stopifnot(all(unique(param_names_global) == param_names_global))
+  invisible(param_names_global)
 }
 
-fit_param <- function(X_pi_train, X_pi_test, config, registry = dist_registry) {
-  K <- length(config)
-  param_len <- sapply(seq_len(K), function(k) {
-    fam <- registry[[config[[k]]$distr]]
-    (if (k > 1) k else 1) * length(fam$param_names)
-  })
-  init_vals <- lapply(param_len, function(n) rep(0, n))
-  param_est <- vector("list", K)
-  for (k in seq_len(K)) {
-    xs <- X_pi_train[, k]
-    X_prev <- if (k > 1) X_pi_train[, 1:(k - 1), drop = FALSE] else numeric(0)
-    dname <- config[[k]]$distr
-    nll <- make_generalized_nll(dname, X_prev, xs, registry)
-    fit <- safe_optim(init_vals[[k]], nll)
-    param_est[[k]] <- fit$par
-  }
-  true_ll_mat_test <- sapply(seq_len(K), function(k)
-    pdf_k(k, X_pi_test[, k],
-          if (k > 1) X_pi_test[, 1:(k - 1), drop = FALSE] else numeric(0),
-          config, log = TRUE))
-  param_ll_mat_test <- sapply(seq_len(K), function(k) {
-    xs <- X_pi_test[, k]
-    X_prev <- if (k > 1) X_pi_test[, 1:(k - 1), drop = FALSE] else numeric(0)
-    dname <- config[[k]]$distr
-    fam <- registry[[dname]]
-    pars <- compute_distribution_parameters(param_est[[k]], X_prev, fam, length(xs))
-    do.call(fam$logpdf, c(list(xs), pars))
-  })
-  ll_delta_df_test <- data.frame(
-    dim = seq_len(K),
-    distr = sapply(config, `[[`, "distr"),
-    ll_true = apply(true_ll_mat_test, 2, mean),
-    ll_param = colMeans(param_ll_mat_test)
+theta2list <- function(theta) {
+  stopifnot(length(theta) == length(param_names_global))
+  as.list(stats::setNames(theta, param_names_global))
+}
+
+slice_pars <- function(k, theta, X_prev, cfg) {
+  dname <- cfg[[k]]$distr
+  x_last <- if (length(X_prev)) X_prev[, ncol(as.matrix(X_prev))] else 0
+  switch(dname,
+    norm = list(mu = theta$mu, sigma = exp(theta$log_sigma)),
+    exp = list(rate = exp(theta$alpha + theta$beta * x_last)),
+    beta = list(
+      shape1 = exp(theta$alpha1 + theta$beta1 * x_last),
+      shape2 = exp(theta$alpha2 + theta$beta2 * x_last)
+    ),
+    gamma = list(
+      shape = exp(theta$shape_alpha + theta$shape_beta * x_last),
+      rate = exp(theta$rate_alpha + theta$rate_beta * x_last)
+    ),
+    weibull = list(
+      shape = exp(theta$wshape_alpha + theta$wshape_beta * x_last),
+      scale = exp(theta$wscale_alpha + theta$wscale_beta * x_last)
+    ),
+    logis = list(
+      location = theta$loc_alpha + theta$loc_beta * x_last,
+      scale = exp(theta$scale_alpha + theta$scale_beta * x_last)
+    ),
+    stop(sprintf("slice_pars not implemented for %s", dname))
   )
-  ll_delta_df_test$delta_ll_param <-
-    ll_delta_df_test$ll_true - ll_delta_df_test$ll_param
+}
+
+joint_loglik <- function(theta, X, config, registry) {
+  theta_named <- theta2list(theta)
+  n <- nrow(X)
+  K <- ncol(X)
+  ll <- 0
+  for (i in seq_len(n)) {
+    for (k in seq_len(K)) {
+      X_prev <- if (k > 1) X[i, 1:(k - 1), drop = FALSE] else matrix(0, nrow = 1, ncol = 0)
+      pars <- slice_pars(k, theta_named, X_prev, config)
+      lp <- do.call(registry[[config[[k]]$distr]]$logpdf, c(list(x = X[i, k]), pars))
+      if (!is.finite(lp))
+        return(Inf)
+      ll <- ll + lp
+    }
+  }
+  -ll
+}
+
+fit_joint_param <- function(X_train, X_test, config, registry = dist_registry) {
+  parse_param_spec(config, registry)
+  init <- rep(0, length(param_names_global))
+  nll <- function(th) joint_loglik(th, X_train, config, registry)
+  opt <- safe_optim(init, nll)
+  theta_hat <- opt$par
+  theta_list <- theta2list(theta_hat)
+
+  true_ll_mat_test <- sapply(seq_len(ncol(X_test)), function(k)
+    pdf_k(k, X_test[, k],
+          if (k > 1) X_test[, 1:(k - 1), drop = FALSE] else numeric(0),
+          config, log = TRUE))
+
+  joint_ll_mat_test <- matrix(NA_real_, nrow = nrow(X_test), ncol = ncol(X_test))
+  for (i in seq_len(nrow(X_test))) {
+    for (k in seq_len(ncol(X_test))) {
+      X_prev <- if (k > 1) X_test[i, 1:(k - 1), drop = FALSE] else matrix(0, nrow = 1, ncol = 0)
+      pars <- slice_pars(k, theta_list, X_prev, config)
+      joint_ll_mat_test[i, k] <- do.call(registry[[config[[k]]$distr]]$logpdf,
+                                         c(list(x = X_test[i, k]), pars))
+    }
+  }
+  ll_delta_df_test <- data.frame(
+    dim = seq_len(ncol(X_test)),
+    distr = sapply(config, `[[`, "distr"),
+    ll_true = colMeans(true_ll_mat_test),
+    ll_joint = colMeans(joint_ll_mat_test)
+  )
+  ll_delta_df_test$delta_joint <- ll_delta_df_test$ll_true - ll_delta_df_test$ll_joint
   ll_delta_df_test[, 3:5] <- round(ll_delta_df_test[, 3:5], 6)
-  list(param_est = param_est,
+  list(theta_hat = theta_hat,
        ll_delta_df_test = ll_delta_df_test,
        true_ll_mat_test = true_ll_mat_test,
-       param_ll_mat_test = param_ll_mat_test)
+       joint_ll_mat_test = joint_ll_mat_test)
 }
 
 summary_table <- function(X_train, cfg, theta_hat,
-                          LL_true_avg, LL_base_avg,
+                          LL_true_avg, LL_joint_avg,
                           registry = dist_registry) {
-  K <- length(theta_hat)
+  theta_list <- theta2list(theta_hat)
+  K <- length(cfg)
   out <- data.frame(
     dim = seq_len(K),
     distr = sapply(cfg, `[[`, "distr"),
     ll_true_avg = LL_true_avg,
-    ll_base_avg = LL_base_avg,
-    delta_base = LL_true_avg - LL_base_avg,
+    ll_joint_avg = LL_joint_avg,
+    delta_joint = LL_true_avg - LL_joint_avg,
     stringsAsFactors = FALSE
   )
   mean_p1 <- numeric(K)
@@ -160,26 +214,19 @@ summary_table <- function(X_train, cfg, theta_hat,
   mle_p1 <- numeric(K)
   mle_p2 <- character(K)
   for (k in seq_len(K)) {
-    X_prev <- if (k > 1) X_train[, 1:(k - 1), drop = FALSE] else numeric(0)
-    fam <- registry[[out$distr[k]]]
-    pars <- compute_distribution_parameters(theta_hat[[k]], X_prev,
-                                            fam, nrow(X_train))
+    X_prev <- if (k > 1) X_train[, 1:(k - 1), drop = FALSE] else matrix(0, nrow = nrow(X_train), ncol = 0)
+    pars <- slice_pars(k, theta_list, X_prev, cfg)
     mean_p1[k] <- mean(pars[[1]])
     if (length(pars) >= 2) {
-
       mean_p2[k] <- sprintf("%.6f", mean(pars[[2]]))
-
     } else {
       mean_p2[k] <- "none"
     }
-    X0 <- if (k > 1) matrix(0, nrow = 1, ncol = k - 1) else numeric(0)
-    pars_ref <- compute_distribution_parameters(theta_hat[[k]], X0,
-                                               fam, 1)
+    X0 <- if (k > 1) matrix(0, nrow = 1, ncol = k - 1) else matrix(0, nrow = 1, ncol = 0)
+    pars_ref <- slice_pars(k, theta_list, X0, cfg)
     mle_p1[k] <- pars_ref[[1]][1]
     if (length(pars_ref) >= 2) {
-
       mle_p2[k] <- sprintf("%.6f", pars_ref[[2]][1])
-
     } else {
       mle_p2[k] <- "none"
     }
@@ -187,7 +234,6 @@ summary_table <- function(X_train, cfg, theta_hat,
   out$true_param1 <- round(mean_p1, 6)
   out$mean_param2 <- mean_p2
   out$mle_base1 <- round(mle_p1, 6)
-
   out$mle_base2 <- mle_p2
   out
 }
