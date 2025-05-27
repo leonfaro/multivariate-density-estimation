@@ -22,5 +22,5 @@ back to standard scale.
 The configuration `config` is a list of length $K`.  Each entry has a field
 `distr` specifying the family.  
 
-
+## End_of_readme
 
