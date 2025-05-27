@@ -110,7 +110,7 @@ fit_param <- function(X_pi_train, X_pi_test, config, registry = dist_registry) {
   param_est <- vector("list", K)
   for (k in seq_len(K)) {
     xs <- X_pi_train[, k]
-    X_prev <- if (k > 1) X_pi_train[, 1:(k - 1), drop = FALSE] else NULL
+    X_prev <- if (k > 1) X_pi_train[, 1:(k - 1), drop = FALSE] else numeric(0)
     dname <- config[[k]]$distr
     nll <- make_generalized_nll(dname, X_prev, xs, registry)
     fit <- safe_optim(init_vals[[k]], nll)
@@ -122,7 +122,7 @@ fit_param <- function(X_pi_train, X_pi_test, config, registry = dist_registry) {
           config, log = TRUE))
   param_ll_mat_test <- sapply(seq_len(K), function(k) {
     xs <- X_pi_test[, k]
-    X_prev <- if (k > 1) X_pi_test[, 1:(k - 1), drop = FALSE] else NULL
+    X_prev <- if (k > 1) X_pi_test[, 1:(k - 1), drop = FALSE] else numeric(0)
     dname <- config[[k]]$distr
     fam <- registry[[dname]]
     pars <- compute_distribution_parameters(param_est[[k]], X_prev, fam, length(xs))
@@ -160,7 +160,7 @@ summary_table <- function(X_train, cfg, theta_hat,
   mle_p1 <- numeric(K)
   mle_p2 <- character(K)
   for (k in seq_len(K)) {
-    X_prev <- if (k > 1) X_train[, 1:(k - 1), drop = FALSE] else NULL
+    X_prev <- if (k > 1) X_train[, 1:(k - 1), drop = FALSE] else numeric(0)
     fam <- registry[[out$distr[k]]]
     pars <- compute_distribution_parameters(theta_hat[[k]], X_prev,
                                             fam, nrow(X_train))
@@ -172,7 +172,7 @@ summary_table <- function(X_train, cfg, theta_hat,
     } else {
       mean_p2[k] <- "none"
     }
-    X0 <- if (k > 1) matrix(0, nrow = 1, ncol = k - 1) else NULL
+    X0 <- if (k > 1) matrix(0, nrow = 1, ncol = k - 1) else numeric(0)
     pars_ref <- compute_distribution_parameters(theta_hat[[k]], X0,
                                                fam, 1)
     mle_p1[k] <- pars_ref[[1]][1]
