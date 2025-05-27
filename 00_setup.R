@@ -23,7 +23,7 @@ q_supports_logp <- c(
   lnorm   = TRUE,
   pois    = TRUE,
   t       = TRUE,
-  laplace = FALSE,
+  laplace = TRUE,
   beta    = TRUE,
   logis   = TRUE
 )
