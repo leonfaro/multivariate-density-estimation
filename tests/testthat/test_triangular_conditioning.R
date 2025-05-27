@@ -30,7 +30,6 @@ test_that("configs use immediate predecessor", {
     "run5.R",
     "basic_tests.R",
     file.path("tests/testthat", "test_cdf_log.R"),
-    file.path("tests/testthat", "test_logp_table.R"),
     file.path("tests/testthat", "test_edgecases.R"),
     file.path("tests/testthat", "test_fit_param.R"),
     file.path("tests/testthat", "test_softplus_gamma.R")
