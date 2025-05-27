@@ -6,8 +6,8 @@ config <- list(
   list(distr = "exp",  parm = function(d) list(rate = d$X1))
 )
 
-parse_param_spec(config, dist_registry)
+ps <- parse_param_spec(config, dist_registry)
 
 test_that("param names unique", {
-  expect_true(length(unique(param_names_global)) == length(param_names_global))
+  expect_true(length(unique(ps$param_names)) == length(ps$param_names))
 })
