@@ -95,3 +95,36 @@ source("02_sampling.R", local = TRUE)
 source("03_baseline.R", local = TRUE)
 
 dist_registry <- make_dist_registry()
+
+# zugelassene Verteilungen laut Spezifikation
+allowed_dists_full <- c(
+  "norm", "lnorm", "t", "skewt", "ged", "nig", "vargamma", "astable",
+  "exp", "weibull", "laplace", "gpd", "burrxii", "hyperbolic",
+  "invgauss", "ncchisq", "gamma", "beta"
+)
+
+# wendet die in dist_registry definierten Linkfunktionen an
+apply_links <- function(pars, dname) {
+  if (dname %in% names(dist_registry)) {
+    spec <- dist_registry[[dname]]
+    for (j in seq_along(spec$param_names)) {
+      nm <- spec$param_names[j]
+      if (!is.null(pars[[nm]]))
+        pars[[nm]] <- link_fns[[spec$link_vector[j]]](pars[[nm]])
+    }
+  }
+  pars
+}
+
+# prüft erlaubte Verteilungen und Typen
+validate_config <- function(cfg) {
+  for (ck in cfg) {
+    stopifnot(is.list(ck))
+    stopifnot(ck$distr %in% allowed_dists_full)
+    if (!is.null(ck$parm))
+      stopifnot(is.function(ck$parm))
+  }
+  cfg
+}
+
+config <- validate_config(config)

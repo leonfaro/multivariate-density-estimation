@@ -35,8 +35,6 @@ library(testthat)
 # inneren Knickpunkt. Glatte Optimierungsverfahren benötigen daher passende
 # Reparametrisierungen oder Ausschlüsse solcher Parameterbereiche.
 
-=======
->>>>>>> main
 extract_config <- function(file) {
   exprs <- parse(file)
   for (e in exprs) {
@@ -54,8 +52,9 @@ check_cfg <- function(cfg, root) {
   sys.source(file.path(root, "00_setup.R"), env, chdir = TRUE)
 
   allowed_dists <- c(
-    "norm", "logis", "t", "cauchy", "gumbel",
-    "lnorm", "gamma", "weibull", "beta", "exp"
+    "norm", "lnorm", "t", "skewt", "ged", "nig", "vargamma", "astable",
+    "exp", "weibull", "laplace", "gpd", "burrxii", "hyperbolic",
+    "invgauss", "ncchisq", "gamma", "beta"
   )
   pos_pars <- list(
     norm    = "sigma",
@@ -100,15 +99,7 @@ check_cfg <- function(cfg, root) {
       for (d in seq(from = k, to = max_dim)) {
         expect_false(grepl(paste0("X", d), fn_txt, fixed = TRUE))
       }
-      # Positive parameter enforcement via monotone transform
-
       need_pos <- ck$distr %in% names(pos_pars)
-
-      if (need_pos) {
-        expect_true(grepl("softplus", fn_txt) ||
-                    grepl("exp(", fn_txt, fixed = TRUE) ||
-                    grepl("plogis", fn_txt))
-      }
       # Call function on zero data frame
       if (k > 1) {
         d <- setNames(as.data.frame(matrix(0, nrow = 1, ncol = k - 1)),
@@ -117,8 +108,8 @@ check_cfg <- function(cfg, root) {
         d <- data.frame()[, FALSE]
       }
       environment(ck$parm) <- env
-      pars <- ck$parm(d)
-      expect_silent(env$safe_pars(pars, ck$distr))
+      x_prev <- if (k > 1) as.numeric(d) else numeric(0)
+      expect_silent(pars <- env$get_pars(k, x_prev, cfg))
 
       if (need_pos) {
         for (p in pos_pars[[ck$distr]]) {

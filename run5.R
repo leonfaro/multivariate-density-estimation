@@ -2,8 +2,8 @@
 
 config <- list(
   list(distr = "norm", parm = NULL),
-  list(distr = "exp",  parm = function(d) list(rate = softplus(d$X1))),
-  list(distr = "beta", parm  = function(d) list(shape1 = softplus(d$X2), shape2 = 1))
+  list(distr = "exp",  parm = function(d) list(rate = d$X1)),
+  list(distr = "beta", parm  = function(d) list(shape1 = d$X2, shape2 = 1))
 )
 
 N <- 50
