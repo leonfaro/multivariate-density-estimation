@@ -5,11 +5,39 @@ safe_optim <- function(par, fn, method = "BFGS", ...) {
   res
 }
 
+parse_param_spec <- function(cfg, registry = dist_registry) {
+  out <- list()
+  param_names <- character()
+  num_params <- integer(length(cfg))
+  for (k in seq_along(cfg)) {
+    fam <- registry[[cfg[[k]]$distr]]
+    p <- if (k == 1) 0 else k - 1
+    n_par <- length(fam$param_names)
+    num_params[k] <- n_par * (p + 1)
+    for (nm in fam$param_names) {
+      labels <- c("intercept", if (p > 0) paste0("X", seq_len(p), "_slope"))
+      param_names <- c(param_names,
+                       paste0("dim", k, "_", nm, "_", labels))
+    }
+  }
+  param_names_global <<- param_names
+  out$num_params <- num_params
+  out
+}
+
 compute_distribution_parameters <- function(theta, X_prev, family_spec, N_obs) {
+  p <- if (is.null(X_prev)) 0 else ncol(X_prev)
+  X_mat <- if (p == 0) matrix(0, nrow = N_obs, ncol = 0) else as.matrix(X_prev)
   out <- vector("list", length(family_spec$param_names))
+  idx <- 1
   for (j in seq_along(out)) {
-    val <- link_fns[[family_spec$link_vector[j]]](theta[j])
-    out[[j]] <- rep(val, N_obs)
+    betas <- theta[idx:(idx + p)]
+    eta <- betas[1]
+    if (p > 0)
+      eta <- eta + X_mat %*% betas[-1]
+    val <- link_fns[[family_spec$link_vector[j]]](eta)
+    out[[j]] <- as.vector(val)
+    idx <- idx + p + 1
   }
   names(out) <- family_spec$param_names
   out
@@ -18,7 +46,7 @@ compute_distribution_parameters <- function(theta, X_prev, family_spec, N_obs) {
 make_generalized_nll <- function(family_name, X_prev, x_vec,
                                  registry = dist_registry) {
   fam <- registry[[family_name]]
-  N <- length(x_vec)
+  N <- if (is.matrix(x_vec)) nrow(x_vec) else length(x_vec)
   function(theta) {
     pars <- compute_distribution_parameters(theta, X_prev, fam, N)
     ll <- do.call(fam$logpdf, c(list(x_vec), pars))
@@ -37,7 +65,9 @@ fit_joint_param <- function(X_train, X_test, cfg, registry = dist_registry) {
     x_tr <- X_train[, k]
     x_prev_tr <- if (k > 1) X_train[, 1:(k - 1), drop = FALSE] else NULL
     nll <- make_generalized_nll(cfg[[k]]$distr, x_prev_tr, x_tr, registry)
-    init <- rep(0, length(registry[[cfg[[k]]$distr]]$param_names))
+    fam <- registry[[cfg[[k]]$distr]]
+    p <- if (k == 1) 0 else k - 1
+    init <- rep(0, length(fam$param_names) * (p + 1))
     param_est[[k]] <- safe_optim(init, nll)$par
 
     x_te <- X_test[, k]
@@ -55,7 +85,7 @@ fit_joint_param <- function(X_train, X_test, cfg, registry = dist_registry) {
     ll_true = colMeans(true_ll_mat),
     ll_joint = colMeans(joint_ll_mat)
   )
-  ll_df$delta_ll_joint <- ll_df$ll_true - ll_df$ll_joint
+  ll_df$delta_joint <- ll_df$ll_true - ll_df$ll_joint
   ll_df[, 3:5] <- round(ll_df[, 3:5], 6)
   list(
     param_est = param_est,

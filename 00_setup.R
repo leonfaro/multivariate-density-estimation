@@ -16,48 +16,56 @@ link_fns <- list(identity = function(z) z, softplus = softplus)
 make_dist_registry <- function() {
   reg <- list(
     norm = list(
+      dim = 1,
       param_names = c("mu", "sigma"),
       link_vector = c("identity", "softplus"),
       logpdf = function(x, mu, sigma) dnorm(x, mean = mu, sd = sigma, log = TRUE),
       invcdf = qnorm
     ),
     exp = list(
+      dim = 1,
       param_names = "rate",
       link_vector = "softplus",
       logpdf = function(x, rate) dexp(x, rate = rate, log = TRUE),
       invcdf = qexp
     ),
     gamma = list(
+      dim = 1,
       param_names = c("shape", "rate"),
       link_vector = c("softplus", "softplus"),
       logpdf = function(x, shape, rate) dgamma(x, shape = shape, rate = rate, log = TRUE),
       invcdf = qgamma
     ),
     weibull = list(
+      dim = 1,
       param_names = c("shape", "scale"),
       link_vector = c("softplus", "softplus"),
       logpdf = function(x, shape, scale) dweibull(x, shape = shape, scale = scale, log = TRUE),
       invcdf = qweibull
     ),
     lnorm = list(
+      dim = 1,
       param_names = c("meanlog", "sdlog"),
       link_vector = c("identity", "softplus"),
       logpdf = function(x, meanlog, sdlog) dlnorm(x, meanlog = meanlog, sdlog = sdlog, log = TRUE),
       invcdf = qlnorm
     ),
     pois = list(
+      dim = 1,
       param_names = "lambda",
       link_vector = "softplus",
       logpdf = function(x, lambda) dpois(x, lambda = lambda, log = TRUE),
       invcdf = qpois
     ),
     beta = list(
+      dim = 1,
       param_names = c("shape1", "shape2"),
       link_vector = c("softplus", "softplus"),
       logpdf = function(x, shape1, shape2) dbeta(x, shape1 = shape1, shape2 = shape2, log = TRUE),
       invcdf = qbeta
     ),
     logis = list(
+      dim = 1,
       param_names = c("location", "scale"),
       link_vector = c("identity", "softplus"),
       logpdf = function(x, location, scale) dlogis(x, location = location, scale = scale, log = TRUE),

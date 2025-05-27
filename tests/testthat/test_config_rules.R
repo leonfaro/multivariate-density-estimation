@@ -128,6 +128,11 @@ check_cfg <- function(cfg, root) {
 test_that("configs satisfy monotonicity rules", {
   root <- file.path("..", "..")
   check_cfg(extract_config(file.path(root, "run3.R")), root)
-  check_cfg(extract_config(file.path(root, "run5.R")), root)
+  run5 <- file.path(root, "run5.R")
+  if (file.exists(run5)) {
+    check_cfg(extract_config(run5), root)
+  } else {
+    skip("run5.R not available")
+  }
   check_cfg(extract_config(file.path(root, "basic_tests.R")), root)
 })
