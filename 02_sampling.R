@@ -14,19 +14,18 @@ eta_sample <- function(N) {
 
 S_inv <- function(U_eta, cfg = config, Z_eta = qnorm(U_eta)) {
   n <- nrow(U_eta)
-  X_pi <- matrix(NA_real_, n, K)
-  logd <- matrix(NA_real_, n, K)
+  X_pi <- Z_eta
+  logd <- Z_eta
   for (i in seq_len(n)) {
     x_prev <- numeric(0)
     for (k in seq_len(K)) {
       logu <- pnorm(Z_eta[i, k], log.p = TRUE)
       x_prev[k] <- qtf_k(k, logu, x_prev, cfg, log.p = TRUE)
-    }
-    X_pi[i, ] <- x_prev
-    for (k in seq_len(K)) {
-      logd[i, k] <- pdf_k(k, X_pi[i, k], X_pi[i, seq_len(k-1)], cfg, log = TRUE) -
+      logd[i, k] <- pdf_k(k, x_prev[k], x_prev[seq_len(k - 1)],
+                          cfg, log = TRUE) -
                     dnorm(Z_eta[i, k], log = TRUE)
     }
+    X_pi[i, ] <- x_prev
   }
   list(X_pi = X_pi, U_eta = U_eta, Z_eta = Z_eta, logd = logd)
 }
@@ -41,19 +40,14 @@ pi_sample <- function(N, cfg = config) {
 sample_pi_df <- function(N, cfg = config) {
   samp <- pi_sample(N, cfg)
   logdet <- logdet_J(samp$logd)
-  ll <- loglik(samp$Z_eta, logdet)
-  df <- data.frame(
-    samp$X_pi, samp$U_eta, samp$Z_eta, samp$logd,
-    det_J = logdet, ll_true = ll,
-    check.names = FALSE
-  )
-  colnames(df) <- c(
-    paste0("Xpi",  seq_len(K)),
-    paste0("Ueta", seq_len(K)),
-    paste0("Zeta", seq_len(K)),
-    paste0("logd", seq_len(K)),
-    "det_J", "ll_true"
-  )
+  df <- as.data.frame(cbind(samp$X_pi, samp$U_eta, samp$Z_eta, samp$logd,
+                            det_J = logdet,
+                            ll_true = loglik(samp$Z_eta, logdet)))
+  colnames(df) <- c(paste0("Xpi",  seq_len(K)),
+                    paste0("Ueta", seq_len(K)),
+                    paste0("Zeta", seq_len(K)),
+                    paste0("logd", seq_len(K)),
+                    "det_J", "ll_true")
   attr(df, "seed") <- SEED
   list(df = df, sample = samp)
 }
