@@ -76,7 +76,7 @@ dist_registry <- make_dist_registry()
 allowed_dists_full <- c(
   "norm", "lnorm", "t", "skewt",
   "exp", "weibull", "laplace", "gpd", "burrxii",
-  "invgauss", "ncchisq", "gamma", "beta"
+  "invgauss", "ncchisq", "gamma", "beta", "logis"
 )
 
 # wendet die in dist_registry definierten Linkfunktionen an
