@@ -103,3 +103,4 @@ summary_table <- function(X_train, cfg, theta_hat, LL_true_avg, LL_joint_avg,
   out
 }
 
+
