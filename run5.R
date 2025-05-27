@@ -59,4 +59,13 @@ run_pipeline <- function(N_local = N) {
   source("dump_run5_code.R")
 }
 
+run_joint_pipeline <- function(N_local = N) {
+  run_pipeline(N_local)
+  joint_res <- fit_joint_param(X_pi_train, X_pi_test, config)
+  eval_df$ll_joint <- joint_res$ll_delta_df_test$ll_joint
+  eval_df$delta_ll_joint <- joint_res$ll_delta_df_test$delta_joint
+  print(eval_df)
+  invisible(eval_df)
+}
+
 run_pipeline(N)

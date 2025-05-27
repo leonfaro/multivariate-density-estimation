@@ -203,6 +203,15 @@ run_pipeline <- function(N_local = N) {
   invisible(tbl)
 }
 
+run_joint_pipeline <- function(N_local = N) {
+  Sys.setenv(N_total = N_local)
+  data <- generate_data(N_total = N_local, cfg = config)
+  joint_res <- fit_joint_param(data$train$sample$X_pi,
+                               data$test$sample$X_pi, config)
+  print(joint_res$ll_delta_df_test)
+  invisible(joint_res$ll_delta_df_test)
+}
+
 if (sys.nframe() == 0) {
   run_pipeline(N)
 }
