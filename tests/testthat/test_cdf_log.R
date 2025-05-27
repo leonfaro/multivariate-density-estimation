@@ -1,7 +1,7 @@
 library(testthat)
 config <- list(
   list(distr = "norm", parm = NULL),
-  list(distr = "exp", parm = function(d) list(rate = softplus(d$X1)))
+  list(distr = "exp", parm = function(d) list(rate = d$X1))
 )
 source("../../00_setup.R", chdir = TRUE, local = TRUE)
 

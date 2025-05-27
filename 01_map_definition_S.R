@@ -11,6 +11,7 @@ get_pars <- function(k, x_prev, cfg) {
     x_df <- as.data.frame(x_prev)
   }
   pars <- ck$parm(x_df)
+  pars <- apply_links(pars, ck$distr)
   safe_pars(pars, ck$distr)
 }
 
