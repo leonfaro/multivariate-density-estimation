@@ -7,10 +7,10 @@ if (file.exists('../../run5.R')) {
 }
 
 test_that('delta columns bounded by 1', {
-  expect_true(all(is.finite(eval_tab$delta_ll_param)))
+  expect_true(all(is.finite(eval_tab$delta_ll_joint)))
   expect_true(all(is.finite(eval_tab$delta_ll_trtf)))
   expect_true(all(is.finite(eval_tab$delta_ll_kernel)))
-  expect_true(all(abs(eval_tab$delta_ll_param) <= 1))
+  expect_true(all(abs(eval_tab$delta_ll_joint) <= 1))
   expect_true(all(abs(eval_tab$delta_ll_trtf) <= 1))
   expect_true(all(abs(eval_tab$delta_ll_kernel) <= 2))
 })
