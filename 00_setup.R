@@ -10,43 +10,7 @@ softplus <- function(x) {
   ifelse(x > 20, x, log1p(exp(x)))
 }
 
-EPS <- 1e-10
-
-safe_cdf <- function(val, eps = EPS) {
-  res <- pmax(eps, pmin(1 - eps, val))
-  stopifnot(all(is.finite(res)))
-  res
-}
-
-safe_logcdf <- function(val, eps = EPS) {
-  lo <- log(eps)
-  hi <- log1p(-eps)
-  res <- pmax(lo, pmin(hi, val))
-  stopifnot(all(is.finite(res)))
-  res
-}
-
 safe_pars <- function(pars, dname) {
-  if (dname == "norm" && !is.null(pars$sd)) stopifnot(all(pars$sd > 0))
-  if (dname == "exp"  && !is.null(pars$rate)) stopifnot(all(pars$rate > 0))
-  if (dname == "gamma") {
-    if (!is.null(pars$shape)) stopifnot(all(pars$shape > 0))
-    if (!is.null(pars$rate))  stopifnot(all(pars$rate  > 0))
-  }
-  if (dname == "weibull") {
-    if (!is.null(pars$shape)) stopifnot(all(pars$shape > 0))
-    if (!is.null(pars$scale)) stopifnot(all(pars$scale > 0))
-  }
-  if (dname == "lnorm"  && !is.null(pars$sdlog)) stopifnot(all(pars$sdlog > 0))
-  if (dname == "pois"   && !is.null(pars$lambda)) stopifnot(all(pars$lambda >= 0))
-  if (dname %in% c("bern", "binom") && !is.null(pars$prob))
-    stopifnot(all(pars$prob > 0 & pars$prob < 1))
-  if (dname == "binom"  && !is.null(pars$size)) stopifnot(all(pars$size >= 1))
-  if (dname == "beta") {
-    if (!is.null(pars$shape1)) stopifnot(all(pars$shape1 > 0))
-    if (!is.null(pars$shape2)) stopifnot(all(pars$shape2 > 0))
-  }
-  if (dname == "logis" && !is.null(pars$scale)) stopifnot(all(pars$scale > 0))
   pars
 }
 
