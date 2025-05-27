@@ -5,23 +5,33 @@ safe_optim <- function(par, fn, method = "BFGS", ...) {
   res
 }
 
+softplus_inv <- function(y) {
+  ifelse(y > 20, y, log(exp(y) - 1))
+}
+
 parse_param_spec <- function(cfg, registry = dist_registry) {
   out <- list()
   param_names <- character()
   num_params <- integer(length(cfg))
-  for (k in seq_along(cfg)) {
-    fam <- registry[[cfg[[k]]$distr]]
-    p <- if (k == 1) 0 else k - 1
+  dims <- vapply(cfg, function(c) as.integer(registry[[c$distr]]$dim), integer(1))
+  cum_dims <- cumsum(dims)
+  for (j in seq_along(cfg)) {
+    fam <- registry[[cfg[[j]]$distr]]
+    p <- if (j == 1) 0 else cum_dims[j - 1]
     n_par <- length(fam$param_names)
-    num_params[k] <- n_par * (p + 1)
+    num_params[j] <- n_par * (p + 1)
     for (nm in fam$param_names) {
       labels <- c("intercept", if (p > 0) paste0("X", seq_len(p), "_slope"))
+      dim_idx <- seq_len(dims[j]) + if (j == 1) 0 else cum_dims[j - 1]
       param_names <- c(param_names,
-                       paste0("dim", k, "_", nm, "_", labels))
+                       paste0("dim", rep(dim_idx, each = length(labels)), "_",
+                              nm, "_", rep(labels, times = dims[j])))
     }
   }
-  param_names_global <<- param_names
   out$num_params <- num_params
+  out$param_names <- param_names
+  out$dims <- dims
+  out$cum_dims <- cum_dims
   out
 }
 
@@ -57,31 +67,44 @@ make_generalized_nll <- function(family_name, X_prev, x_vec,
 }
 
 fit_joint_param <- function(X_train, X_test, cfg, registry = dist_registry) {
-  K <- ncol(X_train)
-  param_est <- vector("list", K)
+  dims <- vapply(cfg, function(c) as.integer(registry[[c$distr]]$dim), integer(1))
+  cum_dims <- cumsum(dims)
+  K <- sum(dims)
+  param_est <- vector("list", length(cfg))
   true_ll_mat <- matrix(0, nrow = nrow(X_test), ncol = K)
-  joint_ll_mat <- true_ll_mat
-  for (k in seq_len(K)) {
-    x_tr <- X_train[, k]
-    x_prev_tr <- if (k > 1) X_train[, 1:(k - 1), drop = FALSE] else NULL
-    nll <- make_generalized_nll(cfg[[k]]$distr, x_prev_tr, x_tr, registry)
-    fam <- registry[[cfg[[k]]$distr]]
-    p <- if (k == 1) 0 else k - 1
-    init <- rep(0, length(fam$param_names) * (p + 1))
-    param_est[[k]] <- safe_optim(init, nll)$par
+  joint_ll_mat <- matrix(0, nrow = nrow(X_test), ncol = K)
 
-    x_te <- X_test[, k]
-    x_prev_te <- if (k > 1) X_test[, 1:(k - 1), drop = FALSE] else NULL
-    fam <- registry[[cfg[[k]]$distr]]
-    pars <- compute_distribution_parameters(param_est[[k]], x_prev_te, fam,
-                                            length(x_te))
-    joint_ll_mat[, k] <- do.call(fam$logpdf, c(list(x_te), pars))
-    true_ll_mat[, k] <- pdf_k(k, x_te, if (k > 1) x_prev_te else numeric(0),
-                              cfg, log = TRUE)
+  for (j in seq_along(cfg)) {
+    start_idx <- if (j == 1) 1 else cum_dims[j - 1] + 1
+    end_idx <- cum_dims[j]
+    x_tr <- X_train[, start_idx:end_idx, drop = FALSE]
+    x_prev_tr <- if (start_idx > 1) X_train[, 1:(start_idx - 1), drop = FALSE] else NULL
+    nll <- make_generalized_nll(cfg[[j]]$distr, x_prev_tr, x_tr, registry)
+    fam <- registry[[cfg[[j]]$distr]]
+    p <- if (j == 1) 0 else cum_dims[j - 1]
+    init <- numeric(length(fam$param_names) * (p + 1))
+    for (m in seq_along(fam$param_names)) {
+      if (fam$link_vector[m] == "softplus")
+        init[(m - 1) * (p + 1) + 1] <- softplus_inv(1)
+    }
+    param_est[[j]] <- safe_optim(init, nll)$par
+
+    x_te <- X_test[, start_idx:end_idx, drop = FALSE]
+    x_prev_te <- if (start_idx > 1) X_test[, 1:(start_idx - 1), drop = FALSE] else NULL
+    pars <- compute_distribution_parameters(param_est[[j]], x_prev_te, fam,
+                                            nrow(x_te))
+    joint_block <- do.call(fam$logpdf, c(list(x_te), pars))
+    joint_ll_mat[, start_idx:end_idx] <- joint_block
+    for (kk in seq_len(dims[j])) {
+      k_global <- start_idx + kk - 1
+      true_ll_mat[, k_global] <- pdf_k(k_global, x_te[, kk],
+                                       if (start_idx > 1) x_prev_te else numeric(0),
+                                       cfg, log = TRUE)
+    }
   }
   ll_df <- data.frame(
     dim = seq_len(K),
-    distr = sapply(cfg, `[[`, "distr"),
+    distr = rep(sapply(cfg, `[[`, "distr"), times = dims),
     ll_true = colMeans(true_ll_mat),
     ll_joint = colMeans(joint_ll_mat)
   )
@@ -98,10 +121,12 @@ fit_joint_param <- function(X_train, X_test, cfg, registry = dist_registry) {
 summary_table <- function(X_train, cfg, theta_hat, LL_true_avg, LL_joint_avg,
                           registry = dist_registry) {
   thetas <- if (!is.null(theta_hat$param_est)) theta_hat$param_est else theta_hat
-  K <- length(thetas)
+  dims <- vapply(cfg, function(c) as.integer(registry[[c$distr]]$dim), integer(1))
+  cum_dims <- cumsum(dims)
+  K <- sum(dims)
   out <- data.frame(
     dim = seq_len(K),
-    distr = sapply(cfg, `[[`, "distr"),
+    distr = rep(sapply(cfg, `[[`, "distr"), times = dims),
     ll_true_avg = LL_true_avg,
     ll_joint_avg = LL_joint_avg,
     delta_joint = LL_true_avg - LL_joint_avg,
@@ -111,20 +136,22 @@ summary_table <- function(X_train, cfg, theta_hat, LL_true_avg, LL_joint_avg,
   p2 <- character(K)
   m1 <- numeric(K)
   m2 <- character(K)
-  for (k in seq_len(K)) {
-    X_prev <- if (k > 1) X_train[, 1:(k - 1), drop = FALSE] else NULL
-    fam <- registry[[out$distr[k]]]
-    pars <- compute_distribution_parameters(thetas[[k]], X_prev, fam,
-                                            nrow(X_train))
-    p1[k] <- mean(pars[[1]])
-    p2[k] <- if (length(pars) >= 2)
-      sprintf("%.6f", mean(pars[[2]])) else "none"
-
-    X0 <- if (k > 1) matrix(0, nrow = 1, ncol = k - 1) else NULL
-    pars0 <- compute_distribution_parameters(thetas[[k]], X0, fam, 1)
-    m1[k] <- pars0[[1]][1]
-    m2[k] <- if (length(pars0) >= 2)
-      sprintf("%.6f", pars0[[2]][1]) else "none"
+  for (j in seq_along(cfg)) {
+    start_idx <- if (j == 1) 1 else cum_dims[j - 1] + 1
+    fam <- registry[[cfg[[j]]$distr]]
+    X_prev <- if (start_idx > 1) X_train[, 1:(start_idx - 1), drop = FALSE] else NULL
+    pars <- compute_distribution_parameters(thetas[[j]], X_prev, fam, nrow(X_train))
+    X0 <- if (start_idx > 1) matrix(0, nrow = 1, ncol = start_idx - 1) else NULL
+    pars0 <- compute_distribution_parameters(thetas[[j]], X0, fam, 1)
+    for (kk in seq_len(dims[j])) {
+      k_gl <- start_idx + kk - 1
+      p1[k_gl] <- mean(pars[[1]])
+      p2[k_gl] <- if (length(pars) >= 2)
+        sprintf("%.6f", mean(pars[[2]])) else "none"
+      m1[k_gl] <- pars0[[1]][1]
+      m2[k_gl] <- if (length(pars0) >= 2)
+        sprintf("%.6f", pars0[[2]][1]) else "none"
+    }
   }
   out$true_param1 <- round(p1, 6)
   out$mean_param2 <- p2
