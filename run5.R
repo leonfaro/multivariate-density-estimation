@@ -77,6 +77,18 @@ run_pipeline <- function(N_local = N, cfg = config, perm = NULL) {
   invisible(eval_tab)
 }
 
+
+run_joint_pipeline <- function(N_local = N) {
+  run_pipeline(N_local)
+  joint_res <- fit_joint_param(X_pi_train, X_pi_test, config)
+  eval_df$ll_joint <- joint_res$ll_delta_df_test$ll_joint
+  eval_df$delta_ll_joint <- joint_res$ll_delta_df_test$delta_joint
+  print(eval_df)
+  invisible(eval_df)
+}
+
+
 eval_tab_nat  <- run_pipeline(N)
 eval_tab_perm <- run_pipeline(N, perm = c(2, 3, 4, 1))
 eval_tab <- eval_tab_nat
+
