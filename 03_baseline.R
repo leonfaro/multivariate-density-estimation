@@ -142,64 +142,59 @@ slice_pars <- function(k, theta, X_prev, cfg) {
   )
 }
 
-joint_loglik <- function(theta, X, config, registry) {
-  theta_named <- theta2list(theta)
-  n <- nrow(X)
-  K <- ncol(X)
-  ll <- 0
-  for (i in seq_len(n)) {
-    for (k in seq_len(K)) {
-      X_prev <- if (k > 1) X[i, 1:(k - 1), drop = FALSE] else matrix(0, nrow = 1, ncol = 0)
-      pars <- slice_pars(k, theta_named, X_prev, config)
-      lp <- do.call(registry[[config[[k]]$distr]]$logpdf, c(list(x = X[i, k]), pars))
-      if (!is.finite(lp))
-        return(Inf)
-      ll <- ll + lp
-    }
+transform_theta <- function(theta, spec) {
+  pars <- vector("list", length(spec$param_names))
+  for (j in seq_along(spec$param_names)) {
+    pars[[j]] <- link_fns[[spec$link_vector[j]]](theta[j])
   }
-  -ll
+  names(pars) <- spec$param_names
+  pars
+}
+
+nll_distribution <- function(theta, x, spec) {
+  pars <- transform_theta(theta, spec)
+  -sum(do.call(spec$logpdf, c(list(x = x), pars)))
+}
+
+mle_distribution <- function(x, dname, registry) {
+  spec <- registry[[dname]]
+  start <- rep(0, length(spec$param_names))
+  res <- safe_optim(start, nll_distribution, spec = spec, x = x)
+  list(theta_hat = res$par, pars_hat = transform_theta(res$par, spec))
 }
 
 fit_joint_param <- function(X_train, X_test, config, registry = dist_registry) {
-  parse_param_spec(config, registry)
-  init <- rep(0, length(param_names_global))
-  nll <- function(th) joint_loglik(th, X_train, config, registry)
-  opt <- safe_optim(init, nll)
-  theta_hat <- opt$par
-  theta_list <- theta2list(theta_hat)
-
-  true_ll_mat_test <- sapply(seq_len(ncol(X_test)), function(k)
-    pdf_k(k, X_test[, k],
-          if (k > 1) X_test[, 1:(k - 1), drop = FALSE] else numeric(0),
-          config, log = TRUE))
-
-  joint_ll_mat_test <- matrix(NA_real_, nrow = nrow(X_test), ncol = ncol(X_test))
-  for (i in seq_len(nrow(X_test))) {
-    for (k in seq_len(ncol(X_test))) {
-      X_prev <- if (k > 1) X_test[i, 1:(k - 1), drop = FALSE] else matrix(0, nrow = 1, ncol = 0)
-      pars <- slice_pars(k, theta_list, X_prev, config)
-      joint_ll_mat_test[i, k] <- do.call(registry[[config[[k]]$distr]]$logpdf,
-                                         c(list(x = X_test[i, k]), pars))
-    }
+  K <- ncol(X_train)
+  est_list <- vector("list", K)
+  true_ll_mat_test <- matrix(NA_real_, nrow = nrow(X_test), ncol = K)
+  joint_ll_mat_test <- matrix(NA_real_, nrow = nrow(X_test), ncol = K)
+  for (k in seq_len(K)) {
+    dname <- config[[k]]$distr
+    est_list[[k]] <- mle_distribution(X_train[, k], dname, registry)
+    true_ll_mat_test[, k] <- pdf_k(k, X_test[, k],
+      if (k > 1) X_test[, 1:(k - 1), drop = FALSE] else numeric(0),
+      config, log = TRUE)
+    joint_ll_mat_test[, k] <- do.call(registry[[dname]]$logpdf,
+      c(list(x = X_test[, k]), est_list[[k]]$pars_hat))
   }
   ll_delta_df_test <- data.frame(
-    dim = seq_len(ncol(X_test)),
+    dim = seq_len(K),
     distr = sapply(config, `[[`, "distr"),
     ll_true = colMeans(true_ll_mat_test),
     ll_joint = colMeans(joint_ll_mat_test)
   )
   ll_delta_df_test$delta_joint <- ll_delta_df_test$ll_true - ll_delta_df_test$ll_joint
   ll_delta_df_test[, 3:5] <- round(ll_delta_df_test[, 3:5], 6)
-  list(theta_hat = theta_hat,
+  list(theta_hat = lapply(est_list, `[[`, "theta_hat"),
+       pars_hat = lapply(est_list, `[[`, "pars_hat"),
        ll_delta_df_test = ll_delta_df_test,
        true_ll_mat_test = true_ll_mat_test,
        joint_ll_mat_test = joint_ll_mat_test)
 }
 
-summary_table <- function(X_train, cfg, theta_hat,
+summary_table <- function(X_train, cfg, fit_res,
                           LL_true_avg, LL_joint_avg,
                           registry = dist_registry) {
-  theta_list <- theta2list(theta_hat)
   K <- length(cfg)
   out <- data.frame(
     dim = seq_len(K),
@@ -215,18 +210,22 @@ summary_table <- function(X_train, cfg, theta_hat,
   mle_p2 <- character(K)
   for (k in seq_len(K)) {
     X_prev <- if (k > 1) X_train[, 1:(k - 1), drop = FALSE] else matrix(0, nrow = nrow(X_train), ncol = 0)
-    pars <- slice_pars(k, theta_list, X_prev, cfg)
-    mean_p1[k] <- mean(pars[[1]])
-    if (length(pars) >= 2) {
-      mean_p2[k] <- sprintf("%.6f", mean(pars[[2]]))
-    } else {
+    true_pars <- get_pars(k, X_prev, cfg)
+    if (length(true_pars) == 0) {
+      mean_p1[k] <- NA_real_
       mean_p2[k] <- "none"
+    } else {
+      mean_p1[k] <- mean(true_pars[[1]])
+      if (length(true_pars) >= 2) {
+        mean_p2[k] <- sprintf("%.6f", mean(true_pars[[2]]))
+      } else {
+        mean_p2[k] <- "none"
+      }
     }
-    X0 <- if (k > 1) matrix(0, nrow = 1, ncol = k - 1) else matrix(0, nrow = 1, ncol = 0)
-    pars_ref <- slice_pars(k, theta_list, X0, cfg)
-    mle_p1[k] <- pars_ref[[1]][1]
-    if (length(pars_ref) >= 2) {
-      mle_p2[k] <- sprintf("%.6f", pars_ref[[2]][1])
+    est_pars <- fit_res$pars_hat[[k]]
+    mle_p1[k] <- est_pars[[1]]
+    if (length(est_pars) >= 2) {
+      mle_p2[k] <- sprintf("%.6f", est_pars[[2]])
     } else {
       mle_p2[k] <- "none"
     }
