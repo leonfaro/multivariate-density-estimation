@@ -35,13 +35,11 @@ cdf_k <- function(k, xk, x_prev, cfg, log = TRUE) {
               pars,
               list(log.p = TRUE))
     cdfv <- do.call(dist_fun("p", dname), args)
-    safe_logcdf(cdfv)
   } else {
     args <- c(if (dname == "sn") list(x = xk) else list(q = xk),
               pars,
               list(log.p = FALSE))
     cdfv <- do.call(dist_fun("p", dname), args)
-    cdfv <- safe_cdf(cdfv)
     if (log) log(cdfv) else cdfv
   }
 }
