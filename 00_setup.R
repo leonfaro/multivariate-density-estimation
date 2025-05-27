@@ -47,8 +47,7 @@ q_supports_logp <- c(
   t       = TRUE,
   laplace = FALSE,
   beta    = TRUE,
-  logis   = TRUE,
-  sn      = TRUE
+  logis   = TRUE
 )
 
 p_supports_logp <- q_supports_logp
