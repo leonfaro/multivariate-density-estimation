@@ -98,8 +98,8 @@ dist_registry <- make_dist_registry()
 
 # zugelassene Verteilungen laut Spezifikation
 allowed_dists_full <- c(
-  "norm", "lnorm", "t", "skewt", "ged", "nig", "vargamma", "astable",
-  "exp", "weibull", "laplace", "gpd", "burrxii", "hyperbolic",
+  "norm", "lnorm", "t", "skewt",
+  "exp", "weibull", "laplace", "gpd", "burrxii",
   "invgauss", "ncchisq", "gamma", "beta"
 )
 
@@ -118,11 +118,22 @@ apply_links <- function(pars, dname) {
 
 # prüft erlaubte Verteilungen und Typen
 validate_config <- function(cfg) {
-  for (ck in cfg) {
+  for (k in seq_along(cfg)) {
+    ck <- cfg[[k]]
     stopifnot(is.list(ck))
     stopifnot(ck$distr %in% allowed_dists_full)
-    if (!is.null(ck$parm))
+    if (!is.null(ck$parm)) {
       stopifnot(is.function(ck$parm))
+      dummy <- if (k > 1) {
+        setNames(as.data.frame(matrix(0, nrow = 1, ncol = k - 1)),
+                 paste0("X", seq_len(k - 1)))
+      } else {
+        data.frame()[, FALSE]
+      }
+      pars <- ck$parm(dummy)
+      pars <- apply_links(pars, ck$distr)
+      safe_pars(pars, ck$distr)
+    }
   }
   cfg
 }
