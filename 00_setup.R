@@ -12,19 +12,6 @@ softplus <- function(x) {
 
 EPS <- 1e-10
 
-safe_cdf <- function(val, eps = EPS) {
-  res <- pmax(eps, pmin(1 - eps, val))
-  stopifnot(all(is.finite(res)))
-  res
-}
-
-safe_logcdf <- function(val, eps = EPS) {
-  lo <- log(eps)
-  hi <- log1p(-eps)
-  res <- pmax(lo, pmin(hi, val))
-  stopifnot(all(is.finite(res)))
-  res
-}
 
 safe_pars <- function(pars, dname) {
   if (dname == "norm" && !is.null(pars$sd)) stopifnot(all(pars$sd > 0))
