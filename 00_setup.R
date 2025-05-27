@@ -10,6 +10,7 @@ softplus <- function(x) {
   ifelse(x > 20, x, log1p(exp(x)))
 }
 
+
 safe_pars <- function(pars, dname) {
   pars
 }
@@ -24,8 +25,7 @@ q_supports_logp <- c(
   t       = TRUE,
   laplace = FALSE,
   beta    = TRUE,
-  logis   = TRUE,
-  sn      = TRUE
+  logis   = TRUE
 )
 
 p_supports_logp <- q_supports_logp

@@ -31,12 +31,12 @@ cdf_k <- function(k, xk, x_prev, cfg, log = TRUE) {
   if (is.na(support))
     stop("log.p capability not specified for distribution ", dname)
   if (log && support) {
-    args <- c(if (dname == "sn") list(x = xk) else list(q = xk),
+    args <- c(list(q = xk),
               pars,
               list(log.p = TRUE))
     cdfv <- do.call(dist_fun("p", dname), args)
   } else {
-    args <- c(if (dname == "sn") list(x = xk) else list(q = xk),
+    args <- c(list(q = xk),
               pars,
               list(log.p = FALSE))
     cdfv <- do.call(dist_fun("p", dname), args)
@@ -54,18 +54,6 @@ qtf_k <- function(k, u, x_prev, cfg, log.p = FALSE) {
     u <- exp(u)
     log.p <- FALSE
   }
-  if (dname == "sn") {
-    res <- tryCatch(
-      do.call(dist_fun("q", dname),
-              list(p = u, dp = c(unlist(pars), tau = 0), solver = "RFB",
-                   log.p = log.p)),
-      error = function(e)
-        do.call(dist_fun("q", dname),
-                list(p = u, dp = c(unlist(pars), tau = 0), solver = "NR",
-                     log.p = log.p))
-    )
-  } else {
-    res <- do.call(dist_fun("q", dname), c(list(p = u, log.p = log.p), pars))
-  }
+  res <- do.call(dist_fun("q", dname), c(list(p = u, log.p = log.p), pars))
   safe_support(res, dname, pars)
 }
