@@ -15,4 +15,8 @@ for f in *.R; do
     fail=1
   fi
 done
-exit $fail
+if [ $fail -ne 0 ]; then
+  exit $fail
+fi
+Rscript extra_lint.R || exit 1
+exit 0
