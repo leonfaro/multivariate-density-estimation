@@ -49,20 +49,20 @@ summary_stats <- data.frame(
 )
 print(summary_stats)
 
-param_res <- fit_param(X_pi_train, X_pi_test, config)
-param_est <- param_res$param_est
+param_res <- fit_joint_param(X_pi_train, X_pi_test, config)
+theta_hat <- param_res$theta_hat
 tbl <- summary_table(
   X_pi_train,
   config,
-  param_est,
+  theta_hat,
   param_res$ll_delta_df_test$ll_true,
-  param_res$ll_delta_df_test$ll_param
+  param_res$ll_delta_df_test$ll_joint
 )
 
 tbl_out <- tbl[
 
   , c(
-    "dim", "distr", "ll_true_avg", "ll_base_avg", "delta_base",
+    "dim", "distr", "ll_true_avg", "ll_joint_avg", "delta_joint",
     "true_param1", "mean_param2", "mle_base1", "mle_base2"
   )
 ]
@@ -191,13 +191,13 @@ run_all_diagnostics <- function(X_train, X_test, param_ests, config_list,
 run_pipeline <- function(N_local = N) {
   Sys.setenv(N_total = N_local)
   data <- generate_data(N_total = N_local, cfg = config)
-  param_res <- fit_param(data$train$sample$X_pi, data$test$sample$X_pi, config)
+  param_res <- fit_joint_param(data$train$sample$X_pi, data$test$sample$X_pi, config)
   tbl <- summary_table(
     data$train$sample$X_pi,
     config,
-    param_res$param_est,
+    param_res$theta_hat,
     param_res$ll_delta_df_test$ll_true,
-    param_res$ll_delta_df_test$ll_param
+    param_res$ll_delta_df_test$ll_joint
   )
   print(tbl)
   invisible(tbl)

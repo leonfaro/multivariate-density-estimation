@@ -24,7 +24,7 @@ parse_param_spec <- function(config, registry) {
     )
     names_out <- c(names_out, fam_names)
   }
-  param_names_global <<- names_out
+  assign("param_names_global", names_out, envir = .GlobalEnv)
   stopifnot(all(unique(param_names_global) == param_names_global))
   invisible(param_names_global)
 }
