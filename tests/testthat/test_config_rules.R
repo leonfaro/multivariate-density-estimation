@@ -52,8 +52,8 @@ check_cfg <- function(cfg, root) {
   sys.source(file.path(root, "00_setup.R"), env, chdir = TRUE)
 
   allowed_dists <- c(
-    "norm", "lnorm", "t", "skewt", "ged", "nig", "vargamma", "astable",
-    "exp", "weibull", "laplace", "gpd", "burrxii", "hyperbolic",
+    "norm", "lnorm", "t", "skewt",
+    "exp", "weibull", "laplace", "gpd", "burrxii",
     "invgauss", "ncchisq", "gamma", "beta"
   )
   pos_pars <- list(
