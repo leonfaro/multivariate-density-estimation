@@ -1,5 +1,5 @@
 library(testthat)
-source("../../03_joint_mle.R", chdir = TRUE)
+source("../../03_baseline.R", chdir = TRUE)
 
 config <- list(
   list(distr = "norm", parm = NULL),
