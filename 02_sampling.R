@@ -1,3 +1,5 @@
+# Input: K, config, functions pdf_k/qtf_k
+# Output: eta_sample(), S_inv(), pi_sample(), sample_pi_df(), generate_data(), write_data()
 # Sampling utilities
 
 logdet_J <- function(logd) rowSums(logd)
