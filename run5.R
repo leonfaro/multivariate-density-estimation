@@ -50,6 +50,9 @@ run_pipeline <- function(N_local = N, cfg = config, perm = NULL) {
   kernel_mismatch <<- sum(loglik_kernel) - target_ll
 
   eval_tab <- read.csv("results/evaluation_summary.csv")
+  eval_tab <- eval_tab[, !(names(eval_tab) %in%
+                             c("true_param1", "mean_param2",
+                               "mle_base1", "mle_base2"))]
   num_cols <- names(eval_tab)[sapply(eval_tab, is.numeric)]
   sum_row <- eval_tab[1, , drop = FALSE]
   for (col in names(sum_row)) {
