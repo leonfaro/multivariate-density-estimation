@@ -10,47 +10,41 @@ softplus_inv <- function(y) {
 }
 
 parse_param_spec <- function(cfg, registry = dist_registry) {
-  out <- list()
-  param_names <- character()
-  num_params <- integer(length(cfg))
   dims <- vapply(cfg, function(c) as.integer(registry[[c$distr]]$dim), integer(1))
   cum_dims <- cumsum(dims)
+  param_names <- character()
+  num_params <- integer(length(cfg))
+
   for (j in seq_along(cfg)) {
     fam <- registry[[cfg[[j]]$distr]]
     p <- if (j == 1) 0 else cum_dims[j - 1]
-    n_par <- length(fam$param_names)
-    num_params[j] <- n_par * (p + 1)
-    for (nm in fam$param_names) {
-      labels <- c("intercept", if (p > 0) paste0("X", seq_len(p), "_slope"))
-      dim_idx <- seq_len(dims[j]) + if (j == 1) 0 else cum_dims[j - 1]
-      param_names <- c(param_names,
-                       paste0("dim", rep(dim_idx, each = length(labels)), "_",
-                              nm, "_", rep(labels, times = dims[j])))
-    }
+    labels <- c("intercept", if (p > 0) paste0("X", seq_len(p), "_slope"))
+    num_params[j] <- length(fam$param_names) * (p + 1)
+    dim_idx <- seq_len(dims[j]) + if (j == 1) 0 else cum_dims[j - 1]
+    grid <- expand.grid(dim = dim_idx, nm = fam$param_names, lab = labels,
+                        stringsAsFactors = FALSE)
+    param_names <- c(param_names,
+                     paste0("dim", grid$dim, "_", grid$nm, "_", grid$lab))
   }
-  out$num_params <- num_params
-  out$param_names <- param_names
-  out$dims <- dims
-  out$cum_dims <- cum_dims
-  out
+
+  list(num_params = num_params, param_names = param_names,
+       dims = dims, cum_dims = cum_dims)
 }
 
 compute_distribution_parameters <- function(theta, X_prev, family_spec, N_obs) {
   p <- if (is.null(X_prev)) 0 else ncol(X_prev)
-  X_mat <- if (p == 0) matrix(0, nrow = N_obs, ncol = 0) else as.matrix(X_prev)
-  out <- vector("list", length(family_spec$param_names))
+  X_mat <- if (p > 0) as.matrix(X_prev) else matrix(0, nrow = N_obs, ncol = 0)
+  X_design <- cbind(1, X_mat)
+  res <- vector("list", length(family_spec$param_names))
   idx <- 1
-  for (j in seq_along(out)) {
-    betas <- theta[idx:(idx + p)]
-    eta <- betas[1]
-    if (p > 0)
-      eta <- eta + X_mat %*% betas[-1]
-    val <- link_fns[[family_spec$link_vector[j]]](eta)
-    out[[j]] <- as.vector(val)
+  for (j in seq_along(res)) {
+    beta <- theta[idx:(idx + p)]
+    eta <- as.vector(X_design %*% beta)
+    res[[j]] <- as.vector(link_fns[[family_spec$link_vector[j]]](eta))
     idx <- idx + p + 1
   }
-  names(out) <- family_spec$param_names
-  out
+  names(res) <- family_spec$param_names
+  res
 }
 
 make_generalized_nll <- function(family_name, X_prev, x_vec,
@@ -82,11 +76,10 @@ fit_joint_param <- function(X_train, X_test, cfg, registry = dist_registry) {
     nll <- make_generalized_nll(cfg[[j]]$distr, x_prev_tr, x_tr, registry)
     fam <- registry[[cfg[[j]]$distr]]
     p <- if (j == 1) 0 else cum_dims[j - 1]
-    init <- numeric(length(fam$param_names) * (p + 1))
-    for (m in seq_along(fam$param_names)) {
-      if (fam$link_vector[m] == "softplus")
-        init[(m - 1) * (p + 1) + 1] <- softplus_inv(1)
-    }
+    init <- rep(0, length(fam$param_names) * (p + 1))
+    soft_idx <- which(fam$link_vector == "softplus")
+    if (length(soft_idx) > 0)
+      init[(soft_idx - 1) * (p + 1) + 1] <- softplus_inv(1)
     param_est[[j]] <- safe_optim(init, nll)$par
 
     x_te <- X_test[, start_idx:end_idx, drop = FALSE]
@@ -143,15 +136,13 @@ summary_table <- function(X_train, cfg, theta_hat, LL_true_avg, LL_joint_avg,
     pars <- compute_distribution_parameters(thetas[[j]], X_prev, fam, nrow(X_train))
     X0 <- if (start_idx > 1) matrix(0, nrow = 1, ncol = start_idx - 1) else NULL
     pars0 <- compute_distribution_parameters(thetas[[j]], X0, fam, 1)
-    for (kk in seq_len(dims[j])) {
-      k_gl <- start_idx + kk - 1
-      p1[k_gl] <- mean(pars[[1]])
-      p2[k_gl] <- if (length(pars) >= 2)
-        sprintf("%.6f", mean(pars[[2]])) else "none"
-      m1[k_gl] <- pars0[[1]][1]
-      m2[k_gl] <- if (length(pars0) >= 2)
-        sprintf("%.6f", pars0[[2]][1]) else "none"
-    }
+    idx <- start_idx:(start_idx + dims[j] - 1)
+    p1[idx] <- mean(pars[[1]])
+    p2[idx] <- if (length(pars) >= 2)
+      sprintf("%.6f", mean(pars[[2]])) else "none"
+    m1[idx] <- pars0[[1]][1]
+    m2[idx] <- if (length(pars0) >= 2)
+      sprintf("%.6f", pars0[[2]][1]) else "none"
   }
   out$true_param1 <- round(p1, 6)
   out$mean_param2 <- p2
