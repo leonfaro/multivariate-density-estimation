@@ -15,7 +15,7 @@ source("03_baseline.R")
 
 permute_data <- function(mat, perm) mat[, perm, drop = FALSE]
 
-run_pipeline <- function(N_local = N, cfg = config, perm = NULL) {
+run_single <- function(N_local, cfg, perm = NULL) {
   Sys.setenv(N_total = N_local)
   set.seed(SEED)
   data <- generate_data(N_total = N_local, cfg = cfg)
@@ -73,12 +73,18 @@ run_pipeline <- function(N_local = N, cfg = config, perm = NULL) {
   if (file.exists(new_file)) file.remove(new_file)
   file.rename("results/evaluation_summary.csv", new_file)
   print(eval_tab)
+  eval_tab
+}
+
+run_pipeline <- function(N_local = N, cfg = config, perm = NULL) {
   if (is.null(perm)) {
-    eval_tab_nat <<- eval_tab
+    eval_tab_nat <<- run_single(N_local, cfg, NULL)
+    eval_tab <<- eval_tab_nat
   } else {
-    eval_tab_perm <<- eval_tab
+    eval_tab_nat <<- run_single(N_local, cfg, NULL)
+    eval_tab_perm <<- run_single(N_local, cfg, perm)
+    eval_tab <<- eval_tab_perm
   }
-  eval_tab <<- eval_tab
   source("dump_run5_code.R")
   invisible(eval_tab)
 }
@@ -94,6 +100,5 @@ run_joint_pipeline <- function(N_local = N) {
 }
 
 
-eval_tab_nat  <- run_pipeline(N)
-eval_tab_perm <- run_pipeline(N, perm = c(1, 3, 2))
+run_pipeline(N, perm = c(1, 3, 2))
 eval_tab <- eval_tab_nat
