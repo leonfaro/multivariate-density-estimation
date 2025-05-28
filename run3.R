@@ -61,8 +61,7 @@ tbl <- summary_table(
 tbl_out <- tbl[
 
   , c(
-    "dim", "distr", "ll_true_avg", "ll_joint_avg", "delta_joint",
-    "true_param1", "mean_param2", "mle_base1", "mle_base2"
+    "dim", "distr", "ll_true_avg", "ll_joint_avg", "delta_joint"
   )
 ]
 num_cols <- names(tbl_out)[sapply(tbl_out, is.numeric)]
