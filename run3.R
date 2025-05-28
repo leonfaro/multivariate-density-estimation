@@ -54,14 +54,13 @@ tbl <- summary_table(
   X_pi_train,
   config,
   param_res,
-  param_res$ll_delta_df_test$ll_true,
-  param_res$ll_delta_df_test$ll_joint
+  param_res$ll_df_test$ll_true
 )
 
 tbl_out <- tbl[
 
   , c(
-    "dim", "distr", "ll_true_avg", "ll_joint_avg", "delta_joint"
+    "dim", "distr", "ll_true_avg", "mean_param1", "mean_param2"
   )
 ]
 num_cols <- names(tbl_out)[sapply(tbl_out, is.numeric)]
@@ -194,8 +193,7 @@ run_pipeline <- function(N_local = N) {
     data$train$sample$X_pi,
     config,
     param_res,
-    param_res$ll_delta_df_test$ll_true,
-    param_res$ll_delta_df_test$ll_joint
+    param_res$ll_df_test$ll_true
   )
   print(tbl)
   invisible(tbl)
@@ -206,8 +204,8 @@ run_joint_pipeline <- function(N_local = N) {
   data <- generate_data(N_total = N_local, cfg = config)
   joint_res <- fit_joint_param(data$train$sample$X_pi,
                                data$test$sample$X_pi, config)
-  print(joint_res$ll_delta_df_test)
-  invisible(joint_res$ll_delta_df_test)
+  print(joint_res$ll_df_test)
+  invisible(joint_res$ll_df_test)
 }
 
 if (sys.nframe() == 0) {
