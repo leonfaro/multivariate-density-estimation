@@ -95,6 +95,6 @@ run_joint_pipeline <- function(N_local = N) {
 
 
 eval_tab_nat  <- run_pipeline(N)
-eval_tab_perm <- run_pipeline(N, perm = c(2, 3, 4, 1))
+eval_tab_perm <- run_pipeline(N, perm = c(2, 3, 1))
 eval_tab <- eval_tab_nat
 
