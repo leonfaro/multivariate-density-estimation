@@ -80,7 +80,7 @@ fit_joint_param <- function(X_train, X_test, cfg, registry = dist_registry) {
   cum_dims <- cumsum(dims)
   K <- sum(dims)
   param_est <- vector("list", length(cfg))
-  true_ll_mat <- matrix(0, nrow = nrow(X_test), ncol = K)
+  true_ll_mat <- true_cond_ll(X_test, cfg)
   joint_ll_mat <- matrix(0, nrow = nrow(X_test), ncol = K)
 
   for (j in seq_along(cfg)) {
@@ -103,12 +103,6 @@ fit_joint_param <- function(X_train, X_test, cfg, registry = dist_registry) {
                                             nrow(x_te))
     joint_block <- do.call(fam$logpdf, c(list(x_te), pars))
     joint_ll_mat[, start_idx:end_idx] <- joint_block
-    for (kk in seq_len(dims[j])) {
-      k_global <- start_idx + kk - 1
-      true_ll_mat[, k_global] <- pdf_k(k_global, x_te[, kk],
-                                       if (start_idx > 1) x_prev_te else numeric(0),
-                                       cfg, log = TRUE)
-    }
   }
   ll_df <- data.frame(
     dim = seq_len(K),
