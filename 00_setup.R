@@ -1,3 +1,6 @@
+# Input: config list[K], notation from Theory.md
+# Output: dist_registry, link_fns, parameter helpers
+# Sources: 01_map_definition_S.R, 02_sampling.R, 03_baseline.R
 SEED <- 24
 suppressPackageStartupMessages({
   library(extraDistr)
@@ -5,6 +8,8 @@ suppressPackageStartupMessages({
   library(trtf)
 })
 
+# Input: numeric x
+# Output: softplus(x)
 softplus <- function(x) {
   stopifnot(is.numeric(x))
   ifelse(x > 20, x, log1p(exp(x)))
@@ -13,6 +18,8 @@ softplus <- function(x) {
 
 link_fns <- list(identity = function(z) z, softplus = softplus)
 
+# Input: none
+# Output: list of distribution specs
 make_dist_registry <- function() {
   reg <- list(
     norm = list(
@@ -88,6 +95,8 @@ allowed_dists_full <- c(
 )
 
 # wendet die in dist_registry definierten Linkfunktionen an
+# Input: named list pars, distribution name
+# Output: transformed parameter list
 apply_links <- function(pars, dname) {
   if (dname %in% names(dist_registry)) {
     spec <- dist_registry[[dname]]
@@ -100,8 +109,12 @@ apply_links <- function(pars, dname) {
   pars
 }
 
+# Input: prefix character, distribution name
+# Output: matching pdf/cdf/quantile function
 dist_fun <- function(pref, name) get(paste0(pref, name))
 
+# Input: index k, previous values, cfg list
+# Output: parameter list for block k
 get_pars <- function(k, x_prev, cfg) {
   ck <- cfg[[k]]
   if (is.null(ck$parm)) return(list())
@@ -120,6 +133,8 @@ get_pars <- function(k, x_prev, cfg) {
 }
 
 # prüft erlaubte Verteilungen und Typen
+# Input: configuration list
+# Output: validated configuration
 validate_config <- function(cfg) {
   for (k in seq_along(cfg)) {
     ck <- cfg[[k]]
