@@ -65,8 +65,7 @@ tbl_base$delta_ll_kernel <- tbl_base$ll_true_avg - tbl_base$ll_kernel_avg
 tbl_out <- tbl_base[
   , c(
     "dim", "distr", "ll_true_avg", "ll_joint_avg", "ll_trtf_avg",
-    "ll_kernel_avg", "delta_joint", "delta_ll_trtf", "delta_ll_kernel",
-    "true_param1", "mean_param2", "mle_base1", "mle_base2"
+    "ll_kernel_avg", "delta_joint", "delta_ll_trtf", "delta_ll_kernel"
   )
 ]
 num_cols <- names(tbl_out)[sapply(tbl_out, is.numeric)]
