@@ -43,11 +43,16 @@ run_pipeline <- function(N_local = N, cfg = config, perm = NULL) {
   ks_model <- fit_kernel(as.data.frame(X_pi_train))
   KS_hat <<- predict(ks_model, newdata = as.data.frame(X_pi_test), type = "logdensity")
 
+  source("07_mctm.R")
+  mctm_res <- fit_mctm(as.data.frame(X_pi_train), as.data.frame(X_pi_test))
+  MCTM_hat <<- matrix(mctm_res$ll_test, nrow = N_test, ncol = ncol(X_pi_test))
+
   source("05_joint_evaluation.R", local = TRUE)
 
   target_ll <- sum(ll_test)
   forest_mismatch <<- sum(loglik_trtf) - target_ll
   kernel_mismatch <<- sum(loglik_kernel) - target_ll
+  mctm_mismatch <<- sum(loglik_mctm) - target_ll
 
   eval_tab <- read.csv("results/evaluation_summary.csv")
   eval_tab <- eval_tab[, !(names(eval_tab) %in%

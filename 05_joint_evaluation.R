@@ -5,12 +5,15 @@ source("04_forest_models.R")
 
 loglik_trtf <- rowMeans(LD_hat)
 loglik_kernel <- rowMeans(KS_hat)
+loglik_mctm <- rowMeans(MCTM_hat)
 
 ## Diagnose: Unterschied Forest-Loglikelihood
 delta_check <- sum(loglik_trtf) - sum(ll_test)
 message(sprintf("trtf log-likelihood mismatch = %.3f", delta_check))
 delta_check_ks <- sum(loglik_kernel) - sum(ll_test)
 message(sprintf("kernel log-likelihood mismatch = %.3f", delta_check_ks))
+delta_check_mctm <- sum(loglik_mctm) - sum(ll_test)
+message(sprintf("mctm log-likelihood mismatch = %.3f", delta_check_mctm))
 
 
 ## Plot wahr vs geschätzt für gemeinsame Logdichte
@@ -35,6 +38,13 @@ kernel_df <- data.frame(
 )
 kernel_df$delta <- kernel_df$ell_true_avg - kernel_df$loglik_kernel
 
+mctm_df <- data.frame(
+  dim           = seq_len(ncol(MCTM_hat)),
+  ell_true_avg      = colMeans(true_ll_mat_test),
+  loglik_mctm = colMeans(MCTM_hat)
+)
+mctm_df$delta <- mctm_df$ell_true_avg - mctm_df$loglik_mctm
+
 
 ## Ergebnisse zusammenführen
 eval_df <- data.frame(
@@ -44,9 +54,11 @@ eval_df <- data.frame(
   ll_joint = ll_delta_df_test$ll_joint,
   ll_trtf = forest_df$loglik_trtf,
   ll_kernel = kernel_df$loglik_kernel,
+  ll_mctm = mctm_df$loglik_mctm,
   delta_ll_joint = pmin(pmax(ll_delta_df_test$delta_joint, -1), 1),
   delta_ll_trtf = pmin(pmax(forest_df$delta, -1), 1),
-  delta_ll_kernel = pmin(pmax(kernel_df$delta, -2), 2)
+  delta_ll_kernel = pmin(pmax(kernel_df$delta, -2), 2),
+  delta_ll_mctm = pmin(pmax(mctm_df$delta, -1), 1)
 )
 write.csv(eval_df, "results/evaluation_summary.csv", row.names = FALSE)
 
@@ -60,12 +72,15 @@ tbl_base <- summary_table(
 )
 tbl_base$ll_trtf_avg <- forest_df$loglik_trtf
 tbl_base$ll_kernel_avg <- kernel_df$loglik_kernel
+tbl_base$ll_mctm_avg <- mctm_df$loglik_mctm
 tbl_base$delta_ll_trtf <- tbl_base$ll_true_avg - tbl_base$ll_trtf_avg
 tbl_base$delta_ll_kernel <- tbl_base$ll_true_avg - tbl_base$ll_kernel_avg
+tbl_base$delta_ll_mctm <- tbl_base$ll_true_avg - tbl_base$ll_mctm_avg
 tbl_out <- tbl_base[
   , c(
     "dim", "distr", "ll_true_avg", "ll_joint_avg", "ll_trtf_avg",
-    "ll_kernel_avg", "delta_joint", "delta_ll_trtf", "delta_ll_kernel",
+    "ll_kernel_avg", "ll_mctm_avg", "delta_joint", "delta_ll_trtf",
+    "delta_ll_kernel", "delta_ll_mctm",
     "true_param1", "mean_param2", "mle_base1", "mle_base2"
   )
 ]
@@ -86,11 +101,12 @@ print(tbl_out, row.names = FALSE)
 plot(ld_hat, ld_true, xlab = "estimated", ylab = "true")
 abline(a = 0, b = 1)
 info_text <- sprintf(
-  "N = %d | sum(delta_ll_joint) = %.3f | sum(delta_ll_trtf) = %.3f | sum(delta_ll_kernel) = %.3f",
+  "N = %d | sum(delta_ll_joint) = %.3f | sum(delta_ll_trtf) = %.3f | sum(delta_ll_kernel) = %.3f | sum(delta_ll_mctm) = %.3f",
   N_test,
   sum(eval_df$delta_ll_joint),
   sum(eval_df$delta_ll_trtf),
-  sum(eval_df$delta_ll_kernel)
+  sum(eval_df$delta_ll_kernel),
+  sum(eval_df$delta_ll_mctm)
 )
 mtext(info_text, side = 1, line = 3)
 
