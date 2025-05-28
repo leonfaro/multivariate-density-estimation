@@ -81,7 +81,6 @@ fit_joint_param <- function(X_train, X_test, cfg, registry = dist_registry) {
   K <- sum(dims)
   param_est <- vector("list", length(cfg))
   true_ll_mat <- true_cond_ll(X_test, cfg)
-  joint_ll_mat <- matrix(0, nrow = nrow(X_test), ncol = K)
 
   for (j in seq_along(cfg)) {
     start_idx <- if (j == 1) 1 else cum_dims[j - 1] + 1
@@ -96,33 +95,23 @@ fit_joint_param <- function(X_train, X_test, cfg, registry = dist_registry) {
     if (length(soft_idx) > 0)
       init[(soft_idx - 1) * (p + 1) + 1] <- softplus_inv(1)
     param_est[[j]] <- safe_optim(init, nll)$par
-
-    x_te <- X_test[, start_idx:end_idx, drop = FALSE]
-    x_prev_te <- if (start_idx > 1) X_test[, 1:(start_idx - 1), drop = FALSE] else NULL
-    pars <- compute_distribution_parameters(param_est[[j]], x_prev_te, fam,
-                                            nrow(x_te))
-    joint_block <- do.call(fam$logpdf, c(list(x_te), pars))
-    joint_ll_mat[, start_idx:end_idx] <- joint_block
   }
   ll_df <- data.frame(
     dim = seq_len(K),
     distr = rep(sapply(cfg, `[[`, "distr"), times = dims),
-    ll_true = colMeans(true_ll_mat),
-    ll_joint = colMeans(joint_ll_mat)
+    ll_true = colMeans(true_ll_mat)
   )
-  ll_df$delta_joint <- ll_df$ll_true - ll_df$ll_joint
-  ll_df[, 3:5] <- round(ll_df[, 3:5], 6)
+  ll_df[, 3] <- round(ll_df[, 3], 6)
   list(
     param_est = param_est,
-    ll_delta_df_test = ll_df,
-    true_ll_mat_test = true_ll_mat,
-    joint_ll_mat_test = joint_ll_mat
+    ll_df_test = ll_df,
+    true_ll_mat_test = true_ll_mat
   )
 }
 
 # Input: training data, cfg list, estimates, average log-liks, registry
 # Output: data.frame summarizing parameters and likelihoods
-summary_table <- function(X_train, cfg, theta_hat, LL_true_avg, LL_joint_avg,
+summary_table <- function(X_train, cfg, theta_hat, LL_true_avg,
                           registry = dist_registry) {
   thetas <- if (!is.null(theta_hat$param_est)) theta_hat$param_est else theta_hat
   dims <- vapply(cfg, function(c) as.integer(registry[[c$distr]]$dim), integer(1))
@@ -132,8 +121,6 @@ summary_table <- function(X_train, cfg, theta_hat, LL_true_avg, LL_joint_avg,
     dim = seq_len(K),
     distr = rep(sapply(cfg, `[[`, "distr"), times = dims),
     ll_true_avg = LL_true_avg,
-    ll_joint_avg = LL_joint_avg,
-    delta_joint = LL_true_avg - LL_joint_avg,
     stringsAsFactors = FALSE
   )
   p1 <- numeric(K)
@@ -155,7 +142,7 @@ summary_table <- function(X_train, cfg, theta_hat, LL_true_avg, LL_joint_avg,
     m2[idx] <- if (length(pars0) >= 2)
       sprintf("%.6f", pars0[[2]][1]) else "none"
   }
-  out$true_param1 <- round(p1, 6)
+  out$mean_param1 <- round(p1, 6)
   out$mean_param2 <- p2
   out$mle_base1 <- round(m1, 6)
   out$mle_base2 <- m2
