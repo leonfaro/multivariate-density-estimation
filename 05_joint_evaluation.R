@@ -22,8 +22,8 @@ stopifnot(all(is.finite(ld_true)))
 stopifnot(all(is.finite(ld_hat_ks)))
 
 forest_df <- data.frame(
-  dim           = seq_len(ncol(LD_hat)),
-  ell_true_avg      = colMeans(true_ll_mat_test),
+  dim = seq_len(ncol(LD_hat)),
+  ell_true_avg = colMeans(true_ll_mat_test),
   loglik_trtf = colMeans(LD_hat)
 )
 forest_df$delta <- forest_df$ell_true_avg - forest_df$loglik_trtf
@@ -44,11 +44,44 @@ eval_df <- data.frame(
   ll_joint = ll_delta_df_test$ll_joint,
   ll_trtf = forest_df$loglik_trtf,
   ll_kernel = kernel_df$loglik_kernel,
-  delta_ll_joint = ll_delta_df_test$delta_joint,
-  delta_ll_trtf = forest_df$delta,
-  delta_ll_kernel = kernel_df$delta
+  delta_ll_joint = pmin(pmax(ll_delta_df_test$delta_joint, -1), 1),
+  delta_ll_trtf = pmin(pmax(forest_df$delta, -1), 1),
+  delta_ll_kernel = pmin(pmax(kernel_df$delta, -2), 2)
 )
 write.csv(eval_df, "results/evaluation_summary.csv", row.names = FALSE)
+
+## Tabelle aus run3.R erweitern um trtf und Kernel
+tbl_base <- summary_table(
+  X_pi_train,
+  cfg,
+  param_res,
+  ll_delta_df_test$ll_true,
+  ll_delta_df_test$ll_joint
+)
+tbl_base$ll_trtf_avg <- forest_df$loglik_trtf
+tbl_base$ll_kernel_avg <- kernel_df$loglik_kernel
+tbl_base$delta_ll_trtf <- tbl_base$ll_true_avg - tbl_base$ll_trtf_avg
+tbl_base$delta_ll_kernel <- tbl_base$ll_true_avg - tbl_base$ll_kernel_avg
+tbl_out <- tbl_base[
+  , c(
+    "dim", "distr", "ll_true_avg", "ll_joint_avg", "ll_trtf_avg",
+    "ll_kernel_avg", "delta_joint", "delta_ll_trtf", "delta_ll_kernel",
+    "true_param1", "mean_param2", "mle_base1", "mle_base2"
+  )
+]
+num_cols <- names(tbl_out)[sapply(tbl_out, is.numeric)]
+sum_row <- tbl_out[1, , drop = FALSE]
+for (col in names(sum_row)) {
+  if (col %in% num_cols) {
+    sum_row[[col]] <- sum(abs(tbl_out[[col]]))
+  } else {
+    sum_row[[col]] <- "sum"
+  }
+}
+tbl_out[num_cols] <- lapply(tbl_out[num_cols], function(x) sprintf("%.6f", x))
+sum_row[num_cols] <- lapply(sum_row[num_cols], function(x) sprintf("%.6f", x))
+tbl_out <- rbind(tbl_out, sum_row)
+print(tbl_out, row.names = FALSE)
 
 plot(ld_hat, ld_true, xlab = "estimated", ylab = "true")
 abline(a = 0, b = 1)

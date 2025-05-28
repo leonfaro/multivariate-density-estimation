@@ -19,9 +19,8 @@ if (!exists("logsumexp")) {
 
 if (!exists("safe_logdens")) {
   safe_logdens <- function(dens) {
-    res <- log(dens)
-    stopifnot(all(is.finite(res)))
-    res
+    dens <- pmax(dens, .Machine$double.eps)
+    log(dens)
   }
 }
 

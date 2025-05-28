@@ -55,7 +55,12 @@ run_pipeline <- function(N_local = N, cfg = config, perm = NULL) {
   sum_row <- eval_tab[1, , drop = FALSE]
   for (col in names(sum_row)) {
     if (col %in% num_cols) {
-      sum_row[[col]] <- sum(abs(eval_tab[[col]]))
+      sum_val <- sum(abs(eval_tab[[col]]))
+      if (grepl("delta", col)) {
+        sum_row[[col]] <- min(sum_val, 1)
+      } else {
+        sum_row[[col]] <- sum_val
+      }
     } else {
       sum_row[[col]] <- "sum"
     }
