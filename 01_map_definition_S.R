@@ -1,3 +1,5 @@
+# Input: dist_registry, link_fns, get_pars(), config
+# Output: pdf_k(), cdf_k(), qtf_k()
 # Map definition functions
 
 pdf_k <- function(k, xk, x_prev, cfg, log = TRUE) {
