@@ -25,7 +25,7 @@ run_pipeline <- function(N_local = N, cfg = config, perm = NULL) {
   X_pi_test  <<- data$test$sample$X_pi
   ll_test <<- data$test$df$ll_true
   N_test <<- nrow(X_pi_test)
-
+  
   if (!is.null(perm)) {
     X_pi_train <<- permute_data(X_pi_train, perm)
     X_pi_test  <<- permute_data(X_pi_test, perm)
@@ -34,21 +34,21 @@ run_pipeline <- function(N_local = N, cfg = config, perm = NULL) {
   param_res <- fit_joint_param(X_pi_train, X_pi_test, cfg)
   ll_delta_df_test <<- param_res$ll_delta_df_test
   true_ll_mat_test <<- param_res$true_ll_mat_test
-
+  
   source("04_forest_models.R")
   forest_res <- fit_forest(X_pi_train, X_pi_test)
   LD_hat <<- forest_res$LD_hat
-
+  
   source("06_kernel_smoothing.R")
   ks_model <- fit_kernel(as.data.frame(X_pi_train))
   KS_hat <<- predict(ks_model, newdata = as.data.frame(X_pi_test), type = "logdensity")
-
+  
   source("05_joint_evaluation.R", local = TRUE)
-
+  
   target_ll <- sum(ll_test)
   forest_mismatch <<- sum(loglik_trtf) - target_ll
   kernel_mismatch <<- sum(loglik_kernel) - target_ll
-
+  
   eval_tab <- read.csv("results/evaluation_summary.csv")
   eval_tab <- eval_tab[, !(names(eval_tab) %in%
                              c("true_param1", "mean_param2",
@@ -95,6 +95,5 @@ run_joint_pipeline <- function(N_local = N) {
 
 
 eval_tab_nat  <- run_pipeline(N)
-eval_tab_perm <- run_pipeline(N, perm = c(2, 3, 1))
+eval_tab_perm <- run_pipeline(N, perm = c(1, 3, 2))
 eval_tab <- eval_tab_nat
-
