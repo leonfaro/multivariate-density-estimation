@@ -99,3 +99,18 @@ write_data <- function(data, dir = "results") {
   write.csv(data$train$df, file.path(dir, "train_data.csv"), row.names = FALSE)
   write.csv(data$test$df,  file.path(dir, "test_data.csv"),  row.names = FALSE)
 }
+
+# Wahre bedingte Log-Likelihood pro Beobachtung ermitteln
+true_cond_ll <- function(X, cfg = config) {
+  n <- nrow(X)
+  K <- ncol(X)
+  out <- matrix(NA_real_, nrow = n, ncol = K)
+  for (i in seq_len(n)) {
+    x_prev <- numeric(0)
+    for (k in seq_len(K)) {
+      out[i, k] <- pdf_k(k, X[i, k], x_prev, cfg, log = TRUE)
+      x_prev <- c(x_prev, X[i, k])
+    }
+  }
+  out
+}
