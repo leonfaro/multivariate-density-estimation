@@ -1,3 +1,5 @@
+# Input: X_train, X_test, cfg, dist_registry
+# Output: fit_joint_param(), summary_table()
 safe_optim <- function(par, fn, method = "BFGS", ...) {
   res <- optim(par, fn, method = method, ...)
   if (any(!is.finite(res$par)) || !is.finite(res$value))

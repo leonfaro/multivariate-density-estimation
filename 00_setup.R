@@ -1,3 +1,6 @@
+# Input: config list[K], notation from Theory.md
+# Output: dist_registry, link_fns, parameter helpers
+# Sources: 01_map_definition_S.R, 02_sampling.R, 03_baseline.R
 SEED <- 24
 suppressPackageStartupMessages({
   library(extraDistr)
