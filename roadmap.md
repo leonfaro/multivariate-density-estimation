@@ -13,19 +13,25 @@ Dadurch kann man die `config`-Liste oder die Zahl der Dimensionen $K$ ändern, o
 
 ```
 FUNCTION setup_global():
-    INPUT: —
-    OUTPUT: list G = (N, config, seed, split_ratio, H_grid, model_ids)
+    INPUT  : —
+    OUTPUT : list G = (N, config, seed, split_ratio, H_grid, model_ids, P_max)
 
-    1  N            ← 500                                # Stichprobenumfang
-    2  config       ← USER-EINGABE                       # Liste mit K Elementen
-    3  seed         ← 42                                 # Reproduzierbarkeit
-    4  split_ratio  ← 0.70                               # Train-Anteil
-    5  H_grid       ← {p ∈ ℕ | 1 ≤ p ≤ P_max}            # Hyperparameter für TTM
-    6  model_ids    ← {"TTM", "TRUE"}                    # erweiterbar
-    7  RETURN G
+    1  N           ← 500                                 # Stichprobenumfang
+    2  config      ← USER-EINGABE                        # Liste mit K Elementen
+    3  seed        ← 42                                  # Reproduzierbarkeit
+    4  split_ratio ← 0.70                                # Train-Anteil
+    5  P_max       ← 6                                   # höchster Polynomgrad
+    6  H_grid      ← {h ∈ ℕ | 1 ≤ h ≤ P_max}             # Hyperparameter für TTM
+    7  model_ids   ← {"TTM", "TRUE"}                     # erweiterbar
+    8  RETURN G
 ```
 
 ---
+
+
+
+
+
 
 ### **Script 2: 01\_data\_generation.R**
 
@@ -71,26 +77,51 @@ FUNCTION train_test_split(X, split_ratio, seed):
 
 ```
 FUNCTION fit_TTM(X_tr, X_te, H_grid):
-    INPUT : Trainingsdaten X_tr, Testdaten X_te, Hyperparameter-Grid H_grid
-    OUTPUT: model M_TTM = (θ*, h*, logL_te)
+    INPUT  : Trainings­daten X_tr, Test­daten X_te, Hyperparameter-Menge H_grid
+    OUTPUT : model M_TTM = (θ*, h*, logL_te)
 
-    1  FOR each h ∈ H_grid:                          # z. B. Polynomiellgrad
-    2      θ̂(h) ← argmin_θ  𝔏_train(θ | h)           # s. Block 4 oben
-                       subject to θ_{k,j}^f ≥ 0
-    3      logL_te(h) ← −  |X_te|^{-1}   Σ_{x ∈ X_te}  ℓ_{θ̂(h)}(x)
-    4  h*    ← argmin_h  logL_te(h)
-    5  θ*    ← θ̂(h*)
-    6  RETURN (θ*, h*, logL_te(h*))
+    # -------- Hilfsdefinitionen --------
+    DEFINE  S(x ; θ, h)         # Triangular Transport-Map
+            logJ(x ; θ, h)      # Log-Jacobi-Determinante
+            ℓ(θ | x, h)         = log φ_K ( S(x; θ,h) ) + logJ(x; θ,h)
+            𝔏_train(θ | h)      = − |X_tr|^{-1} Σ_{x∈X_tr} ℓ(θ | x, h)
+
+    FOR each h ∈ H_grid:
+        1  INIT θ^(0) ← 0                      # alle Koeffizienten = 0
+        2  θ̂(h) ← argmin_θ  𝔏_train(θ | h)    # L-BFGS-B  ohne Box-Constraints
+                    stopping rule:  ‖∇𝔏_train‖_∞ < 10^{−6}
+        3  logL_te(h) ← − |X_te|^{-1} Σ_{x∈X_te} ℓ( θ̂(h) | x , h )
+        4  MESSAGE "h={h}, logL_te={logL_te(h)}"
+
+    5  h* ← argmin_h  logL_te(h)
+    6  θ* ← θ̂(h*)
+    7  RETURN (θ*, h*, logL_te(h*))
+
+FUNCTION S(x ; θ, h):
+    INPUT  : Beobachtung x=(x₁,…,x_K), Parameter θ=(θ₁,…,θ_K), Polynomgrad h
+    OUTPUT : z = (z₁,…,z_K)
+
+    FOR k = 1,…,K:
+        1  g_k ← Polynom_{Grad=h}( x₁,…,x_{k−1} ; β_k )
+        2  P_k(t, x₁:_{k−1}) ← Polynom_{Grad=h}( t, x₁,…,x_{k−1} ; α_{k} )
+             # P_k linear in den Koeffizienten, keine t-Konstante
+        3  z_k ← g_k  +  ∫_{0}^{x_k}  exp( P_k( t, x₁:_{k−1} ) ) dt
+    RETURN z
+
+FUNCTION logJ(x ; θ, h):
+    INPUT  : x, θ, h
+    OUTPUT : Σ_{k=1}^{K}  P_k( x_k , x₁:_{k−1} )
 
 FUNCTION logL_TTM(M_TTM, X):
-    INPUT : Modell (θ*, …), Datenmatrix X
-    OUTPUT: −log-Likelihood pro Beobachtung
+    INPUT  : Modell M_TTM = (θ*, h*, …), Datenmatrix X
+    OUTPUT : − |X|^{-1} Σ_{x∈X} ℓ( θ*, x , h* )
+
+FUNCTION sample_TTM(M_TTM, Z):
+    # optional für Diagnosen
+    INPUT  : Modell M_TTM, Z ~ N(0, I_K)
+    OUTPUT : X ~ π̂  via sequentielle Inversion der S_k
 ```
 
-*Subschritte*:
-
-* $ℓ_{θ}(x)$ und $𝔏_\text{train}$ exakt wie im vorherigen Post.
-* Optimierung via LBFGS-B (weil lineare Ungleichungen).
 
 ---
 
