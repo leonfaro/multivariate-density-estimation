@@ -1,3 +1,4 @@
+source("../../00_globals.R")
 source("../../01_data_generation.R")
 
 # Basic functionality of gen_samples
