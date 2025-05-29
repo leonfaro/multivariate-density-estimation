@@ -8,6 +8,13 @@
 #' and the distribution configuration `config` without modifying
 #' `00_globals.R`.
 
+source("00_globals.R")
+source("01_data_generation.R")
+source("02_split.R")
+source("models/ttm_model.R")
+source("models/true_model.R")
+source("04_evaluation.R")
+
 N <- 500
 config <- list(
   list(distr = "norm", parm = NULL),
@@ -41,3 +48,7 @@ main <- function() {
 # - Quellcode in models/<neues>.R mit
 #     fit_<NAME>()  und  logL_<NAME>()
 # - anschließend hier laden und der Liste `models` hinzufügen.
+
+if (sys.nframe() == 0L) {
+  main()
+}
