@@ -70,8 +70,8 @@ FUNCTION train_test_split(X, split_ratio, seed):
 ### **Script 4: models/ttm\_model.R**  (Referenz-Modell aus dem Paper)
 
 ```
-FUNCTION fit_TTM(X_tr, H_grid):
-    INPUT : Trainingsdaten X_tr, Hyperparameter-Grid H_grid
+FUNCTION fit_TTM(X_tr, X_te, H_grid):
+    INPUT : Trainingsdaten X_tr, Testdaten X_te, Hyperparameter-Grid H_grid
     OUTPUT: model M_TTM = (θ*, h*, logL_te)
 
     1  FOR each h ∈ H_grid:                          # z. B. Polynomiellgrad
@@ -97,8 +97,8 @@ FUNCTION logL_TTM(M_TTM, X):
 ### **Script 5: models/true\_model.R**  („wahrer“ Baseline-MLE)
 
 ```
-FUNCTION fit_TRUE(X_tr, config):
-    INPUT : Trainingsdaten X_tr, vollständige Verteilungskonfiguration
+FUNCTION fit_TRUE(X_tr, X_te, config):
+    INPUT : Trainingsdaten X_tr, Testdaten X_te, vollständige Verteilungskonfiguration
     OUTPUT: model M_TRUE = (Θ̂, logL_te)
 
     1  FOR k = 1,…,K:
@@ -126,12 +126,13 @@ FUNCTION evaluate_all(X_te, model_list):
     OUTPUT: Tabelle P = (model_id, −logL_te)
 
     1  INIT empty table P
-    2  FOR each M in model_list:
-    3      id ← model_name(M)
-    4      loss ← model_specific_logL(M, X_te)
-    5      append_row(P, (id, loss))
-    6  sort_by loss ascending
-    7  RETURN P
+    2  FOR i = 1,…,|model_list|:
+    3      id   ← names(model_list)[i]
+    4      M    ← model_list[[i]]
+    5      loss ← logL_<id>(M, X_te)            # dynamischer Funktionsaufruf
+    6      append_row(P, (id, loss))
+    7  sort_by loss ascending
+    8  RETURN P
 ```
 
 `model_specific_logL` ruft intern `logL_TTM`, `logL_TRUE`, oder eine Analogie für künftige Modelle.
@@ -145,8 +146,8 @@ FUNCTION main():
     1  G        ← setup_global()                    # Script 1
     2  X        ← gen_samples(G)                    # Script 2
     3  S        ← train_test_split(X, G.split_ratio, G.seed)   # Script 3
-    4  M_TTM    ← fit_TTM (S.X_tr, G.H_grid)        # Script 4
-    5  M_TRUE   ← fit_TRUE(S.X_tr, G.config)        # Script 5
+    4  M_TTM    ← fit_TTM(S.X_tr, S.X_te, G.H_grid) # Script 4
+    5  M_TRUE   ← fit_TRUE(S.X_tr, S.X_te, G.config) # Script 5
     6  results  ← evaluate_all(S.X_te, {M_TTM, M_TRUE})   # Script 6
     7  print(results)
     8  # einfache Möglichkeit, weitere Modelle:
