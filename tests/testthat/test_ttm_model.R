@@ -4,6 +4,7 @@ source("../../models/ttm_model.R")
 
 set.seed(42)
 G <- setup_global()
+G$N <- 50
 X <- gen_samples(G)
 n_tr <- floor(G$split_ratio * G$N)
 X_tr <- X[seq_len(n_tr), ]
