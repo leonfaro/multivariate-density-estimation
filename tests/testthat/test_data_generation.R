@@ -1,4 +1,4 @@
-source("01_data_generation.R")
+source("../../01_data_generation.R")
 
 # Basic functionality of gen_samples
 

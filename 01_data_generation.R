@@ -15,6 +15,10 @@
 # helper to draw one observation from distribution `distr`
 .draw_from <- function(distr, params) {
   fun <- get(paste0("r", distr), mode = "function")
+  if (distr == "gamma" && all(c("shape1", "shape2") %in% names(params))) {
+    params <- list(shape = params$shape1, scale = params$shape2)
+  }
+  params <- lapply(params, function(p) ifelse(p <= 0, 1e-3, p))
   do.call(fun, c(list(n = 1), params))
 }
 
