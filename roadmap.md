@@ -28,11 +28,6 @@ FUNCTION setup_global():
 
 ---
 
-
-
-
-
-
 ### **Script 2: 01\_data\_generation.R**
 
 ```
@@ -73,83 +68,91 @@ FUNCTION train_test_split(X, split_ratio, seed):
 
 ---
 
-### **Script 4: models/ttm\_model.R**  (Referenz-Modell aus dem Paper)
+### **Script 4: models/ttm\_model.R**  
 
+# 4.1 Helfer für stabilen Log-Raum-Integrations- und Exponential-Umgang
 
-#  Hilfsroutinen 
-
+```
 FUNCTION log_phi_K(z):
-    # Log-Dichte der K-dimensionalen Standardnormalverteilung
-    RETURN −0.5 * ( K * log(2π) + ||z||² )
+    # log-Dichte der K-dimensionalen Standardnormalen
+    RETURN −0.5 * (K * log(2π) + ∥z∥²)
 
 FUNCTION logsumexp(v):
-    # stabil: log( Σ_j exp(v_j) )
+    # stabiler log( Σ exp(v_j) )
     m ← max(v)
     RETURN m + log( Σ exp(v − m) )
 
-FUNCTION log_integrate_exp(f, a, b, n = 32):
-    # log ∫_a^b exp(f(t)) dt  mittels Gauss-Legendre-Quadratur (n Knoten)
-    (w, s) ← gauss_legendre_nodes_weights(n)          # Gewichte w_j, Stützstellen s_j∈(−1,1)
-    t      ← 0.5*(b−a) * s + 0.5*(b+a)               # Rücktransformation
-    v      ← log(w) + log(0.5*(b−a)) + f(t)          # alles additiv
+FUNCTION log_integrate_exp(f, a, b, n=32):
+    # log ∫_a^b exp( f(t) ) dt  via Gauss-Legendre-Quadratur
+    # 1. transformiere (a,b) → (−1,1), 2. wandle Summation per logsumexp
+    (w, s) ← gauss_legendre_nodes_weights(n)         # Gewichte w_j, Stütz­stellen s_j ∈ (−1,1)
+    t      ← 0.5*(b−a)*s + 0.5*(b+a)                 # Rücktransformation
+    v      ← log(w) + log(0.5*(b−a)) + f(t)          # additiv, kein expl. exp()
     RETURN logsumexp(v)
+```
 
-#  Transport-Map und Logdet 
+# 4.2 Transport-Map `S`, Jacobi‐Logdet und Neg-Loglikelihood
 
+```
 FUNCTION S(x ; θ, h):
-    INPUT  : x = (x₁,…,x_K),  θ = {β_k, α_k}_k,  Grad h
-    OUTPUT : z = (z₁,…,z_K)
+    INPUT  : x=(x₁,…,x_K),     θ = {β_k, α_k}_k,     Grad h
+    OUTPUT : z=(z₁,…,z_K)
 
     FOR k = 1,…,K:
-        1  g_k ← Polynomial_deg(h)( x₁,…,x_{k−1} ; β_k )
+        1  g_k ← Polynomial_deg(h)( x₁,…,x_{k−1} ; β_k )        # rein additiv
         2  P_k(t, x₁:_{k−1}) ← Polynomial_deg(h)( t, x₁,…,x_{k−1} ; α_k )
         3  logI_k ← log_integrate_exp( λ t: P_k(t, x₁:_{k−1}) , 0 , x_k )
-        4  z_k ← g_k + exp( logI_k )                  # einziger exp-Schritt
+        4  z_k ← g_k + exp( logI_k )                             # nur hier exp()
     RETURN z
+```
 
+```
 FUNCTION logJ(x ; θ, h):
-    # Log-Jacobi-Determinante
-    RETURN Σ_{k=1}^{K} P_k( x_k , x₁:_{k−1} )
+    INPUT  : x, θ, h
+    OUTPUT : Σ_{k=1}^{K}  P_k( x_k , x₁:_{k−1} )
+```
 
-#  (Negativ-)Log-Likelihood 
-
+```
 FUNCTION ℓ(θ | x, h):
+    # log-Dichte‐Pullback
     z     ← S(x ; θ, h)
     logJx ← logJ(x ; θ, h)
-    RETURN log_phi_K(z) + logJx                      # log π̂(x)
+    RETURN log_phi_K(z) + logJx
+```
 
+# 4.3 Training
+```
 FUNCTION 𝔏_train(θ | h):
-    RETURN − |X_tr|^{-1} Σ_{x∈X_tr} ℓ(θ | x, h)      # zu minimieren
+    RETURN − |X_tr|^{-1} Σ_{x∈X_tr} ℓ(θ | x, h)       # Neg-Loglikelihood‐Mittel
+```
 
-#  Training / Hyperparameter-Sweep 
-
+```
 FUNCTION fit_TTM(X_tr, X_te, H_grid):
-    INPUT  : Trainings-/Test­daten, H_grid
+    INPUT  : X_tr, X_te, H_grid
     OUTPUT : M_TTM = (θ*, h*, logL_te)
 
     FOR each h ∈ H_grid:
-        1  θ⁰ ← 0                                   # alle Koeffizienten = 0
-        2  θ̂(h) ← argmin_θ  𝔏_train(θ | h)          # L-BFGS-B
-               stopping: ‖∇𝔏_train‖_∞ < 1e−6
-        3  logL_te(h) ← −|X_te|^{-1} Σ_{x∈X_te} ℓ(θ̂(h) | x, h)
+        1  θ^(0) ← 0
+        2  θ̂(h) ← argmin_θ  𝔏_train(θ | h)      # L-BFGS-B
+               stopping:  ‖∇𝔏_train‖_∞ < 10^{−6}
+        3  logL_te(h) ← − |X_te|^{-1} Σ_{x∈X_te} ℓ( θ̂(h) | x , h )
         4  MESSAGE "h={h}, logL_te={logL_te(h)}"
 
     5  h* ← argmin_h logL_te(h)
     6  θ* ← θ̂(h*)
     7  RETURN (θ*, h*, logL_te(h*))
+```
 
-#  Auswertung & optionales Sampling 
-
+```
 FUNCTION logL_TTM(M_TTM, X):
     INPUT  : (θ*, h*),  X
-    OUTPUT : −|X|^{-1} Σ_{x∈X} ℓ(θ*, x, h*)
-
+    OUTPUT : − |X|^{-1} Σ_{x∈X} ℓ( θ*, x , h* )
+```
+```
 FUNCTION sample_TTM(M_TTM, Z):
-    # optional für Diagnosen
     INPUT  : Modell M_TTM, Z ~ N(0, I_K)
     OUTPUT : X ~ π̂  via sequentielle Inversion der S_k
 ```
-
 
 ---
 
@@ -169,8 +172,6 @@ FUNCTION fit_TRUE(X_tr, X_te, config):
 
 FUNCTION logL_TRUE(M_TRUE, X):
     RETURN − |X|^{-1} Σ_i Σ_k log f_{distr_k}( X[i,k] | Θ̂_k )
-
-
 
 
 ```
@@ -218,25 +219,3 @@ FUNCTION main():
 ```
 
 ---
-
-## **Wie man die Flexibilität nutzt**
-
-1. **Dimensionalität ändern**
-   *Passe nur* `config` in `00_globals.R` an.
-   Das Sampling in `01_data_generation.R` sowie alle Schleifen über $k=1,\dots,K$ adaptieren automatisch.
-
-2. **Andere Bedingungsstrukturen**
-   Ersetze in `config[[k]]$parm` die Funktion, die aus den bereits generierten Spalten Parameter ableitet.
-   Kein weiterer Code muss geändert werden.
-
-3. **Neues Modell hinzufügen**
-
-   * Datei `models/<neues_modell>.R` anlegen
-   * Zwei Funktionen implementieren: `fit_<NAME>()`, `logL_<NAME>()`
-   * In `00_globals.R` den Namen ins Set `model_ids` und in `05_main.R` nach dem Fitting in `evaluate_all` übergeben.
-
-4. **Hyperparameter-Sweep verändern**
-   Ausschließlich `H_grid` in `00_globals.R` anpassen.
-
-Damit bleibt das Gesamtsystem **skript-modular** und **konfigurationsgetrieben**: sämtliche Pipeline-Änderungen erfolgen, ohne andere Dateien „anzufassen“ oder internen Code umschreiben zu müssen.
-
