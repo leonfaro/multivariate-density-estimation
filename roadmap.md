@@ -70,91 +70,139 @@ FUNCTION train_test_split(X, split_ratio, seed):
 
 ---
 
-### **Script 4: models/ttm\_model.R**  
 
-# 4.1 Helfer für stabilen Log-Raum-Integrations- und Exponential-Umgang
+### **Script 4 (neu): models/**`triangular_transport_map.R`
+
+> **Ziel** Trianguläre **Transport Map**
+>
+> $$
+> S_\theta(x)=\bigl(S_1(x_1),\,S_2(x_{1:2}),\dots,S_K(x_{1:K})\bigr)^\top,\qquad  
+> S_k = g_k(x_{1:k-1};\beta_k) \;+\; f_k(x_k;\alpha_k)
+> $$
+>
+> *Alle* numerisch kritischen Schritte laufen **im Log-Raum**.
+
+---
+
+#### 4.1 Hilfsfunktionen (Log-Raum)
 
 ```
 FUNCTION log_phi_K(z):
     # log-Dichte der K-dimensionalen Standardnormalen
-    RETURN −0.5 * (K * log(2π) + ∥z∥²)
+    RETURN −0.5 * (K * log(2π) + ||z||²)
 
 FUNCTION logsumexp(v):
-    # stabiler log( Σ exp(v_j) )
     m ← max(v)
     RETURN m + log( Σ exp(v − m) )
 
-FUNCTION log_integrate_exp(f, a, b, n=32):
-    # log ∫_a^b exp( f(t) ) dt  via Gauss-Legendre-Quadratur
-    # 1. transformiere (a,b) → (−1,1), 2. wandle Summation per logsumexp
-    (w, s) ← gauss_legendre_nodes_weights(n)         # Gewichte w_j, Stütz­stellen s_j ∈ (−1,1)
-    t      ← 0.5*(b−a)*s + 0.5*(b+a)                 # Rücktransformation
-    v      ← log(w) + log(0.5*(b−a)) + f(t)          # additiv, kein expl. exp()
-    RETURN logsumexp(v)
+FUNCTION poly_deg(h)(t ; γ):
+    # schlichtes Polynom   Σ_{j=0}^h γ_j t^j
+    RETURN Σ_{j=0}^h γ_j * t^j
+
+FUNCTION f_k (x_k ; α_k, h):
+    # monotone 1-D Komponente   f_k = ∫₀^{x_k} exp( poly_deg(h)(t;α_k) ) dt
+    # (=> immer streng steigend, kein Overflow dank Log-Raum)
+    logI ← log_integrate_exp( λ t: poly_deg(h)(t;α_k), 0, x_k )
+    RETURN exp( logI )
+
+FUNCTION log_fprime_k (x_k ; α_k, h):
+    # log f'_k(x_k) = poly_deg(h)( x_k ; α_k )
+    RETURN poly_deg(h)( x_k ; α_k )
 ```
 
-# 4.2 Transport-Map `S`, Jacobi‐Logdet und Neg-Loglikelihood
+*(`log_integrate_exp` wie im alten Skript; wird nur für $f_k$ gebraucht.)*
+
+---
+
+#### 4.2 Map $S_\theta$, Jacobian-Logdet und Log-Likelihood
 
 ```
-FUNCTION S(x ; θ, h):
-    INPUT  : x=(x₁,…,x_K),     θ = {β_k, α_k}_k,     Grad h
-    OUTPUT : z=(z₁,…,z_K)
+FUNCTION S(x ; θ=(β,α), h):
+    INPUT  : x ∈ ℝ^K
+    OUTPUT : z ∈ ℝ^K
 
     FOR k = 1,…,K:
-        1  g_k ← Polynomial_deg(h)( x₁,…,x_{k−1} ; β_k )        # rein additiv
-        2  P_k(t, x₁:_{k−1}) ← Polynomial_deg(h)( t, x₁,…,x_{k−1} ; α_k )
-        3  logI_k ← log_integrate_exp( λ t: P_k(t, x₁:_{k−1}) , 0 , x_k )
-        4  z_k ← g_k + exp( logI_k )                             # nur hier exp()
+        g_k ← poly_deg(h)( x[1:(k−1)] ; β_k )        # nur frühere Coordinates
+        f_k_val ← f_k( x_k ; α_k , h )                # 1-D, streng steigend
+        z_k ← g_k + f_k_val
     RETURN z
 ```
 
 ```
 FUNCTION logJ(x ; θ, h):
-    INPUT  : x, θ, h
-    OUTPUT : Σ_{k=1}^{K}  P_k( x_k , x₁:_{k−1} )
+    # log |det ∇S| = Σ_k log f'_k(x_k)
+    logdet ← 0
+    FOR k = 1,…,K:
+        logdet ← logdet + log_fprime_k( x_k ; α_k , h )
+    RETURN logdet
 ```
 
 ```
 FUNCTION ℓ(θ | x, h):
-    # log-Dichte‐Pullback
-    z     ← S(x ; θ, h)
-    logJx ← logJ(x ; θ, h)
-    RETURN log_phi_K(z) + logJx
+    z      ← S(x ; θ , h)
+    RETURN log_phi_K(z) + logJ(x ; θ , h)      # sample-LogLikelihood
 ```
 
-# 4.3 Training
-```
-FUNCTION 𝔏_train(θ | h):
-    RETURN − |X_tr|^{-1} Σ_{x∈X_tr} ℓ(θ | x, h)       # Neg-Loglikelihood‐Mittel
-```
+---
+
+#### 4.3 Training (empirische KL / –log L)
 
 ```
-FUNCTION fit_TTM(X_tr, X_te, H_grid):
-    INPUT  : X_tr, X_te, H_grid
-    OUTPUT : M_TTM = (θ*, h*, logL_te)
-
-    FOR each h ∈ H_grid:
-        1  θ^(0) ← 0
-        2  θ̂(h) ← argmin_θ  𝔏_train(θ | h)      # L-BFGS-B
-               stopping:  ‖∇𝔏_train‖_∞ < 10^{−6}
-        3  logL_te(h) ← − |X_te|^{-1} Σ_{x∈X_te} ℓ( θ̂(h) | x , h )
-        4  MESSAGE "h={h}, logL_te={logL_te(h)}"
-
-    5  h* ← argmin_h logL_te(h)
-    6  θ* ← θ̂(h*)
-    7  RETURN (θ*, h*, logL_te(h*))
+FUNCTION 𝔏_train(θ | h, X_tr):
+    RETURN − (1/|X_tr|) * Σ_{x ∈ X_tr} ℓ(θ | x , h)
 ```
 
 ```
-FUNCTION logL_TTM(M_TTM, X):
-    INPUT  : (θ*, h*),  X
-    OUTPUT : − |X|^{-1} Σ_{x∈X} ℓ( θ*, x , h* )
+FUNCTION fit_SEPAR(X_tr, X_te, H_grid):
+    INPUT  : Trainings-/Testdaten, Polynomgrade
+    OUTPUT : M_SEP = (θ*, h*, logL_te*)
+
+    FOR h ∈ H_grid:
+        θ⁰      ← 0
+        θ̂(h)   ← argmin_θ  𝔏_train(θ | h, X_tr)     # L-BFGS-B
+                  stop wenn ||∇𝔏_train||_∞ < 1e−6
+        logL_te(h) ← − (1/|X_te|) Σ_{x ∈ X_te} ℓ( θ̂(h) | x , h )
+        MESSAGE "h={h}, logL_te={logL_te(h)}"
+
+    h*  ← argmin_h logL_te(h)
+    θ*  ← θ̂(h*)
+    RETURN (θ*, h*, logL_te(h*))
 ```
+
 ```
-FUNCTION sample_TTM(M_TTM, Z):
-    INPUT  : Modell M_TTM, Z ~ N(0, I_K)
-    OUTPUT : X ~ π̂  via sequentielle Inversion der S_k
+FUNCTION logL_SEPAR(M_SEP, X):
+    (θ*, h*) ← M_SEP
+    RETURN − (1/|X|) Σ_{x ∈ X} ℓ( θ*, x , h* )
 ```
+
+---
+
+#### 4.4 Sampling und Dichteschätzung
+
+```
+FUNCTION sample_SEPAR(M_SEP, Z):
+    INPUT  : Z ~ N(0,I_K)
+    OUTPUT : X  via sequentielle Inversion
+
+    (θ*, h*) ← M_SEP
+    FOR k = 1,…,K:
+        g_k ← poly_deg(h*)( X[1:(k−1)] ; β*_k )
+        # löse   f_k(x_k) = Z_k − g_k   nach x_k  (1-D root-finding, z.B. Newton)
+        x_k ← invert_f_k( Z_k − g_k ; α*_k , h* )
+        X_k ← x_k
+    RETURN X
+```
+
+```
+FUNCTION density_SEPAR(M_SEP, x):
+    z      ← S(x ; θ*, h*)
+    logdet ← logJ(x ; θ*, h*)
+    RETURN exp( log_phi_K(z) + logdet )        # π̂(x)
+```
+
+`invert_f_k` benutzt z.B. Newton–Raphson mit Startwert $x_k^{(0)} = Z_k$; nur $f_k$ und $f'_k$ nötig.
+
+
 
 ---
 
