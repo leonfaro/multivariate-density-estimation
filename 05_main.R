@@ -4,14 +4,34 @@
 #' It relies on the helper functions from Scripts 1--6 as documented in
 #' `roadmap.md`.
 #'
+#' The lines below allow overriding the global experiment size `N`
+#' and the distribution configuration `config` without modifying
+#' `00_globals.R`.
+
+N <- 500
+config <- list(
+  list(distr = "norm", parm = NULL),
+  list(distr = "exp",  parm = function(d) list(rate = d$X1)),
+  list(distr = "beta", parm = function(d) list(shape1 = d$X2, shape2 = 1)),
+  list(distr = "gamma", parm = function(d) list(shape1 = d$X3, shape2 = 1))
+)
+
 #' @export
 main <- function() {
-  G <- setup_global()                             # Script 1
+  G <- list(
+    N = N,
+    config = config,
+    seed = 42,
+    split_ratio = 0.70,
+    H_grid = seq_len(length(config)),
+    model_ids = c("TTM", "TRUE")
+  )
+
   X <- gen_samples(G)                             # Script 2
   S <- train_test_split(X, G$split_ratio, G$seed) # Script 3
   M_TTM  <- fit_TTM(S$X_tr, S$X_te, G$H_grid)     # Script 4
   M_TRUE <- fit_TRUE(S$X_tr, S$X_te, G$config)    # Script 5
-  models <- list(TTM = M_TTM, TRUE = M_TRUE)
+  models <- setNames(list(M_TTM, M_TRUE), c("TTM", "TRUE"))
   results <- evaluate_all(S$X_te, models)         # Script 6
   print(results)
   invisible(results)
