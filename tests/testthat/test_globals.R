@@ -1,0 +1,11 @@
+test_that("setup_global returns expected list", {
+  cfg <- list(a = 1, b = 2)
+  out <- setup_global(cfg, 4)
+  expect_type(out, "list")
+  expect_equal(out$N, 500)
+  expect_equal(out$config, cfg)
+  expect_equal(out$seed, 42)
+  expect_equal(out$split_ratio, 0.70)
+  expect_equal(out$H_grid, 1:4)
+  expect_equal(out$model_ids, c("TTM", "TRUE"))
+})
