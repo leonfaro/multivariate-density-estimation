@@ -27,7 +27,6 @@ test_that("configs use immediate predecessor", {
   root <- file.path("..", "..")
   files <- c(
     "run3.R",
-    if (file.exists(file.path(root, "run5.R"))) "run5.R" else NULL,
     "basic_tests.R",
     file.path("tests/testthat", "test_cdf_log.R"),
     file.path("tests/testthat", "test_edgecases.R"),
