@@ -13,9 +13,9 @@ $$\pi(x) = \eta(S(x)) |\det \nabla_x S(x)|,$$
 where $\eta$ denotes the standard Gaussian.
 
 Optimization uses `optim` with the BFGS method on the negative log-likelihood.
-All densities and likelihoods are computed in log-space from `00_setup.R`
-through `run5.R`; only the final presentation of summary metrics converts them
-back to standard scale.
+All densities and likelihoods are computed in log-space from `00_setup.R` on;
+only the final presentation of summary metrics converts them back to standard
+scale.
 
 ## Configuration Syntax
 
