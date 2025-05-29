@@ -1,6 +1,14 @@
 # Global configuration for TTM experiments
 # Notation follows Theory.md
 
+# Default configuration für die Komponentenverteilungen
+config <- list(
+  list(distr = "norm", parm = NULL),
+  list(distr = "exp",  parm = function(d) list(rate = d$X1)),
+  list(distr = "beta", parm = function(d) list(shape1 = d$X2, shape2 = 1)),
+  list(distr = "gamma", parm = function(d) list(shape = d$X3, scale = 1))
+)
+
 
 #' Initialize global parameters
 #'
