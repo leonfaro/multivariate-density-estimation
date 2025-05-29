@@ -12,6 +12,8 @@ Dadurch kann man die `config`-Liste oder die Zahl der Dimensionen $K$ ändern, o
 ### **Script 1: 00\_globals.R**
 
 ```
+
+
 FUNCTION setup_global():
     INPUT  : —
     OUTPUT : list G = (N, config, seed, split_ratio, H_grid, model_ids, P_max)
@@ -204,6 +206,13 @@ FUNCTION evaluate_all(X_te, model_list):
 ### **Script 7: 05\_main.R**  (Orchestrator)
 
 ```
+config <- list(
+  list(distr = "norm", parm = NULL),
+  list(distr = "exp",  parm = function(d) list(rate = d$X1)),
+  list(distr = "beta", parm = function(d) list(shape1 = softplus(d$X2), shape2 = 1)),
+  list(distr = "gamma", parm = function(d) list(shape = softplus(d$X3), scale = 1))
+)
+
 FUNCTION main():
     1  G        ← setup_global()                    # Script 1
     2  X        ← gen_samples(G)                    # Script 2
