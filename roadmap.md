@@ -1,49 +1,37 @@
-# Research Roadmap
+\begin{algorithm}[H]
+\caption{DataSetup: Conditional 4-D Sample Generation and Pre-processing}
+\begin{algorithmic}[1]
+\textbf{Input:} sample size $N$; split ratio $\rho\!\in\!(0,1)$; configuration $\mathcal{C}$ (four pairs $\bigl(\text{distr}_k,\text{parm}_k\bigr)$); random seed $s$\\
+\textbf{Output:} training matrix $\mathbf{X}^{\text{train}}\!\in\!\mathbb{R}^{\lfloor\rho N\rfloor\times4}$, test matrix $\mathbf{X}^{\text{test}}\!\in\!\mathbb{R}^{(N-\lfloor\rho N\rfloor)\times4}$, standardisation stats $\{(\mu_k,\sigma_k)\}_{k=1}^{4}$
 
-This roadmap summarises the next steps for extending the multivariate conditional density experiments.  The notation follows `Theory.md`.
-
-## 1. Additional Likelihood-Based Models
-- Identify two further transformation models from the cited paper and write their joint log-densities
-  $$\ell^{(j)}(x;\theta_j)=\sum_{n=1}^N \log p^{(j)}(x^{(n)};\theta_j)\,,\quad j\in\{A,B\}. $$
-- Estimate parameters $\hat\theta_j$ by maximum likelihood.
-- Evaluate the resulting log-likelihoods with the metric in §6 and append the new $\Delta^{(j)}$ to the summary table.
-
-## 2. Triangular Order Permutation
-- Select several non-trivial permutations $\sigma\in S_K$.
-- Train the Transformation Forest and kernel estimator on each permuted order.
-- Compute the degradation
-  $$\Delta_\sigma=\mathbb E_{\hat\pi}[\ell^{(\mathrm{true})}(X)-\ell_\sigma(X)]\,.$$
-- Compare these values with the baseline to interpret sparsity loss.
-
-## 3. Correct Bivariate and Trivariate Baselines
-- For $k\in\{2,3\}$ compute the exact conditional densities
-  $$p_k(x_k\mid x_{1:k-1};\theta_k)$$
-  implied by the chosen family.
-- Form the joint log-likelihood
-  $$\ell_k(\theta_k)=\sum_{n=1}^N\log p_k(x_k^{(n)}\mid x_{1:k-1}^{(n)};\theta_k).$$
-- Optimise $\theta_k$ with a standard optimiser and verify on synthetic data that $\Delta^{(\mathrm{param})}\approx0$ when the model is correct.
-
-## 4. Fixed Marginal Transformation
-- Keep the default Box--Cox transform within the Transformation Forest and document this choice.
-
-## 5. Remove "TF + Copula"
-- The TF already outputs approximately independent components.
-- A subsequent vine copula on those components is redundant and can reduce performance.
-- If a copula experiment is desired, fit univariate marginals first and apply the vine directly.
-
-## 6. Evaluation Protocol
-- For each model $\mathcal M$ compute the test log-density matrix
-  $$L^{(\mathcal M)}_{n,k}=\log p^{(\mathcal M)}(x^{(n)}_k\mid x^{(n)}_{1:k-1};\hat\Theta_{\mathcal M}).$$
-- The average per-dimension log-likelihood is
-  $$\bar\ell^{(\mathcal M)}_k=\frac{1}{N_{\mathrm{test}}}\sum_{n=1}^{N_{\mathrm{test}}}L^{(\mathcal M)}_{n,k}.$$
-- The gap to truth is
-  $$\Delta^{(\mathcal M)}_k=\bar\ell^{(\mathrm{true})}_k-\bar\ell^{(\mathcal M)}_k\,,\qquad\Delta^{(\mathcal M)}=\sum_{k=1}^{K}\Delta^{(\mathcal M)}_k.$$
-- These $\Delta$ values remain the sole ranking criterion.
-
-## Execution Order
-1. Repair the parametric baseline.
-2. Run permutation experiments on the corrected baseline and non-parametric models.
-3. Add the new transformation-based models and recompute all $\Delta$.
-4. Eliminate the invalid copula variant; freeze TF hyper-parameters.
-5. Maintain the evaluation protocol and update the summary table.
+\State Set pseudorandom generator seed $\gets s$
+\For{$i \gets 1$ \textbf{to} $N$}                                    \Comment{simulate one observation}
+    \State Sample $x_{i1} \sim \mathcal{N}(0,1)$
+    \State $\theta_2 \gets \textsc{EvalParams}\bigl(\text{parm}_2;\,x_{i1}\bigr)$
+    \State Sample $x_{i2} \sim \operatorname{Exp}\!\bigl(\text{rate}=\theta_2\bigr)$
+    \State $\theta_3 \gets \textsc{EvalParams}\bigl(\text{parm}_3;\,x_{i1},x_{i2}\bigr)$
+    \State Sample $x_{i3} \sim \operatorname{Beta}\!\bigl(\theta_{3,1},\theta_{3,2}\bigr)$
+    \State $\theta_4 \gets \textsc{EvalParams}\bigl(\text{parm}_4;\,x_{i1},x_{i2},x_{i3}\bigr)$
+    \State Sample $x_{i4} \sim \Gamma\!\bigl(\text{shape}=\theta_{4,1},\text{scale}=\theta_{4,2}\bigr)$
+\EndFor
+\State Assemble $\mathbf{X}\in\mathbb{R}^{N\times4}$ from rows $(x_{i1},x_{i2},x_{i3},x_{i4})$
+\State $n_{\text{train}}\gets\lfloor\rho N\rfloor$
+\State $\mathbf{X}^{\text{train}}\gets\mathbf{X}_{1:n_{\text{train}},\,\cdot}$;\;
+       $\mathbf{X}^{\text{test}}\gets\mathbf{X}_{n_{\text{train}}+1:N,\,\cdot}$
+\For{$k \gets 1$ \textbf{to} 4}                                         \Comment{z-score standardisation}
+    \State $\mu_k\gets\operatorname{mean}\!\bigl(\mathbf{X}^{\text{train}}_{\cdot,k}\bigr)$
+    \State $\sigma_k\gets\operatorname{sd}\!\bigl(\mathbf{X}^{\text{train}}_{\cdot,k}\bigr)$
+    \ForAll{rows $j$ in $\mathbf{X}^{\text{train}}$ and $\mathbf{X}^{\text{test}}$}
+        \State $x_{jk}\gets\bigl(x_{jk}-\mu_k\bigr)/\sigma_k$
+    \EndFor
+\EndFor
+\State \Return $\mathbf{X}^{\text{train}},\mathbf{X}^{\text{test}},\{(\mu_k,\sigma_k)\}_{k=1}^{4}$
+// Time: $O(NK)$, Space: $O(NK)$
+\\[4pt]
+\Procedure{EvalParams}{parm, $\mathbf{z}$}                    \Comment{helper: evaluate conditional parameters}
+    \If{parm $\equiv$ NULL} \Return NULL \EndIf
+    \State \Return $parm(\mathbf{z})$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
 
