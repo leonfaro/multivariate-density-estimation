@@ -27,8 +27,9 @@ logsumexp <- function(v) {
 #' @param b upper limit
 #' @return log integral of exp(f(t)) from a to b
 log_integrate_exp <- function(f, a, b) {
-  val <- stats::integrate(function(t) exp(f(t)), lower = a, upper = b)$value
-  log(val)
+  m <- stats::optimize(f, interval = c(a, b), maximum = TRUE)$objective
+  val <- stats::integrate(function(t) exp(f(t) - m), lower = a, upper = b)$value
+  m + log(val)
 }
 
 # Polynomauswertung
