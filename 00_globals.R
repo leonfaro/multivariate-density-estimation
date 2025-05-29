@@ -11,12 +11,13 @@ config <- list(
 
 #' Initialize global parameters
 #'
-#' @return list with elements N, config, seed, split_ratio, H_grid, model_ids
+#' @return list with elements N, config, seed, split_ratio,
+#'   H_grid, model_ids and P_max
 setup_global <- function() {
   N <- 500
   seed <- 42
   split_ratio <- 0.70
-  P_max <- length(config)
+  P_max <- 6
   H_grid <- seq_len(P_max)
   model_ids <- c("TTM", "TRUE")
 
@@ -26,6 +27,7 @@ setup_global <- function() {
     seed = seed,
     split_ratio = split_ratio,
     H_grid = H_grid,
-    model_ids = model_ids
+    model_ids = model_ids,
+    P_max = P_max
   )
 }

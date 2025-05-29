@@ -5,6 +5,7 @@ test_that("setup_global returns expected list", {
   expect_equal(out$config, config)
   expect_equal(out$seed, 42)
   expect_equal(out$split_ratio, 0.70)
-  expect_equal(out$H_grid, 1:length(config))
+  expect_equal(out$P_max, 6)
+  expect_equal(out$H_grid, seq_len(out$P_max))
   expect_equal(out$model_ids, c("TTM", "TRUE"))
 })
