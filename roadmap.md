@@ -75,46 +75,74 @@ FUNCTION train_test_split(X, split_ratio, seed):
 
 ### **Script 4: models/ttm\_model.R**  (Referenz-Modell aus dem Paper)
 
-```
-FUNCTION fit_TTM(X_tr, X_te, H_grid):
-    INPUT  : Trainings­daten X_tr, Test­daten X_te, Hyperparameter-Menge H_grid
-    OUTPUT : model M_TTM = (θ*, h*, logL_te)
 
-    # -------- Hilfsdefinitionen --------
-    DEFINE  S(x ; θ, h)         # Triangular Transport-Map
-            logJ(x ; θ, h)      # Log-Jacobi-Determinante
-            ℓ(θ | x, h)         = log φ_K ( S(x; θ,h) ) + logJ(x; θ,h)
-            𝔏_train(θ | h)      = − |X_tr|^{-1} Σ_{x∈X_tr} ℓ(θ | x, h)
+#  Hilfsroutinen 
 
-    FOR each h ∈ H_grid:
-        1  INIT θ^(0) ← 0                      # alle Koeffizienten = 0
-        2  θ̂(h) ← argmin_θ  𝔏_train(θ | h)    # L-BFGS-B  ohne Box-Constraints
-                    stopping rule:  ‖∇𝔏_train‖_∞ < 10^{−6}
-        3  logL_te(h) ← − |X_te|^{-1} Σ_{x∈X_te} ℓ( θ̂(h) | x , h )
-        4  MESSAGE "h={h}, logL_te={logL_te(h)}"
+FUNCTION log_phi_K(z):
+    # Log-Dichte der K-dimensionalen Standardnormalverteilung
+    RETURN −0.5 * ( K * log(2π) + ||z||² )
 
-    5  h* ← argmin_h  logL_te(h)
-    6  θ* ← θ̂(h*)
-    7  RETURN (θ*, h*, logL_te(h*))
+FUNCTION logsumexp(v):
+    # stabil: log( Σ_j exp(v_j) )
+    m ← max(v)
+    RETURN m + log( Σ exp(v − m) )
+
+FUNCTION log_integrate_exp(f, a, b, n = 32):
+    # log ∫_a^b exp(f(t)) dt  mittels Gauss-Legendre-Quadratur (n Knoten)
+    (w, s) ← gauss_legendre_nodes_weights(n)          # Gewichte w_j, Stützstellen s_j∈(−1,1)
+    t      ← 0.5*(b−a) * s + 0.5*(b+a)               # Rücktransformation
+    v      ← log(w) + log(0.5*(b−a)) + f(t)          # alles additiv
+    RETURN logsumexp(v)
+
+#  Transport-Map und Logdet 
 
 FUNCTION S(x ; θ, h):
-    INPUT  : Beobachtung x=(x₁,…,x_K), Parameter θ=(θ₁,…,θ_K), Polynomgrad h
+    INPUT  : x = (x₁,…,x_K),  θ = {β_k, α_k}_k,  Grad h
     OUTPUT : z = (z₁,…,z_K)
 
     FOR k = 1,…,K:
-        1  g_k ← Polynom_{Grad=h}( x₁,…,x_{k−1} ; β_k )
-        2  P_k(t, x₁:_{k−1}) ← Polynom_{Grad=h}( t, x₁,…,x_{k−1} ; α_{k} )
-             # P_k linear in den Koeffizienten, keine t-Konstante
-        3  z_k ← g_k  +  ∫_{0}^{x_k}  exp( P_k( t, x₁:_{k−1} ) ) dt
+        1  g_k ← Polynomial_deg(h)( x₁,…,x_{k−1} ; β_k )
+        2  P_k(t, x₁:_{k−1}) ← Polynomial_deg(h)( t, x₁,…,x_{k−1} ; α_k )
+        3  logI_k ← log_integrate_exp( λ t: P_k(t, x₁:_{k−1}) , 0 , x_k )
+        4  z_k ← g_k + exp( logI_k )                  # einziger exp-Schritt
     RETURN z
 
 FUNCTION logJ(x ; θ, h):
-    INPUT  : x, θ, h
-    OUTPUT : Σ_{k=1}^{K}  P_k( x_k , x₁:_{k−1} )
+    # Log-Jacobi-Determinante
+    RETURN Σ_{k=1}^{K} P_k( x_k , x₁:_{k−1} )
+
+#  (Negativ-)Log-Likelihood 
+
+FUNCTION ℓ(θ | x, h):
+    z     ← S(x ; θ, h)
+    logJx ← logJ(x ; θ, h)
+    RETURN log_phi_K(z) + logJx                      # log π̂(x)
+
+FUNCTION 𝔏_train(θ | h):
+    RETURN − |X_tr|^{-1} Σ_{x∈X_tr} ℓ(θ | x, h)      # zu minimieren
+
+#  Training / Hyperparameter-Sweep 
+
+FUNCTION fit_TTM(X_tr, X_te, H_grid):
+    INPUT  : Trainings-/Test­daten, H_grid
+    OUTPUT : M_TTM = (θ*, h*, logL_te)
+
+    FOR each h ∈ H_grid:
+        1  θ⁰ ← 0                                   # alle Koeffizienten = 0
+        2  θ̂(h) ← argmin_θ  𝔏_train(θ | h)          # L-BFGS-B
+               stopping: ‖∇𝔏_train‖_∞ < 1e−6
+        3  logL_te(h) ← −|X_te|^{-1} Σ_{x∈X_te} ℓ(θ̂(h) | x, h)
+        4  MESSAGE "h={h}, logL_te={logL_te(h)}"
+
+    5  h* ← argmin_h logL_te(h)
+    6  θ* ← θ̂(h*)
+    7  RETURN (θ*, h*, logL_te(h*))
+
+#  Auswertung & optionales Sampling 
 
 FUNCTION logL_TTM(M_TTM, X):
-    INPUT  : Modell M_TTM = (θ*, h*, …), Datenmatrix X
-    OUTPUT : − |X|^{-1} Σ_{x∈X} ℓ( θ*, x , h* )
+    INPUT  : (θ*, h*),  X
+    OUTPUT : −|X|^{-1} Σ_{x∈X} ℓ(θ*, x, h*)
 
 FUNCTION sample_TTM(M_TTM, Z):
     # optional für Diagnosen
@@ -129,20 +157,22 @@ FUNCTION sample_TTM(M_TTM, Z):
 
 ```
 FUNCTION fit_TRUE(X_tr, X_te, config):
-    INPUT : Trainingsdaten X_tr, Testdaten X_te, vollständige Verteilungskonfiguration
-    OUTPUT: model M_TRUE = (Θ̂, logL_te)
+    INPUT : X_tr, X_te, config
+    OUTPUT: M_TRUE = (Θ̂, logL_te)
 
-    1  FOR k = 1,…,K:
-    2      distr_k ← config[k].distr
-    3      # univariate MLE für jeden k getrennt
-    4      Θ̂_k   ← argmax_θ_k   Σ_{x∈X_tr[,k]}  log f_{distr_k}(x | θ_k)
-                       via optim()
-    5  logL_te ← − |X_te|^{-1} Σ_{i} Σ_{k} log f_{distr_k}(X_te[i,k] | Θ̂_k)
-    6  RETURN (Θ̂, logL_te)
+    FOR k = 1,…,K:
+        distr_k ← config[k].distr
+        Θ̂_k    ← argmax_θ_k Σ_{x∈X_tr[,k]} log f_{distr_k}(x | θ_k)   # wie bisher
+                 # in der Implementierung ist log f() ohnehin im Log-Raum
+    logL_te ← − |X_te|^{-1} Σ_i Σ_k log f_{distr_k}( X_te[i,k] | Θ̂_k )
+    RETURN (Θ̂, logL_te)
 
 FUNCTION logL_TRUE(M_TRUE, X):
-    INPUT : (Θ̂,…), Datenmatrix X
-    OUTPUT: −log-Likelihood pro Beobachtung
+    RETURN − |X|^{-1} Σ_i Σ_k log f_{distr_k}( X[i,k] | Θ̂_k )
+
+
+
+
 ```
 
 *Anmerkung:* Jede Dimension wird unabhängig behandelt, denn „wahrer“ Mechanismus kennt die bedingten Dichten.
