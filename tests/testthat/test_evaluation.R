@@ -6,6 +6,7 @@ source("../../04_evaluation.R")
 
 set.seed(123)
 G <- setup_global()
+G$N <- 50
 X <- gen_samples(G)
 N_tr <- floor(G$split_ratio * G$N)
 X_tr <- X[seq_len(N_tr), ]
