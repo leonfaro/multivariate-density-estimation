@@ -123,3 +123,28 @@ logL_TRUE <- function(M_TRUE, X) {
   if (!is.finite(val)) stop("log-likelihood not finite")
   val
 }
+
+#' Negative Log-Likelihood pro Dimension
+#'
+#' Berechnet f\u00fcr jedes Merkmal die durchschnittliche negative
+#' Log-Likelihood unter dem TRUE-Modell.
+#'
+#' @param M_TRUE Liste aus `fit_TRUE`
+#' @param X Matrix von Beobachtungen
+#' @return numerischer Vektor mit L\u00e4nge `K`
+#' @export
+logL_TRUE_dim <- function(M_TRUE, X) {
+  stopifnot(is.matrix(X))
+  theta_list <- M_TRUE$theta
+  config <- M_TRUE$config
+  K <- length(theta_list)
+  res <- numeric(K)
+  for (k in seq_len(K)) {
+    distr_k <- config[[k]]$distr
+    ll_k <- .log_density_vec(X[, k], distr_k, theta_list[[k]])
+    val <- -mean(ll_k)
+    if (!is.finite(val)) stop("log-likelihood not finite")
+    res[k] <- val
+  }
+  res
+}
