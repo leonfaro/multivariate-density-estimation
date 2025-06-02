@@ -11,7 +11,6 @@
 source("00_globals.R")
 source("01_data_generation.R")
 source("02_split.R")
-source("models/ttm_model.R")
 source("models/true_model.R")
 source("04_evaluation.R")
 
@@ -29,16 +28,13 @@ main <- function() {
     N = N,
     config = config,
     seed = 42,
-    split_ratio = 0.70,
-    H_grid = seq_len(length(config)),
-    model_ids = c("TTM", "TRUE")
+    split_ratio = 0.70
   )
 
   X <- gen_samples(G)                             # Script 2
   S <- train_test_split(X, G$split_ratio, G$seed) # Script 3
-  M_TTM  <- fit_TTM(S$X_tr, S$X_te, G$H_grid)     # Script 4
   M_TRUE <- fit_TRUE(S$X_tr, S$X_te, G$config)    # Script 5
-  models <- setNames(list(M_TTM, M_TRUE), c("TTM", "TRUE"))
+  models <- setNames(list(M_TRUE), "TRUE")
   results <- evaluate_all(S$X_te, models)         # Script 6
   print(results)
   invisible(results)
