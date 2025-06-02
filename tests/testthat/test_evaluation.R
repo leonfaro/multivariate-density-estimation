@@ -1,6 +1,5 @@
 source("../../00_globals.R")
 source("../../01_data_generation.R")
-source("../../models/ttm_model.R")
 source("../../models/true_model.R")
 source("../../04_evaluation.R")
 
@@ -12,10 +11,9 @@ N_tr <- floor(G$split_ratio * G$N)
 X_tr <- X[seq_len(N_tr), ]
 X_te <- X[(N_tr + 1):nrow(X), ]
 
-M_TTM <- fit_TTM(X_tr, X_te, G$H_grid[1])
 M_TRUE <- fit_TRUE(X_tr, X_te, G$config)
 
-models <- setNames(list(M_TTM, M_TRUE), c("TTM", "TRUE"))
+models <- setNames(list(M_TRUE), "TRUE")
 
 
 test_that("evaluate_all returns sorted table", {

@@ -1,4 +1,4 @@
-# Global configuration for TTM experiments
+# Global configuration for TRUE-Modell-Experimente
 # Notation follows Theory.md
 
 # Default configuration für die Komponentenverteilungen
@@ -20,7 +20,7 @@ setup_global <- function() {
   split_ratio <- 0.70
   P_max <- 6
   H_grid <- seq_len(P_max)
-  model_ids <- c("TTM", "TRUE")
+  model_ids <- c("TRUE")
 
   list(
     N = N,

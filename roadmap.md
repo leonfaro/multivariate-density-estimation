@@ -23,8 +23,8 @@ FUNCTION setup_global():
     3  seed        ← 42                                  # Reproduzierbarkeit
     4  split_ratio ← 0.70                                # Train-Anteil
     5  P_max       ← 6                                   # höchster Polynomgrad
-    6  H_grid      ← {h ∈ ℕ | 1 ≤ h ≤ P_max}             # Hyperparameter für TTM
-    7  model_ids   ← {"TTM", "TRUE"}                     # erweiterbar
+    6  H_grid      ← {h ∈ ℕ | 1 ≤ h ≤ P_max}             # Gradbeschränkung
+    7  model_ids   ← {"TRUE"}                             # erweiterbar
     8  RETURN G
 ```
 
@@ -234,7 +234,7 @@ FUNCTION logL_TRUE(M_TRUE, X):
 
 ```
 FUNCTION evaluate_all(X_te, model_list):
-    INPUT : Testdaten X_te, Liste model_list = {M_TTM, M_TRUE, …}
+    INPUT : Testdaten X_te, Liste model_list = {M_TRUE, …}
     OUTPUT: Tabelle P = (model_id, −logL_te)
 
     1  INIT empty table P
@@ -247,7 +247,7 @@ FUNCTION evaluate_all(X_te, model_list):
     8  RETURN P
 ```
 
-`model_specific_logL` ruft intern `logL_TTM`, `logL_TRUE`, oder eine Analogie für künftige Modelle.
+`model_specific_logL` ruft intern `logL_TRUE` oder eine Analogie für künftige Modelle.
 
 ---
 
@@ -265,9 +265,8 @@ FUNCTION main():
     1  G        ← setup_global()                    # Script 1
     2  X        ← gen_samples(G)                    # Script 2
     3  S        ← train_test_split(X, G.split_ratio, G.seed)   # Script 3
-    4  M_TTM    ← fit_TTM(S.X_tr, S.X_te, G.H_grid) # Script 4
-    5  M_TRUE   ← fit_TRUE(S.X_tr, S.X_te, G.config) # Script 5
-    6  results  ← evaluate_all(S.X_te, {M_TTM, M_TRUE})   # Script 6
+    4  M_TRUE   ← fit_TRUE(S.X_tr, S.X_te, G.config) # Script 5
+    5  results  ← evaluate_all(S.X_te, {M_TRUE})      # Script 6
     7  print(results)
     8  # einfache Möglichkeit, weitere Modelle:
        # Quellcode in models/<neues>.R mit
