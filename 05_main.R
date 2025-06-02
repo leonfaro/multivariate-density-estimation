@@ -36,8 +36,14 @@ main <- function() {
   M_TRUE <- fit_TRUE(S$X_tr, S$X_te, G$config)    # Script 5
   models <- setNames(list(M_TRUE), "TRUE")
   results <- evaluate_all(S$X_te, models)         # Script 6
-  print(results)
-  invisible(results)
+  baseline_ll <- logL_TRUE_dim(M_TRUE, S$X_te)
+  tab <- data.frame(
+    dim = seq_along(G$config),
+    distribution = sapply(G$config, `[[`, "distr"),
+    logL_baseline = baseline_ll
+  )
+  print(tab)
+  invisible(tab)
 }
 
 # einfache Möglichkeit, weitere Modelle anzuhängen:
