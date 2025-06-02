@@ -1,56 +1,54 @@
 #' Generate conditional samples
 #'
-#' This function implements Algorithm 1 as described in `roadmap.md`.
+#' This function implements conditional sampling via triangular transport mapping as described in `roadmap.md`.
 #' It sequentially draws samples from the distributions specified in
 #' `config`, potentially conditioning on previously generated columns.
 #'
-#' @param G list with elements `N`, `config` and `seed`
-#' @return numeric matrix of dimension `N` x `length(config)`
-#' @examples
-#' G <- setup_global()
-#' X <- gen_samples(G)
-#' dim(X)
-#'
 
-# helper to draw one observation from distribution `distr`
-.draw_from <- function(distr, params) {
-  fun <- get(paste0("r", distr), mode = "function")
-  if (distr == "gamma" && all(c("shape1", "shape2") %in% names(params))) {
-    params <- list(shape = params$shape1, scale = params$shape2)
-  }
-  params <- lapply(params, function(p) ifelse(p <= 0, 1e-3, p))
-  do.call(fun, c(list(n = 1), params))
+# 0.1  Bibliotheks-freie Pseudocode-Hilfsfunktionen -------------------
+# (jede Funktion ist ein Platzhalter – die innere Logik steht in Kommentaren)
+
+Generate_iid_from_config <- function(N , cfg){
+  # For j = 1..K:
+  #   Ziehe N Zufallszahlen aus cfg[[j]]$distr mit Parametern cfg[[j]]$parm(...)
+  #   Speichere Ergebnis als Spalte Xj
+  # Rückgabe: Matrix X  (N × K)
 }
 
-#' @rdname gen_samples
-#' @export
-gen_samples <- function(G) {
-  N <- G$N
-  config <- G$config
-  seed <- G$seed
-  K <- length(config)
+Jacobian_Diagonal <- function(x , θ){
+  # Berechne ∂_{x_k} S_k  für k = 1..K  (θ enthält Map-Koeffizienten)
+  # Rückgabe: Vektor diagJ  (Länge K)
+}
 
-  set.seed(seed)
-  X <- matrix(NA_real_, nrow = N, ncol = K)
+LogDet_Jacobian <- function(x , θ){
+  # log|det ∇S| = Σ_k log( diagJ_k )
+  # Rückgabe: Skalar
+}
 
-  for (i in seq_len(N)) {
-    for (k in seq_len(K)) {
-      c_k <- config[[k]]
-      if (is.null(c_k$parm)) {
-        params_k <- list()
-      } else {
-        if (k == 1) {
-          prev <- data.frame()
-        } else {
-          prev <- as.data.frame(as.list(X[i, seq_len(k - 1)]))
-          names(prev) <- paste0("X", seq_len(k - 1))
-        }
-        params_k <- c_k$parm(prev)
-      }
-      X[i, k] <- .draw_from(c_k$distr, params_k)
-    }
-  }
+S_forward <- function(x , θ){
+  # Untere-Dreieckige Abbildung:  S_k(x_1: k)  (Monotonie durch Exp-Ansatz)
+  # Rückgabe: z = S(x)
+}
 
-  colnames(X) <- paste0("X", seq_len(K))
-  X
+R_inverse <- function(z , θ){
+  # Löse triangular:   x = R(z)  mit Vorwärts/eliminierender Substitution
+  # Rückgabe: x
+}
+
+Objective_J_N <- function(θ , X){
+  # J_N(θ) = -(1/N) Σ_n [ log η( S(x^(n);θ) ) + logDet_Jacobian(x^(n);θ ) ]
+  # Rückgabe: Wert von J_N
+}
+
+Train_Map_MLE <- function(X , θ_init , tol){
+  # Gradient Descent / Adam o. Ä.: minimiere Objective_J_N
+  #   Wiederhole bis ‖∇J_N‖ < tol :
+  #       θ ← θ − α ∇J_N
+  # Rückgabe: θ_hat  (MLE)
+}
+
+Conditional_Sample <- function(fix_idx , fix_val , θ_hat , m){
+  # 1  v* ← S_b( b = fix_val )
+  # 2  Ziehe m Samples u ~ η_u   (u-Dimension = K - |fix_idx|)
+  # 3  Rückgabe: { R_inverse( (u , v*) , θ_hat ) }  (#m Zeilen)
 }
