@@ -102,8 +102,16 @@ main <- function() {
   }
   tab_perm <- rbind(tab_perm, as.data.frame(sum_row, stringsAsFactors = FALSE))
 
-  print(tab_normal)
-  print(tab_perm)
+  tab_normal_print <- tab_normal
+  num_cols <- sapply(tab_normal_print, is.numeric)
+  tab_normal_print[num_cols] <- lapply(tab_normal_print[num_cols], round, 3)
+
+  tab_perm_print <- tab_perm
+  num_cols <- sapply(tab_perm_print, is.numeric)
+  tab_perm_print[num_cols] <- lapply(tab_perm_print[num_cols], round, 3)
+
+  print(tab_normal_print)
+  print(tab_perm_print)
   invisible(list(normal = tab_normal, permutation = tab_perm))
 }
 
