@@ -1,5 +1,10 @@
 # Triangular Transport Map (TTM) - siehe Theory.md
-# Implementiert monotone Shift/Scale-Couplings und Optimierung via L-BFGS
+# Einbau-Blueprint fuer TTM (Schritte 1 bis 5)
+# 1. O(K)-Loss und -Gradient gemäß Gleichung (2)
+# 2. Monotone Shift/Scale-Couplings mit softplus-Skalierung
+# 3. MLE-Optimierung per L-BFGS mit Abbruch bei ||Grad||_inf < eps
+# 4. Greedy Koordinaten-Reordering
+# 5. Dreizeiliger Konditional-Sampler gemäß Theorem 1
 
 softplus <- function(x) log1p(exp(x))
 logistic <- function(x) 1 / (1 + exp(-x))
@@ -125,17 +130,25 @@ fit_TTM <- function(X_tr, X_te, maxIter = 50, eps = 1e-6) {
   mu_init <- lapply(seq_len(K), function(k) rep(0, k))
   s0 <- log(exp(1) - 1)
   sigma_init <- lapply(seq_len(K), function(k) c(s0, rep(0, k - 1)))
-  par0 <- pack_theta(mu_init, sigma_init)
-  opt <- optim(
-    par = par0,
-    fn = objective_ttm,
-    gr = grad_ttm,
-    X = X_tr_p,
-    method = "L-BFGS-B",
-    control = list(maxit = maxIter, factr = 1e7)
-  )
-  theta_hat <- unpack_theta(opt$par, K)
-  logL_te <- objective_ttm(opt$par, X_te_p)
+  par <- pack_theta(mu_init, sigma_init)
+  grad_inf <- Inf
+  iter <- 0
+  while (iter < maxIter && grad_inf > eps) {
+    opt <- optim(
+      par = par,
+      fn = objective_ttm,
+      gr = grad_ttm,
+      X = X_tr_p,
+      method = "L-BFGS-B",
+      control = list(maxit = 1, factr = 1e7)
+    )
+    par <- opt$par
+    g <- grad_ttm(par, X_tr_p)
+    grad_inf <- max(abs(g))
+    iter <- iter + 1
+  }
+  theta_hat <- unpack_theta(par, K)
+  logL_te <- objective_ttm(par, X_te_p)
   list(theta = theta_hat, perm = perm, logL_te = logL_te)
 }
 
@@ -158,7 +171,7 @@ conditional_TTM <- function(model, b_idx, b_star) {
   u <- rnorm(length(a_idx))
   z[a_idx] <- u
   z[b_idx] <- v_star
-  # inverse map via fixed-point iteration
+  # inverse Map durch sequentielle Ruecktransformation
   x <- numeric(K)
   for (k in seq_len(K)) {
     if (k %in% b_idx) {
