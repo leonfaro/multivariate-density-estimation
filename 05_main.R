@@ -12,6 +12,7 @@ source("00_globals.R")
 source("01_data_generation.R")
 source("02_split.R")
 source("models/true_model.R")
+source("models/trtf_model.R")
 source("04_evaluation.R")
 
 N <- 100
@@ -28,19 +29,22 @@ main <- function() {
     N = N,
     config = config,
     seed = 42,
-    split_ratio = 0.70
+    split_ratio = 0.5
   )
 
   X <- gen_samples(G)                             # Script 2
   S <- train_test_split(X, G$split_ratio, G$seed) # Script 3
   M_TRUE <- fit_TRUE(S$X_tr, S$X_te, G$config)    # Script 5
-  models <- setNames(list(M_TRUE), "TRUE")
+  M_TRTF <- fit_TRTF(S$X_tr, S$X_te, G$config)    # Script models/trtf_model.R
+  models <- setNames(list(M_TRUE, M_TRTF), c("TRUE", "TRTF"))
   results <- evaluate_all(S$X_te, models)         # Script 6
   baseline_ll <- logL_TRUE_dim(M_TRUE, S$X_te)
+  trtf_ll <- logL_TRTF_dim(M_TRTF, S$X_te)
   tab <- data.frame(
     dim = as.character(seq_along(G$config)),
     distribution = sapply(G$config, `[[`, "distr"),
     logL_baseline = baseline_ll,
+    logL_trtf = trtf_ll,
     stringsAsFactors = FALSE
   )
 
