@@ -168,7 +168,7 @@ $$
 $$
 
 wobei jedes Summandendichte $f(\cdot;\lambda,\beta)=\partial_y \Phi\bigl(h_k(y;\lambda)-\beta^\top x\bigr)$ ist.
-Die Vorhersagefunktion „logdensity“ addiert für einen Vektor $x$ die Terme
+Die Vorhersagefunktion logdensity_by_dim liefert einen K-dimensionalen Vektor der Log-Dichte-Beiträge; logdensity ruft intern logdensity_by_dim auf und summiert anschliessend.
 
 $$
 \log\hat f_1(x_1)\;+\;
@@ -225,7 +225,7 @@ Das Resultat sind glatte, robuste Schaetzer der bedingten Verteilungen und damit
   * **Zwei Funktionen**
 
     * `mytrtf(data)` → trainiert das Modell.
-    * `predict(mytrtf_obj, newdata, type = "logdensity")` → liefert die Log-Dichte-Beiträge je Beobachtung.
+    * `predict(mytrtf_obj, newdata, type = c("logdensity", "logdensity_by_dim"))` →   `logdensity_by_dim` gibt eine n × K-Matrix der dimensionsweisen Log-Dichten zurück;  `logdensity` bleibt ein Shortcut für `rowSums(logdensity_by_dim)`.
   * Rückgabeobjekt enthält
 
     ```text
@@ -236,12 +236,12 @@ Das Resultat sind glatte, robuste Schaetzer der bedingten Verteilungen und damit
     ```
 
 * **Funktionsweise**
-
+ 
   1. **Spalte 1 (X1)** – BoxCox-Einzelmodell (keine Kovariaten).
   2. **Spalten 2…K** – für jede Dimension ein *Random-Forest* aus Transformationsbäumen
      (`traforest`) mit den vorherigen Spalten als Prädiktoren.
   3. Vorhersage mischt die Blatt-Verteilungen aller Bäume ⇒ glatte konditionale Dichten.
-  4. Gemeinsame Log-Likelihood = Summe der Spalten-Beiträge.
+  4. Die gemeinsame Log-Likelihood erhält man durch  `rowSums(predict(..., type = "logdensity_by_dim"))`.
 
 * **Abhängigkeiten**
 
@@ -283,5 +283,6 @@ Das Resultat sind glatte, robuste Schaetzer der bedingten Verteilungen und damit
 * **Einbindung in TTM-Pipeline**
 
   * Beim Training `model <- mytrtf(train)`
-  * Beim Auswerten `ll <- predict(model, test, type="logdensity")` und Zeilen-/Spaltenweise aufsummieren.
+  * Beim Auswerten dimensionsweise + später summieren ll_dim <- predict(model, test, type = "logdensity_by_dim")
+ll_joint <- rowSums(ll_dim)
   * Negative Mittel-Log-Likelihood gibt sofort die Vergleichs­metrik zu Baselines.
