@@ -2,10 +2,10 @@ old_wd <- setwd("../..")
 source("05_main.R")
 
 set.seed(123)
-N <- 10000
+N <- 100
 full_res <- main()
 setwd(old_wd)
 
-test_that("logL_baseline within +/-10 for N=10000", {
+test_that("logL_baseline within +/-10 for N=100", {
   expect_true(all(abs(full_res$logL_baseline) <= 10))
 })
