@@ -13,6 +13,7 @@ source("01_data_generation.R")
 source("02_split.R")
 source("models/true_model.R")
 source("models/trtf_model.R")
+source("models/triangular_transport_map.R")
 source("models/ks_model.R")
 source("04_evaluation.R")
 
@@ -40,10 +41,12 @@ main <- function() {
   ## Modelle in Originalreihenfolge
   M_TRUE <- fit_TRUE(S$X_tr, S$X_te, G$config)    # Script 5
   M_TRTF <- fit_TRTF(S$X_tr, S$X_te, G$config)    # Script models/trtf_model.R
+  M_TTM  <- fit_TTM(S$X_tr, S$X_te)
   M_KS   <- fit_KS(S$X_tr, S$X_te, G$config)      # Script models/ks_model.R
 
   baseline_ll <- logL_TRUE_dim(M_TRUE, S$X_te)
   trtf_ll     <- logL_TRTF_dim(M_TRTF, S$X_te)
+  ttm_ll     <- logL_TTM_dim(M_TTM, S$X_te)
   ks_ll       <- logL_KS_dim(M_KS, S$X_te)
 
   tab_normal <- data.frame(
@@ -51,6 +54,7 @@ main <- function() {
     distribution = sapply(G$config, `[[`, "distr"),
     logL_baseline = baseline_ll,
     logL_trtf = trtf_ll,
+    logL_ttm = ttm_ll,
     logL_ks = ks_ll,
     stringsAsFactors = FALSE
   )
@@ -75,17 +79,20 @@ main <- function() {
 
   M_TRUE_p <- fit_TRUE(X_tr_p, X_te_p, G$config)
   M_TRTF_p <- fit_TRTF(X_tr_p, X_te_p, G$config)
+  M_TTM_p <- fit_TTM(X_tr_p, X_te_p)
   M_KS_p   <- fit_KS(X_tr_p, X_te_p, G$config)
 
   baseline_ll_p <- logL_TRUE_dim(M_TRUE_p, X_te_p)
   trtf_ll_p     <- logL_TRTF_dim(M_TRTF_p, X_te_p)
   ks_ll_p       <- logL_KS_dim(M_KS_p, X_te_p)
 
+  ttm_ll_p     <- logL_TTM_dim(M_TTM_p, X_te_p)
   tab_perm <- data.frame(
     dim = as.character(seq_along(G$config)),
     distribution = sapply(G$config, `[[`, "distr"),
     logL_baseline = baseline_ll_p,
     logL_trtf = trtf_ll_p,
+    logL_ttm = ttm_ll_p,
     logL_ks = ks_ll_p,
     stringsAsFactors = FALSE
   )
@@ -107,6 +114,7 @@ main <- function() {
     .log_density_vec(S$X_te[, k], G$config[[k]]$distr, M_TRUE$theta[[k]])
   }, numeric(nrow(S$X_te))))
   ld_trtf <- as.numeric(predict(M_TRTF, S$X_te, type = "logdensity"))
+  ld_ttm  <- as.numeric(predict(M_TTM, S$X_te, type = "logdensity"))
   ld_ks   <- as.numeric(predict(M_KS, S$X_te, type = "logdensity"))
 
   plot(ld_base, ld_base, pch = 16, col = "black",
@@ -115,26 +123,29 @@ main <- function() {
        main = "Originalreihenfolge")
   points(ld_base, ld_trtf, col = "blue", pch = 1)
   points(ld_base, ld_ks,   col = "red",  pch = 2)
+  points(ld_base, ld_ttm, col = "darkgreen", pch = 3)
   abline(a = 0, b = 1)
-  legend("topleft", legend = c("true_baseline", "trtf", "ks"),
-         col = c("black", "blue", "red"), pch = c(16, 1, 2))
+  legend("topleft", legend = c("true_baseline", "trtf", "ks", "ttm"),
+         col = c("black", "blue", "red", "darkgreen"), pch = c(16, 1, 2, 3))
 
   ## Log-Dichten fuer Plot (Permutation)
   ld_base_p <- rowSums(vapply(seq_along(G$config), function(k) {
     .log_density_vec(X_te_p[, k], G$config[[k]]$distr, M_TRUE_p$theta[[k]])
   }, numeric(nrow(X_te_p))))
   ld_trtf_p <- as.numeric(predict(M_TRTF_p, X_te_p, type = "logdensity"))
+  ld_ttm_p <- as.numeric(predict(M_TTM_p, X_te_p, type = "logdensity"))
   ld_ks_p   <- as.numeric(predict(M_KS_p,   X_te_p, type = "logdensity"))
 
   plot(ld_base_p, ld_base_p, pch = 16, col = "black",
        xlab = "True log-Dichte",
        ylab = "Geschaetzte log-Dichte",
        main = "Permutation")
+  points(ld_base_p, ld_ttm_p, col = "darkgreen", pch = 3)
   points(ld_base_p, ld_trtf_p, col = "blue", pch = 1)
   points(ld_base_p, ld_ks_p,   col = "red",  pch = 2)
   abline(a = 0, b = 1)
-  legend("topleft", legend = c("true_baseline", "trtf", "ks"),
-         col = c("black", "blue", "red"), pch = c(16, 1, 2))
+  legend("topleft", legend = c("true_baseline", "trtf", "ks", "ttm"),
+         col = c("black", "blue", "red", "darkgreen"), pch = c(16, 1, 2, 3))
 
   print(tab_normal)
   print(tab_perm)

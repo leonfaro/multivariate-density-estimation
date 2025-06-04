@@ -9,6 +9,7 @@ expect_table <- data.frame(
   distribution = c(sapply(G$config, `[[`, "distr"), NA_character_),
   logL_baseline = NA_real_,
   logL_trtf = NA_real_,
+  logL_ttm = NA_real_,
   logL_ks = NA_real_
 )
 
@@ -23,7 +24,7 @@ test_that("main outputs tables for both orders", {
 
   for (tab in res) {
     expect_s3_class(tab, "data.frame")
-    expect_equal(colnames(tab), c("dim", "distribution", "logL_baseline", "logL_trtf", "logL_ks"))
+    expect_equal(colnames(tab), c("dim", "distribution", "logL_baseline", "logL_trtf", "logL_ttm", "logL_ks"))
     expect_equal(tab$dim, expect_table$dim)
     expect_equal(tab$distribution, expect_table$distribution)
     expect_true(all(is.finite(tab$logL_baseline[1:length(G$config)])))
@@ -34,6 +35,10 @@ test_that("main outputs tables for both orders", {
     expect_equal(
       tab$logL_trtf[length(G$config) + 1],
       sum(tab$logL_trtf[1:length(G$config)])
+    )
+    expect_equal(
+      tab$logL_ttm[length(G$config) + 1],
+      sum(tab$logL_ttm[1:length(G$config)])
     )
     expect_equal(
       tab$logL_ks[length(G$config) + 1],
