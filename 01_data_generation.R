@@ -15,7 +15,7 @@ Generate_iid_from_config <- function(N , cfg){
     for (k in seq_len(K)) {
       c_k <- cfg[[k]]
       if (is.null(c_k$parm)) {
-        params_k <- list()
+        args <- list()
       } else {
         if (k == 1) {
           prev <- data.frame()
@@ -23,17 +23,17 @@ Generate_iid_from_config <- function(N , cfg){
           prev <- as.data.frame(as.list(X[i, seq_len(k - 1)]))
           names(prev) <- paste0("X", seq_len(k - 1))
         }
-        params_k <- c_k$parm(prev)
+        args <- c_k$parm(prev)
       }
       fun <- get(paste0("r", c_k$distr), mode = "function")
       if (c_k$distr == "gamma" &&
-          all(c("shape1", "shape2") %in% names(params_k))) {
-        params_k <- list(shape = params_k$shape1, scale = params_k$shape2)
+          all(c("shape1", "shape2") %in% names(args))) {
+        args <- list(shape = args$shape1, scale = args$shape2)
       }
-      params_k <- lapply(params_k, function(p) {
+      args <- lapply(args, function(p) {
         if (!is.finite(p) || p <= 0) 1e-3 else p
       })
-      X[i, k] <- do.call(fun, c(list(n = 1L), params_k))
+      X[i, k] <- do.call(fun, c(list(n = 1L), args))
     }
   }
   colnames(X) <- paste0("X", seq_len(K))
