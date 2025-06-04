@@ -102,16 +102,43 @@ main <- function() {
   }
   tab_perm <- rbind(tab_perm, as.data.frame(sum_row, stringsAsFactors = FALSE))
 
-  tab_normal_print <- tab_normal
-  num_cols <- sapply(tab_normal_print, is.numeric)
-  tab_normal_print[num_cols] <- lapply(tab_normal_print[num_cols], round, 3)
+  ## Log-Dichten fuer Plot (Originalreihenfolge)
+  ld_base <- rowSums(vapply(seq_along(G$config), function(k) {
+    .log_density_vec(S$X_te[, k], G$config[[k]]$distr, M_TRUE$theta[[k]])
+  }, numeric(nrow(S$X_te))))
+  ld_trtf <- as.numeric(predict(M_TRTF, S$X_te, type = "logdensity"))
+  ld_ks   <- as.numeric(predict(M_KS, S$X_te, type = "logdensity"))
 
-  tab_perm_print <- tab_perm
-  num_cols <- sapply(tab_perm_print, is.numeric)
-  tab_perm_print[num_cols] <- lapply(tab_perm_print[num_cols], round, 3)
+  plot(ld_base, ld_base, pch = 16, col = "black",
+       xlab = "True log-Dichte",
+       ylab = "Geschaetzte log-Dichte",
+       main = "Originalreihenfolge")
+  points(ld_base, ld_trtf, col = "blue", pch = 1)
+  points(ld_base, ld_ks,   col = "red",  pch = 2)
+  abline(a = 0, b = 1)
+  legend("topleft", legend = c("true_baseline", "trtf", "ks"),
+         col = c("black", "blue", "red"), pch = c(16, 1, 2))
 
-  print(tab_normal_print)
-  print(tab_perm_print)
+  ## Log-Dichten fuer Plot (Permutation)
+  ld_base_p <- rowSums(vapply(seq_along(G$config), function(k) {
+    .log_density_vec(X_te_p[, k], G$config[[k]]$distr, M_TRUE_p$theta[[k]])
+  }, numeric(nrow(X_te_p))))
+  ld_trtf_p <- as.numeric(predict(M_TRTF_p, X_te_p, type = "logdensity"))
+  ld_ks_p   <- as.numeric(predict(M_KS_p,   X_te_p, type = "logdensity"))
+
+  plot(ld_base_p, ld_base_p, pch = 16, col = "black",
+       xlab = "True log-Dichte",
+       ylab = "Geschaetzte log-Dichte",
+       main = "Permutation")
+  points(ld_base_p, ld_trtf_p, col = "blue", pch = 1)
+  points(ld_base_p, ld_ks_p,   col = "red",  pch = 2)
+  abline(a = 0, b = 1)
+  legend("topleft", legend = c("true_baseline", "trtf", "ks"),
+         col = c("black", "blue", "red"), pch = c(16, 1, 2))
+
+  print(tab_normal)
+  print(tab_perm)
+
   invisible(list(normal = tab_normal, permutation = tab_perm))
 }
 
