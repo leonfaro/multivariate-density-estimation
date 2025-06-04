@@ -14,7 +14,7 @@ source("02_split.R")
 source("models/true_model.R")
 source("04_evaluation.R")
 
-N <- 10000
+N <- 500
 config <- list(
   list(distr = "norm", parm = NULL),
   list(distr = "exp",  parm = function(d) list(rate = d$X1)),

@@ -1,0 +1,287 @@
+### Conditional Sampling with Triangular Transport Mapping
+
+Der Datengenerator ist strikt *triangulär*
+
+$$
+X_1\sim\mathcal N,\quad   
+X_2\mid X_1\sim\text{Exp}\bigl(\text{rate}=X_1\bigr),\quad   
+X_3\mid X_{1:2}\sim\text{Beta}\bigl(\alpha=X_2,\beta=1\bigr),\quad   
+X_4\mid X_{1:3}\sim\Gamma\bigl(k=X_3,\theta=1\bigr),
+$$
+
+so dass
+
+$$
+-\log\!L = \frac1N\sum_{n=1}^N\sum_{k=1}^4 
+          -\log\pi_k\!\bigl(x^{(n)}_k\mid x^{(n)}_{1:k-1}\bigr)                    
+$$
+
+die **TTM-Loss** ist.
+
+
+## Mathematische Basis
+
+Gegeben sei ein Zufallsvektor
+
+$$
+X=(X_1,\dots,X_K)\in\mathbb R^{K},\qquad
+x_{i\cdot},\,i=1,\dots,n .
+$$
+
+Die gemeinsame Dichte wird über die Kettenregel faktorisiert
+
+$$
+p(x_{1:K})
+  \;=\;
+  p_1(x_1)\;
+  \prod_{k=2}^{K} p_k\!\bigl(x_k \mid x_{1:k-1}\bigr).
+$$
+
+Jedes konditionale Glied $p_k(\cdot\mid\cdot)$ wird durch ein **Transformation Model** (Hothorn & Zeileis 2014) beschrieben:
+
+$$
+F_k(y\mid x)
+  \;=\;
+  \Phi\!\bigl(h_k(y)-\eta_k(x)\bigr),
+\qquad
+f_k=\partial_y F_k .
+$$
+
+Hierbei ist $h_k$ strikt monoton in $y$ und $\eta_k$ linear oder stueckweise linear in den Kovariaten; $\Phi$ ist eine feste Referenz-cdf (Standardnormal oder Logit).
+
+---
+
+## 1  Sequenzielle Modellierung
+
+Die Reihenfolge ist **lexikographisch nach Spaltenindex**:
+
+* **Schritt 1**: Schaetzung der Randverteilung $p_1(x_1)$ von $X_1$ ohne Prädiktoren.
+* **Schritt k $(k\ge 2)$**: Schaetzung von
+  $  p_k\!\bigl(x_k \mid x_{1:k-1}\bigr)$
+  unter Verwendung der bereits geschaetzten Variablen $X_1,\dots,X_{k-1}$ als Kovariaten.
+
+Damit entsteht dieselbe Faktorisierung wie oben, jetzt jedoch mit einem **Transformation-Forest** als Gliedschätzer.
+
+---
+
+## 2  Baselines (marginale Transformation)
+
+Für jede Komponente $X_j$ wird vor dem Wald eine univariate **Box-Cox-Transformation**
+
+$$
+h_j(y;\lambda_j)=
+\begin{cases}
+\dfrac{y^{\lambda_j}-1}{\lambda_j}, & \lambda_j\neq 0,\\[6pt]
+\log y, & \lambda_j=0
+\end{cases}
+$$
+
+mittels Maximum-Likelihood geschaetzt.
+Damit wird die Randverteilung flexibel, bleibt aber durch einen einzigen Parameter $\lambda_j$ kontrollierbar.
+
+---
+
+## 3  Waldaufbau
+
+Für jede Dimension $k\ge 2$ wird ein Ensemble
+$\mathcal F_k=\{T_{k,b}\}_{b=1}^{B}$ von Transformation Trees erzeugt.
+
+1. **Bagging**: Jeder Baum $T_{k,b}$ erhaelt ein Bootstrap-Sample der Beobachtungen.
+2. **mtry**: In jedem Split wird nur eine zufaellige Teilmenge von Kovariaten betrachtet, was die Korrelation zwischen den Bäumen senkt.
+3. **Lokale Transformation**: Jedes Blatt $\ell$ enthaelt eine lokale Schaetzung
+   $(\hat\lambda_{b,\ell},\hat\beta_{b,\ell})$ für die Parameter des Transformationsmodells.
+
+---
+
+## 4  Aufspaltkriterium
+
+Der ctree-Algorithmus wählt in jedem Split
+$(X_j,\,c)$ dadurch, dass er den **größten Zuwachs in der Blatt-Loglikelihood** erzielt.
+Formal: Es wird der Split maximiert, der
+
+$$
+\Delta\ell
+  \;=\;
+  \ell\bigl(\text{Teilung links}\bigr)
+  +\ell\bigl(\text{Teilung rechts}\bigr)
+  -\ell\bigl(\text{ungeteilt}\bigr)
+$$
+
+maximiert.
+Permutationstests garantieren dabei eine testtheoretisch motivierte Signifikanzschwelle.
+
+---
+
+## 5  Basis $h_k$
+
+* Die **Box-Cox-Familie** bietet eine monoton-parametrische Abbildung $h_k\colon\mathbb R\to\mathbb R$.
+* Sie erfasst Asymmetrien und Skalenunterschiede mit nur einem Parameter $\lambda_k$.
+* Im Unterschied zu Bernstein-Basen (Logik 1) ist die Flexibilität geringer, aber die Varianz der Schaetzer ebenfalls geringer.
+
+---
+
+## 6  Schätzer
+
+* **Lokale Ebene**: Innerhalb jedes Blattes $\ell$ eines Baums $T_{k,b}$ wird
+
+  $$
+    (\hat\lambda_{b,\ell},\hat\beta_{b,\ell})
+      \;=\;
+      \argmax_{\lambda,\beta}
+      \sum_{i:\,x_i\in\ell} \log f_k\!\bigl(x_{ik}\mid x_{i,1:k-1};\lambda,\beta\bigr)
+  $$
+
+  per Newton-Iterationsverfahren geschaetzt.
+* **Globale Ebene** (Ensemble): Siehe nächste Sektion zur Aggregation.
+
+---
+
+## 7  Gewichtete Aggregation
+
+Für eine neue Beobachtung $x$ seien $L_b(x)$ die zugehörigen Blätter.
+Definiere **uniforme Gewichte**
+
+$$
+w_b(x)=\frac{1}{B}\,\mathbf 1\{x\in L_b(x)\}.
+$$
+
+Dann ergeben sich die modellspezifischen Parameter als Mittel
+
+$$
+\hat\lambda_k(x)=\sum_{b=1}^B w_b(x)\,\hat\lambda_{b,L_b(x)},\quad
+\hat\beta_k(x)=\sum_{b=1}^B w_b(x)\,\hat\beta_{b,L_b(x)} .
+$$
+
+Dies wirkt als **lokale Glättung** und senkt die Varianz der Blatt-MLEs.
+
+---
+
+## 8  Dichte- und Likelihood-Berechnung
+
+Die konditionale Dichte lautet nun
+
+$$
+\hat f_k(y\mid x)
+  \;=\;
+  \sum_{b=1}^{B} w_b(x)\;
+  f\!\bigl(y;\,\hat\lambda_{b,L_b(x)},\hat\beta_{b,L_b(x)}\bigr),
+$$
+
+wobei jedes Summandendichte $f(\cdot;\lambda,\beta)=\partial_y \Phi\bigl(h_k(y;\lambda)-\beta^\top x\bigr)$ ist.
+Die Vorhersagefunktion „logdensity“ addiert für einen Vektor $x$ die Terme
+
+$$
+\log\hat f_1(x_1)\;+\;
+\sum_{k=2}^{K}\log\hat f_k\!\bigl(x_k\mid x_{1:k-1}\bigr).
+$$
+
+---
+
+## 9  Gemeinsames Log-Likelihood-Kriterium
+
+Für den gesamten Datensatz beträgt die negative mittlere Log-Likelihood
+
+$$
+\mathcal L
+  \;=\;
+  -\frac{1}{n}\sum_{i=1}^{n}
+  \Bigl[
+    \log\hat f_1(x_{i1})
+    +\sum_{k=2}^{K}\log\hat f_k\!\bigl(x_{ik}\mid x_{i,1:k-1}\bigr)
+  \Bigr].
+$$
+
+Dieses Kriterium dient zur Hyperparameterwahl (z. B. Zahl der Bäume $B$, minsplit, mtry).
+
+---
+
+## 10  Mathematische Eigenschaften
+
+* **Stetigkeit**: Die Gewichtung $\sum_b w_b(x)$ erzeugt eine stetige Approximation, obwohl die Einzelbäume stueckweise konstant sind.
+* **Bias–Varianz-Handel**: Bagging reduziert Varianz drastisch; Box-Cox-Basis erhöht Bias nur moderat → typischerweise geringerer MSE als ein Einzelbaum.
+* **Konsistenz**: Unter milden Glattheitsbedingungen ist der Schätzer konsistent, da die Forest-Gewichte asymptotisch wie adaptives k-NN wirken.
+* **Interpretierbarkeit**: Globale Übersicht leidet (viele Bäume), jedoch liefern Permutations-Importances zuverlässige Variable-Importance-Maße.
+* **Rechenaufwand**: $O(B\,n\log n)$; Speicherbedarf proportional zur Gesamtzahl der Blattparameter $\sum_{k,b,\ell} \dim(\theta_{b,\ell})$.
+
+---
+
+## 11  Fazit
+
+Modelliert jedes konditionale Glied mittels eines Transformation-Forests:
+
+* **Sequenziell** entlang der Variablenreihenfolge,
+* mit **Box-Cox-Basis** für die Transformation,
+* **likelihoodbasierten Splits**,
+* **lokalen MLEs** pro Blatt,
+* **Uniformer Bagging-Aggregation** zur Varianzreduktion.
+
+Das Resultat sind glatte, robuste Schaetzer der bedingten Verteilungen und damit der gesamten gemeinsamen Dichte – auf Kosten höherer Rechenlast und eingeschränkter globaler Transparenz.
+
+
+### Engineering
+
+* **Architektur**
+
+  * **Zwei Funktionen**
+
+    * `mytrtf(data)` → trainiert das Modell.
+    * `predict(mytrtf_obj, newdata, type = "logdensity")` → liefert die Log-Dichte-Beiträge je Beobachtung.
+  * Rückgabeobjekt enthält
+
+    ```text
+    list(
+      ymod    = list(<BoxCox-Modelle für jede Spalte>),   # marginal
+      forests = list(<traforest-Objekte ab Spalte 2>)     # konditional
+    )
+    ```
+
+* **Funktionsweise**
+
+  1. **Spalte 1 (X1)** – BoxCox-Einzelmodell (keine Kovariaten).
+  2. **Spalten 2…K** – für jede Dimension ein *Random-Forest* aus Transformationsbäumen
+     (`traforest`) mit den vorherigen Spalten als Prädiktoren.
+  3. Vorhersage mischt die Blatt-Verteilungen aller Bäume ⇒ glatte konditionale Dichten.
+  4. Gemeinsame Log-Likelihood = Summe der Spalten-Beiträge.
+
+* **Abhängigkeiten**
+
+  * `trtf` (liefert `BoxCox`, `traforest`)
+  * transitiv: `partykit`, `mlt`, `basefun`, `variables`
+  * Alles reine R-Pakete – keine system-libs erforderlich.
+
+* **Hyper­parameter (wichtigste)**
+
+  | Name                    | Wirkung               | Typischer Wert bei N < 1000 |
+  | ----------------------- | --------------------- | --------------------------- |
+  | `ntree`                 | Anzahl Bäume          | 50 – 100                    |
+  | `maxdepth`              | Baumtiefe begrenzen   | ≤ 4                         |
+  | `minsplit`, `minbucket` | Knoten-Stoppkriterien | 10 / 5                      |
+
+  *Seed setzen* (`set.seed()`) für identische Runs.
+
+* **Performance**
+
+  * Training: $\mathcal O}(B \cdot K \cdot N \log N)$ – bei 4 Spalten, 100 Bäumen, $N<1000$ ≈ seconds.
+  * Prediction: linear in $B$; < 100 ms für 1 k Zeilen.
+
+* **Parallelisierung**
+
+  * Bäume unabhängig → `options(mc.cores = ...)` oder `future::plan(multisession)` beschleunigt sofort.
+    Kein Code-Ändern nötig.
+
+* **Deployment**
+
+  * Objekt via `saveRDS()` serialisierbar (Größe: einige MB).
+  * Rein R-basiert – läuft in Docker ohne extra C/C++ Build-Schritte.
+
+* **Robustheit / Wartbarkeit**
+
+  * Wald mittelt ⇒ geringe Overfitting-Gefahr.
+  * Wenige, intuitive Hyper­parameter.
+  * Variable-Importance und OOB-Fehler direkt verfügbar (`importance(forest)`).
+
+* **Einbindung in TTM-Pipeline**
+
+  * Beim Training `model <- mytrtf(train)`
+  * Beim Auswerten `ll <- predict(model, test, type="logdensity")` und Zeilen-/Spaltenweise aufsummieren.
+  * Negative Mittel-Log-Likelihood gibt sofort die Vergleichs­metrik zu Baselines.
