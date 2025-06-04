@@ -138,6 +138,7 @@ main <- function() {
 
   print(tab_normal)
   print(tab_perm)
+
   invisible(list(normal = tab_normal, permutation = tab_perm))
 }
 
