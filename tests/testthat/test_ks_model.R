@@ -23,3 +23,15 @@ test_that("logL_KS gibt endlichen Wert", {
   val <- logL_KS(mod, S$X_te)
   expect_true(is.finite(val))
 })
+
+test_that("fit_KS liefert numerisches logL_te", {
+  mod <- fit_KS(S$X_tr, S$X_te, G$config)
+  expect_type(mod$logL_te, "double")
+  expect_length(mod$logL_te, 1)
+  expect_true(is.finite(mod$logL_te))
+})
+
+test_that("Bandbreiten sind positiv", {
+  mod <- fit_KS(S$X_tr, S$X_te, G$config)
+  expect_true(all(mod$h > 0))
+})
