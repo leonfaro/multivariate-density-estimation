@@ -42,18 +42,18 @@ FUNCTION gen_samples(G):
     3  INIT X ← matrix(NA, N, K)
     4  FOR i = 1,…,N:
     5      FOR k = 1,…,K:                        # sequentiell ⇒ bedingt
-    6          c_k      ← config[k]
-    7          params_k ←
+    6          c_k   ← config[k]
+    7          args  ←
                  IF is.null(c_k.parm)
                  THEN {}
                  ELSE c_k.parm( X[i, 1:(k−1)] )
-    8          IF c_k.distr = "gamma" ∧ {shape1, shape2} ⊂ names(params_k):
-                 params_k ← {shape = params_k.shape1,
-                              scale = params_k.shape2}
-    9          FOR p ∈ params_k:
+    8          IF c_k.distr = "gamma" ∧ {shape1, shape2} ⊂ names(args):
+                 args ← {shape = args.shape1,
+                          scale = args.shape2}
+    9          FOR p ∈ args:
                  IF ¬finite(p) ∨ p ≤ 0: p ← 1e−3
    10          fun ← get("r" ++ c_k.distr)
-   11          X[i,k]  ← fun(1, params_k)
+   11          X[i,k]  ← fun(1, args)
    12  SET colnames(X) ← {"X1",…,"XK"}
    13  RETURN X
 ```
