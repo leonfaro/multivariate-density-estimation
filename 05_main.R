@@ -38,10 +38,23 @@ main <- function() {
   results <- evaluate_all(S$X_te, models)         # Script 6
   baseline_ll <- logL_TRUE_dim(M_TRUE, S$X_te)
   tab <- data.frame(
-    dim = seq_along(G$config),
+    dim = as.character(seq_along(G$config)),
     distribution = sapply(G$config, `[[`, "distr"),
-    logL_baseline = baseline_ll
+    logL_baseline = baseline_ll,
+    stringsAsFactors = FALSE
   )
+
+  sum_row <- setNames(vector("list", ncol(tab)), names(tab))
+  for (nm in names(tab)) {
+    if (nm == "dim") {
+      sum_row[[nm]] <- "k"
+    } else if (is.numeric(tab[[nm]])) {
+      sum_row[[nm]] <- sum(tab[[nm]])
+    } else {
+      sum_row[[nm]] <- NA
+    }
+  }
+  tab <- rbind(tab, as.data.frame(sum_row, stringsAsFactors = FALSE))
   print(tab)
   invisible(tab)
 }
