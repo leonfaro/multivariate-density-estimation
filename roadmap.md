@@ -38,18 +38,28 @@ FUNCTION gen_samples(G):
     OUTPUT: Matrix X ∈ ℝ^{N×K}         # gleiche Reihenfolge wie config
 
     1  SET rng ← seed
-    2  FOR i = 1,…,N:
-    3      FOR k = 1,…,K:                        # sequentiell ⇒ bedingt
-    4          c_k      ← config[k]
-    5          params_k ←
+    2  K ← |config|
+    3  INIT X ← matrix(NA, N, K)
+    4  FOR i = 1,…,N:
+    5      FOR k = 1,…,K:                        # sequentiell ⇒ bedingt
+    6          c_k      ← config[k]
+    7          params_k ←
                  IF is.null(c_k.parm)
                  THEN {}
-                 ELSE c_k.parm( X[i, 1:(k−1)] )  # greift auf frühere Spalten
-    6          X[i,k]  ← draw_from( c_k.distr , params_k )
-    7  RETURN X
+                 ELSE c_k.parm( X[i, 1:(k−1)] )
+    8          IF c_k.distr = "gamma" ∧ {shape1, shape2} ⊂ names(params_k):
+                 params_k ← {shape = params_k.shape1,
+                              scale = params_k.shape2}
+    9          FOR p ∈ params_k:
+                 IF ¬finite(p) ∨ p ≤ 0: p ← 1e−3
+   10          fun ← get("r" ++ c_k.distr)
+   11          X[i,k]  ← fun(1, params_k)
+   12  SET colnames(X) ← {"X1",…,"XK"}
+   13  RETURN X
 ```
 
-*`draw_from`* ist eine generische Hilfsroutine (z. B. Norm, Gamma usw.).
+Die Generierung nutzt die jeweiligen Basisfunktionen `r<distr>` aus R und
+ersetzt ungültige Parameter (≤0 oder nicht endlich) durch `1e−3`.
 
 ---
 
