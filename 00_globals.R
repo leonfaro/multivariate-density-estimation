@@ -17,7 +17,7 @@ config <- list(
 setup_global <- function() {
   N <- 500
   seed <- 42
-  split_ratio <- 0.70
+  split_ratio <- 0.5
   P_max <- 6
   H_grid <- seq_len(P_max)
   model_ids <- c("TRUE")
