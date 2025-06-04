@@ -5,8 +5,8 @@ Der Datengenerator ist strikt *triangulär*
 $$
 X_1\sim\mathcal N,\quad   
 X_2\mid X_1\sim\text{Exp}\bigl(\text{rate}=X_1\bigr),\quad   
-X_3\mid X_{1:2}\sim\text{Beta}\bigl(\alpha=X_2,\beta=1\bigr),\quad   
-X_4\mid X_{1:3}\sim\Gamma\bigl(k=X_3,\theta=1\bigr),
+X_3\mid X_{1:2}\sim\text{Beta}\bigl(\alpha=X_2,\beta=X_1\bigr),\quad   
+X_4\mid X_{1:3}\sim\Gamma\bigl(k=X_3,\theta=X_2\bigr),
 $$
 
 so dass
