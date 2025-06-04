@@ -104,6 +104,34 @@ main <- function() {
 
   print(tab_normal)
   print(tab_perm)
+
+  ## true vs estimated log-densities --------------------------
+  ld_true <- rowSums(true_logdensity(S$X_te, G$config))
+  ld_base <- predict_TRUE(M_TRUE, S$X_te, type = "logdensity")
+  ld_trtf <- predict(M_TRTF, S$X_te, type = "logdensity")
+  ld_ks   <- predict(M_KS, S$X_te, type = "logdensity")
+
+  plot(ld_base, ld_true, col = "red", pch = 16,
+       xlab = "gesch\u00e4tzte Log-Dichte", ylab = "wahre Log-Dichte")
+  points(ld_trtf, ld_true, col = "blue", pch = 16)
+  points(ld_ks, ld_true, col = "darkgreen", pch = 16)
+  abline(a = 0, b = 1)
+  legend("topleft", legend = c("true_baseline", "trtf", "ks"),
+         col = c("red", "blue", "darkgreen"), pch = 16)
+
+  ld_true_p <- rowSums(true_logdensity(X_te_p, G$config))
+  ld_base_p <- predict_TRUE(M_TRUE_p, X_te_p, type = "logdensity")
+  ld_trtf_p <- predict(M_TRTF_p, X_te_p, type = "logdensity")
+  ld_ks_p   <- predict(M_KS_p, X_te_p, type = "logdensity")
+
+  plot(ld_base_p, ld_true_p, col = "red", pch = 16,
+       xlab = "gesch\u00e4tzte Log-Dichte (perm)", ylab = "wahre Log-Dichte")
+  points(ld_trtf_p, ld_true_p, col = "blue", pch = 16)
+  points(ld_ks_p, ld_true_p, col = "darkgreen", pch = 16)
+  abline(a = 0, b = 1)
+  legend("topleft", legend = c("true_baseline", "trtf", "ks"),
+         col = c("red", "blue", "darkgreen"), pch = 16)
+
   invisible(list(normal = tab_normal, permutation = tab_perm))
 }
 

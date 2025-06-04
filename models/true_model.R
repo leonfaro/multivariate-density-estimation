@@ -148,3 +148,26 @@ logL_TRUE_dim <- function(M_TRUE, X) {
   }
   res
 }
+
+#' Predict log-densities for TRUE baseline model
+#'
+#' @param model Fit from `fit_TRUE()`
+#' @param X Matrix of observations
+#' @param type Either "logdensity" or "logdensity_by_dim"
+#' @return Numeric vector or matrix
+#' @export
+predict_TRUE <- function(model, X,
+                         type = c("logdensity", "logdensity_by_dim")) {
+  type <- match.arg(type)
+  stopifnot(is.matrix(X))
+  theta_list <- model$theta
+  config <- model$config
+  K <- length(theta_list)
+  ll <- matrix(NA_real_, nrow = nrow(X), ncol = K)
+  for (k in seq_len(K)) {
+    distr_k <- config[[k]]$distr
+    ll[, k] <- .log_density_vec(X[, k], distr_k, theta_list[[k]])
+  }
+  if (type == "logdensity_by_dim") return(ll)
+  rowSums(ll)
+}
