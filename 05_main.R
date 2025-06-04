@@ -16,6 +16,12 @@ source("models/trtf_model.R")
 source("models/ks_model.R")
 source("04_evaluation.R")
 
+round_df <- function(df, digits = 3) {
+  idx <- vapply(df, is.numeric, logical(1))
+  df[idx] <- lapply(df[idx], round, digits = digits)
+  df
+}
+
 N <- 100 
 config <- list(
   list(distr = "norm", parm = NULL),
@@ -136,8 +142,8 @@ main <- function() {
   legend("topleft", legend = c("true_baseline", "trtf", "ks"),
          col = c("black", "blue", "red"), pch = c(16, 1, 2))
 
-  print(tab_normal)
-  print(tab_perm)
+  print(round_df(tab_normal, digits = 3))
+  print(round_df(tab_perm, digits = 3))
 
   invisible(list(normal = tab_normal, permutation = tab_perm))
 }
