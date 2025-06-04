@@ -20,9 +20,10 @@ N <- 100
 config <- list(
   list(distr = "norm", parm = NULL),
   list(distr = "exp",  parm = function(d) list(rate = softplus(d$X1))),
-  list(distr = "beta", parm = function(d) list(shape1 = softplus(d$X2), shape2 = 1)),
-  list(distr = "gamma", parm = function(d) list(shape = softplus(d$X3), scale = 1))
+  list(distr = "beta", parm = function(d) list(shape1 = softplus(d$X2), shape2 = softplus(d$X1))),
+  list(distr = "gamma", parm = function(d) list(shape = softplus(d$X3), scale = softplus(d$X2)))
 )
+perm <- c(3, 4, 1, 2)
 
 #' @export
 main <- function() {
@@ -67,7 +68,6 @@ main <- function() {
   tab_normal <- rbind(tab_normal, as.data.frame(sum_row, stringsAsFactors = FALSE))
 
   ## Modelle mit Permutation
-  perm <- c(3, 4, 1, 2)
   X_tr_p <- S$X_tr[, perm, drop = FALSE]
   X_te_p <- S$X_te[, perm, drop = FALSE]
   colnames(X_tr_p) <- paste0("X", seq_len(ncol(X_tr_p)))
@@ -115,3 +115,4 @@ main <- function() {
 if (sys.nframe() == 0L) {
   main()
 }
+
