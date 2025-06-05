@@ -129,6 +129,7 @@ main <- function() {
        main = "Originalreihenfolge")
   points(ld_base, ld_trtf, col = "blue", pch = 1)
   points(ld_base, ld_ks,   col = "red",  pch = 2)
+  points(ld_base, ld_ttm,  col = "darkgreen", pch = 3)
   abline(a = 0, b = 1)
   legend("topleft", legend = c("true_baseline", "trtf", "ks", "ttm"),
          col = c("black", "blue", "red", "darkgreen"), pch = c(16, 1, 2, 3))
@@ -147,6 +148,7 @@ main <- function() {
        main = "Permutation")
   points(ld_base_p, ld_trtf_p, col = "blue", pch = 1)
   points(ld_base_p, ld_ks_p,   col = "red",  pch = 2)
+  points(ld_base_p, ld_ttm_p,  col = "darkgreen", pch = 3)
   abline(a = 0, b = 1)
   legend("topleft", legend = c("true_baseline", "trtf", "ks", "ttm"),
          col = c("black", "blue", "red", "darkgreen"), pch = c(16, 1, 2, 3))
