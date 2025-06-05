@@ -23,7 +23,7 @@ round_df <- function(df, digits = 3) {
   df
 }
 
-N <- 100 
+N <- 500
 config <- list(
   list(distr = "norm", parm = NULL),
   list(distr = "exp",  parm = function(d) list(rate = softplus(d$X1))),
