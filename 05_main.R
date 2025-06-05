@@ -14,6 +14,7 @@ source("02_split.R")
 source("models/true_model.R")
 source("models/trtf_model.R")
 source("models/ks_model.R")
+source("models/ttm_model.R")
 source("04_evaluation.R")
 
 round_df <- function(df, digits = 3) {
@@ -47,10 +48,12 @@ main <- function() {
   M_TRUE <- fit_TRUE(S$X_tr, S$X_te, G$config)    # Script 5
   M_TRTF <- fit_TRTF(S$X_tr, S$X_te, G$config)    # Script models/trtf_model.R
   M_KS   <- fit_KS(S$X_tr, S$X_te, G$config)      # Script models/ks_model.R
+  M_TTM  <- fit_TTM(S$X_tr, S$X_te)               # Script models/ttm_model.R
 
   baseline_ll <- logL_TRUE_dim(M_TRUE, S$X_te)
   trtf_ll     <- logL_TRTF_dim(M_TRTF, S$X_te)
   ks_ll       <- logL_KS_dim(M_KS, S$X_te)
+  ttm_ll      <- logL_TTM_dim(M_TTM, S$X_te)
 
   tab_normal <- data.frame(
     dim = as.character(seq_along(G$config)),
@@ -58,6 +61,7 @@ main <- function() {
     logL_baseline = baseline_ll,
     logL_trtf = trtf_ll,
     logL_ks = ks_ll,
+    logL_ttm = ttm_ll,
     stringsAsFactors = FALSE
   )
 
@@ -82,10 +86,12 @@ main <- function() {
   M_TRUE_p <- fit_TRUE(X_tr_p, X_te_p, G$config)
   M_TRTF_p <- fit_TRTF(X_tr_p, X_te_p, G$config)
   M_KS_p   <- fit_KS(X_tr_p, X_te_p, G$config)
+  M_TTM_p  <- fit_TTM(X_tr_p, X_te_p)
 
   baseline_ll_p <- logL_TRUE_dim(M_TRUE_p, X_te_p)
   trtf_ll_p     <- logL_TRTF_dim(M_TRTF_p, X_te_p)
   ks_ll_p       <- logL_KS_dim(M_KS_p, X_te_p)
+  ttm_ll_p      <- logL_TTM_dim(M_TTM_p, X_te_p)
 
   tab_perm <- data.frame(
     dim = as.character(seq_along(G$config)),
@@ -93,6 +99,7 @@ main <- function() {
     logL_baseline = baseline_ll_p,
     logL_trtf = trtf_ll_p,
     logL_ks = ks_ll_p,
+    logL_ttm = ttm_ll_p,
     stringsAsFactors = FALSE
   )
 
@@ -114,6 +121,7 @@ main <- function() {
   }, numeric(nrow(S$X_te))))
   ld_trtf <- as.numeric(predict(M_TRTF, S$X_te, type = "logdensity"))
   ld_ks   <- as.numeric(predict(M_KS, S$X_te, type = "logdensity"))
+  ld_ttm  <- as.numeric(predict(M_TTM, S$X_te, type = "logdensity"))
 
   plot(ld_base, ld_base, pch = 16, col = "black",
        xlab = "True log-Dichte",
@@ -122,8 +130,8 @@ main <- function() {
   points(ld_base, ld_trtf, col = "blue", pch = 1)
   points(ld_base, ld_ks,   col = "red",  pch = 2)
   abline(a = 0, b = 1)
-  legend("topleft", legend = c("true_baseline", "trtf", "ks"),
-         col = c("black", "blue", "red"), pch = c(16, 1, 2))
+  legend("topleft", legend = c("true_baseline", "trtf", "ks", "ttm"),
+         col = c("black", "blue", "red", "darkgreen"), pch = c(16, 1, 2, 3))
 
   ## Log-Dichten fuer Plot (Permutation)
   ld_base_p <- rowSums(vapply(seq_along(G$config), function(k) {
@@ -131,6 +139,7 @@ main <- function() {
   }, numeric(nrow(X_te_p))))
   ld_trtf_p <- as.numeric(predict(M_TRTF_p, X_te_p, type = "logdensity"))
   ld_ks_p   <- as.numeric(predict(M_KS_p,   X_te_p, type = "logdensity"))
+  ld_ttm_p  <- as.numeric(predict(M_TTM_p,  X_te_p, type = "logdensity"))
 
   plot(ld_base_p, ld_base_p, pch = 16, col = "black",
        xlab = "True log-Dichte",
@@ -139,8 +148,8 @@ main <- function() {
   points(ld_base_p, ld_trtf_p, col = "blue", pch = 1)
   points(ld_base_p, ld_ks_p,   col = "red",  pch = 2)
   abline(a = 0, b = 1)
-  legend("topleft", legend = c("true_baseline", "trtf", "ks"),
-         col = c("black", "blue", "red"), pch = c(16, 1, 2))
+  legend("topleft", legend = c("true_baseline", "trtf", "ks", "ttm"),
+         col = c("black", "blue", "red", "darkgreen"), pch = c(16, 1, 2, 3))
 
   print(round_df(tab_normal, digits = 3))
   print(round_df(tab_perm, digits = 3))
