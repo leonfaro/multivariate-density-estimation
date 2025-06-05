@@ -1,13 +1,3 @@
-#' Orchestrate full experiment workflow
-#'
-#' This script assembles all individual steps defined in the repository.
-#' It relies on the helper functions from Scripts 1--6 as documented in
-#' `roadmap.md`.
-#'
-#' The lines below allow overriding the global experiment size `N`
-#' and the distribution configuration `config` without modifying
-#' `00_globals.R`.
-
 source("00_globals.R")
 source("01_data_generation.R")
 source("02_split.R")
