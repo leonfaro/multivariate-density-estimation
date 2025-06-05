@@ -13,8 +13,8 @@ S <- train_test_split(X, G$split_ratio, G$seed)
 test_that("fit_TTM liefert valides Objekt", {
   mod <- fit_TTM(S$X_tr, S$X_te)
   expect_type(mod, "list")
-  expect_true(is.numeric(mod$logL_te))
-  expect_true(is.finite(mod$logL_te))
+  expect_true(is.numeric(mod$test_logL))
+  expect_true(is.finite(mod$test_logL))
 })
 
 
