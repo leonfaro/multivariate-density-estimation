@@ -36,13 +36,13 @@ create_EDA_report <- function(X, cfg, output_file = "eda_report.pdf",
                   7,8,9),
                 byrow = TRUE, ncol = 3)
   layout(mat, heights = c(1, 1, 1, 1.5, 1.5))
-  par(mar = c(2, 2, 3, 1))
+  par(mar = c(4, 4, 3, 1))
 
   if (!is.null(runtime_list)) {
     plot.new()
     title(main = "Vorhersage-Laufzeiten")
     y_pos <- 0.9
-    step <- 0.1
+    step <- 0.12
     r_names <- names(runtime_list)
     for (i in seq_along(runtime_list)) {
       nm <- r_names[i]
@@ -64,7 +64,7 @@ create_EDA_report <- function(X, cfg, output_file = "eda_report.pdf",
     plot.new()
     title(main = "Normale iteration 1 \u2192 2 \u2192 3 \u2192 4")
     tabn <- round_df(tab_normal, digits = 3)
-    tbl_lines <- strsplit(knitr::kable(tabn, format = "simple"), "\n")[[1]]
+    tbl_lines <- as.character(knitr::kable(tabn, format = "simple"))
     y_pos <- 0.9
     step <- 0.05
     for (i in seq_along(tbl_lines)) {
@@ -79,7 +79,7 @@ create_EDA_report <- function(X, cfg, output_file = "eda_report.pdf",
     perm_text <- if (is.null(perm_vec)) "" else paste(perm_vec, collapse = " \u2192 ")
     title(main = sprintf("Permutation %s", perm_text))
     tabp <- round_df(tab_perm, digits = 3)
-    tbl_lines <- strsplit(knitr::kable(tabp, format = "simple"), "\n")[[1]]
+    tbl_lines <- as.character(knitr::kable(tabp, format = "simple"))
     y_pos <- 0.9
     step <- 0.05
     for (i in seq_along(tbl_lines)) {
