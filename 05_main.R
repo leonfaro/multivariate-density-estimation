@@ -6,6 +6,7 @@ source("models/trtf_model.R")
 source("models/ks_model.R")
 source("models/ttm_model.R")
 source("04_evaluation.R")
+source("EDA.R")
 
 round_df <- function(df, digits = 3) {
   idx <- vapply(df, is.numeric, logical(1))
@@ -123,6 +124,7 @@ main <- function() {
   abline(a = 0, b = 1)
   legend("topleft", legend = c("true_baseline", "trtf", "ks", "ttm"),
          col = c("black", "blue", "red", "darkgreen"), pch = c(16, 1, 2, 3))
+  create_EDA_report(S$X_tr, G$config)
 
   ## Log-Dichten fuer Plot (Permutation)
   ld_base_p <- rowSums(vapply(seq_along(G$config), function(k) {
