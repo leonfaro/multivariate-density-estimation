@@ -39,7 +39,7 @@ forward_ttm <- function(x, theta) {
     sig_coefs <- theta$sigma[[k]]
     sig_raw <- sum(sig_coefs * tmp)
     sigma <- softplus(sig_raw)
-    z[k] <- mu + sigma * x[k]
+    z[k] <- (x[k] - mu) / sigma
   }
   z
 }
@@ -52,7 +52,7 @@ logdet_ttm <- function(x, theta) {
     tmp <- c(1, x[seq_len(k - 1)])
     sig_raw <- sum(sig_coefs * tmp)
     sigma <- softplus(sig_raw)
-    val <- val + log(sigma)
+    val <- val - log(sigma)
   }
   val
 }
@@ -88,15 +88,15 @@ grad_ttm <- function(par, X) {
       mu_k <- sum(theta$mu[[k]] * tmp)
       sig_raw <- sum(theta$sigma[[k]] * tmp)
       sigma_k <- softplus(sig_raw)
-      z_k <- mu_k + sigma_k * x[k]
+      z_k <- (x[k] - mu_k) / sigma_k
       sig_raw_list[k] <- sig_raw
       sigma_list[k] <- sigma_k
       z_list[k] <- z_k
-      mu_grad[[k]] <- mu_grad[[k]] - z_k * tmp
+      mu_grad[[k]] <- mu_grad[[k]] + (z_k / sigma_k) * tmp
     }
     for (k in seq_len(K)) {
       tmp <- c(1, x[seq_len(k - 1)])
-      dL_dsigma <- (-z_list[k] * x[k]) + (1 / sigma_list[k])
+      dL_dsigma <- (-z_list[k] * x[k]) / sigma_list[k] + (1 / sigma_list[k])
       d_raw <- logistic(sig_raw_list[k]) * dL_dsigma
       sigma_grad[[k]] <- sigma_grad[[k]] + d_raw * tmp
     }
@@ -181,7 +181,7 @@ conditional_TTM <- function(model, b_idx, b_star) {
       sig_raw <- sum(theta$sigma[[k]] * c(1, x[seq_len(k - 1)]))
       sigma_k <- softplus(sig_raw)
       mu_k <- sum(theta$mu[[k]] * c(1, x[seq_len(k - 1)]))
-      x[k] <- (z[k] - mu_k) / sigma_k
+      x[k] <- mu_k + sigma_k * z[k]
     }
   }
   x[order(model$perm)]
