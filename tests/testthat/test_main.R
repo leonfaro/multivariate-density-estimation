@@ -1,5 +1,5 @@
 old_wd <- setwd("../..")
-source("05_main.R")
+source("main.R")
 
 set.seed(42)
 G <- list(N = 20, config = config, seed = 42, split_ratio = 0.5)

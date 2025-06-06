@@ -49,7 +49,8 @@ compute_param_values <- function(X, cfg) {
   params
 }
 
-create_EDA_report <- function(X, cfg, output_file = "eda_report.pdf") {
+create_EDA_report <- function(X, cfg, output_file = "eda_report.pdf",
+                              scatter_data = NULL) {
   params <- compute_param_values(X, cfg)
   pdf(output_file)
   for (k in seq_along(params)) {
@@ -74,6 +75,33 @@ create_EDA_report <- function(X, cfg, output_file = "eda_report.pdf") {
                                  sprintf("high %0.2f", max(color_val))),
            fill = cols[c(1, 100)], bty = "n", title = param_name)
   }
+
+  if (!is.null(scatter_data)) {
+    with(scatter_data, {
+      plot(ld_base, ld_base, pch = 16, col = "black",
+           xlab = "True log-Dichte",
+           ylab = "Geschaetzte log-Dichte",
+           main = "Originalreihenfolge")
+      points(ld_base, ld_trtf, col = "blue", pch = 1)
+      points(ld_base, ld_ks,   col = "red",  pch = 2)
+      points(ld_base, ld_ttm,  col = "darkgreen", pch = 3)
+      abline(a = 0, b = 1)
+      legend("topleft", legend = c("true_baseline", "trtf", "ks", "ttm"),
+             col = c("black", "blue", "red", "darkgreen"), pch = c(16, 1, 2, 3))
+
+      plot(ld_base_p, ld_base_p, pch = 16, col = "black",
+           xlab = "True log-Dichte",
+           ylab = "Geschaetzte log-Dichte",
+           main = "Permutation")
+      points(ld_base_p, ld_trtf_p, col = "blue", pch = 1)
+      points(ld_base_p, ld_ks_p,   col = "red",  pch = 2)
+      points(ld_base_p, ld_ttm_p,  col = "darkgreen", pch = 3)
+      abline(a = 0, b = 1)
+      legend("topleft", legend = c("true_baseline", "trtf", "ks", "ttm"),
+             col = c("black", "blue", "red", "darkgreen"), pch = c(16, 1, 2, 3))
+    })
+  }
+
   dev.off()
   invisible(output_file)
 }

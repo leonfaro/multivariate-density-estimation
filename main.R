@@ -114,18 +114,6 @@ main <- function() {
   ld_ks   <- as.numeric(predict(M_KS, S$X_te, type = "logdensity"))
   ld_ttm  <- as.numeric(predict(M_TTM, S$X_te, type = "logdensity"))
 
-  plot(ld_base, ld_base, pch = 16, col = "black",
-       xlab = "True log-Dichte",
-       ylab = "Geschaetzte log-Dichte",
-       main = "Originalreihenfolge")
-  points(ld_base, ld_trtf, col = "blue", pch = 1)
-  points(ld_base, ld_ks,   col = "red",  pch = 2)
-  points(ld_base, ld_ttm,  col = "darkgreen", pch = 3)
-  abline(a = 0, b = 1)
-  legend("topleft", legend = c("true_baseline", "trtf", "ks", "ttm"),
-         col = c("black", "blue", "red", "darkgreen"), pch = c(16, 1, 2, 3))
-  create_EDA_report(S$X_tr, G$config)
-
   ## Log-Dichten fuer Plot (Permutation)
   ld_base_p <- rowSums(vapply(seq_along(G$config), function(k) {
     .log_density_vec(X_te_p[, k], G$config[[k]]$distr, M_TRUE_p$theta[[k]])
@@ -134,16 +122,18 @@ main <- function() {
   ld_ks_p   <- as.numeric(predict(M_KS_p,   X_te_p, type = "logdensity"))
   ld_ttm_p  <- as.numeric(predict(M_TTM_p,  X_te_p, type = "logdensity"))
 
-  plot(ld_base_p, ld_base_p, pch = 16, col = "black",
-       xlab = "True log-Dichte",
-       ylab = "Geschaetzte log-Dichte",
-       main = "Permutation")
-  points(ld_base_p, ld_trtf_p, col = "blue", pch = 1)
-  points(ld_base_p, ld_ks_p,   col = "red",  pch = 2)
-  points(ld_base_p, ld_ttm_p,  col = "darkgreen", pch = 3)
-  abline(a = 0, b = 1)
-  legend("topleft", legend = c("true_baseline", "trtf", "ks", "ttm"),
-         col = c("black", "blue", "red", "darkgreen"), pch = c(16, 1, 2, 3))
+  scatter_data <- list(
+    ld_base   = ld_base,
+    ld_trtf   = ld_trtf,
+    ld_ks     = ld_ks,
+    ld_ttm    = ld_ttm,
+    ld_base_p = ld_base_p,
+    ld_trtf_p = ld_trtf_p,
+    ld_ks_p   = ld_ks_p,
+    ld_ttm_p  = ld_ttm_p
+  )
+
+  create_EDA_report(S$X_tr, G$config, scatter_data = scatter_data)
 
   print(round_df(tab_normal, digits = 3))
   print(round_df(tab_perm, digits = 3))
