@@ -21,12 +21,22 @@ create_EDA_report <- function(X, cfg, output_file = "eda_report.pdf",
                               tab_normal = NULL,
                               tab_perm = NULL,
                               perm_vec = NULL) {
+  if (!requireNamespace("knitr", quietly = TRUE))
+    install.packages("knitr", repos = "https://cloud.r-project.org")
+
   pdf(output_file, paper = "a4")
 
   old_par <- par(no.readonly = TRUE)
   on.exit(par(old_par), add = TRUE)
 
-  par(mfrow = c(3, 3), mar = c(2, 2, 3, 1))
+  mat <- matrix(c(1,1,1,
+                  2,2,2,
+                  3,3,3,
+                  4,5,6,
+                  7,8,9),
+                byrow = TRUE, ncol = 3)
+  layout(mat, heights = c(1, 1, 1, 1.5, 1.5))
+  par(mar = c(2, 2, 3, 1))
 
   if (!is.null(runtime_list)) {
     plot.new()
@@ -54,11 +64,11 @@ create_EDA_report <- function(X, cfg, output_file = "eda_report.pdf",
     plot.new()
     title(main = "Normale iteration 1 \u2192 2 \u2192 3 \u2192 4")
     tabn <- round_df(tab_normal, digits = 3)
+    tbl_lines <- strsplit(knitr::kable(tabn, format = "simple"), "\n")[[1]]
     y_pos <- 0.9
     step <- 0.05
-    text(0.05, y_pos, paste(names(tabn), collapse = " | "), adj = 0)
-    for (i in seq_len(nrow(tabn))) {
-      text(0.05, y_pos - step * i, paste(tabn[i, ], collapse = " | "), adj = 0)
+    for (i in seq_along(tbl_lines)) {
+      text(0.05, y_pos - step * (i - 1), tbl_lines[i], adj = 0, family = "mono")
     }
   } else {
     plot.new()
@@ -69,11 +79,11 @@ create_EDA_report <- function(X, cfg, output_file = "eda_report.pdf",
     perm_text <- if (is.null(perm_vec)) "" else paste(perm_vec, collapse = " \u2192 ")
     title(main = sprintf("Permutation %s", perm_text))
     tabp <- round_df(tab_perm, digits = 3)
+    tbl_lines <- strsplit(knitr::kable(tabp, format = "simple"), "\n")[[1]]
     y_pos <- 0.9
     step <- 0.05
-    text(0.05, y_pos, paste(names(tabp), collapse = " | "), adj = 0)
-    for (i in seq_len(nrow(tabp))) {
-      text(0.05, y_pos - step * i, paste(tabp[i, ], collapse = " | "), adj = 0)
+    for (i in seq_along(tbl_lines)) {
+      text(0.05, y_pos - step * (i - 1), tbl_lines[i], adj = 0, family = "mono")
     }
   } else {
     plot.new()
