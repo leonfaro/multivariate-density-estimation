@@ -24,6 +24,10 @@ perm <- c(3, 4, 1, 2)
 
 #' @export
 main <- function() {
+  pdf("quick_test.pdf", width = 7, height = 7)
+  on.exit(dev.off())
+  t0 <- proc.time()
+
   G <- list(
     N = N,
     config = config,
@@ -113,6 +117,9 @@ main <- function() {
   ld_ks   <- as.numeric(predict(M_KS, S$X_te, type = "logdensity"))
   ld_ttm  <- as.numeric(predict(M_TTM, S$X_te, type = "logdensity"))
 
+  runtime <- round((proc.time() - t0)[["elapsed"]], 2)
+  message(paste0("Laufzeit: ", runtime, " Sekunden"))
+
   plot(ld_base, ld_base, pch = 16, col = "black",
        xlab = "True log-Dichte",
        ylab = "Geschaetzte log-Dichte",
@@ -123,6 +130,7 @@ main <- function() {
   abline(a = 0, b = 1)
   legend("topleft", legend = c("true_baseline", "trtf", "ks", "ttm"),
          col = c("black", "blue", "red", "darkgreen"), pch = c(16, 1, 2, 3))
+  mtext(paste0("Laufzeit: ", runtime, " Sekunden"), side = 3, line = 1, cex = 1.5)
 
   ## Log-Dichten fuer Plot (Permutation)
   ld_base_p <- rowSums(vapply(seq_along(G$config), function(k) {
@@ -142,6 +150,24 @@ main <- function() {
   abline(a = 0, b = 1)
   legend("topleft", legend = c("true_baseline", "trtf", "ks", "ttm"),
          col = c("black", "blue", "red", "darkgreen"), pch = c(16, 1, 2, 3))
+
+  plot.new()
+  title(main = "Normale iteration 1 \u2192 2 \u2192 3 \u2192 4")
+  tabn <- round_df(tab_normal, digits = 3)
+  y_pos <- 0.9
+  step <- 0.05
+  text(0.05, y_pos, paste(names(tabn), collapse = " | "), adj = 0)
+  for (i in seq_len(nrow(tabn))) {
+    text(0.05, y_pos - step * i, paste(tabn[i, ], collapse = " | "), adj = 0)
+  }
+
+  plot.new()
+  title(main = "Permutation 3 \u2192 4 \u2192 1 \u2192 2")
+  tabp <- round_df(tab_perm, digits = 3)
+  text(0.05, y_pos, paste(names(tabp), collapse = " | "), adj = 0)
+  for (i in seq_len(nrow(tabp))) {
+    text(0.05, y_pos - step * i, paste(tabp[i, ], collapse = " | "), adj = 0)
+  }
 
   print(round_df(tab_normal, digits = 3))
   print(round_df(tab_perm, digits = 3))
