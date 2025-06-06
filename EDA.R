@@ -49,10 +49,65 @@ compute_param_values <- function(X, cfg) {
   params
 }
 
-create_EDA_report <- function(X, cfg, output_file = "eda_report.pdf",
-                              scatter_data = NULL) {
+round_df <- function(df, digits = 3) {
+  idx <- vapply(df, is.numeric, logical(1))
+  df[idx] <- lapply(df[idx], round, digits = digits)
+  df
+}
+
+create_EDA_report <- function(X, cfg, output_file = "EDA.pdf",
+                              scatter_data = NULL, predict_runtime = NULL,
+                              table_normal = NULL, table_perm = NULL, perm = NULL) {
   params <- compute_param_values(X, cfg)
   pdf(output_file)
+
+  if (!is.null(predict_runtime)) {
+    plot.new()
+    title(main = "Laufzeiten der Vorhersage")
+    bullet <- "\u2022"
+    lines <- c(
+      sprintf("%s Baseline: %.3f s (keine Hyperparameter)", bullet, predict_runtime$baseline),
+      sprintf("%s TRTF: %.3f s (ntree=%d, mtry=%d, minsplit=%d, minbucket=%d, maxdepth=%d)",
+              bullet, predict_runtime$trtf, 50,
+              floor(sqrt(ncol(X) - 1)), 25, 20, 4),
+      sprintf("%s KS: %.3f s (bw.nrd0)", bullet, predict_runtime$ks),
+      sprintf("%s TTM: %.3f s (lr=1e-2, epochs=200, patience=10)", bullet, predict_runtime$ttm)
+    )
+    y_pos <- 0.9
+    step <- 0.07
+    for (i in seq_along(lines)) {
+      text(0.05, y_pos - step * (i - 1), lines[i], adj = 0)
+    }
+  }
+
+  if (!is.null(table_normal)) {
+    plot.new()
+    title(main = "Normale iteration 1 \u2192 2 \u2192 3 \u2192 4")
+    tabn <- round_df(table_normal, digits = 3)
+    y_pos <- 0.9
+    step <- 0.05
+    text(0.05, y_pos, paste(names(tabn), collapse = " | "), adj = 0)
+    for (i in seq_len(nrow(tabn))) {
+      text(0.05, y_pos - step * i, paste(tabn[i, ], collapse = " | "), adj = 0)
+    }
+  }
+
+  if (!is.null(table_perm)) {
+    plot.new()
+    if (!is.null(perm)) {
+      perm_title <- paste(perm, collapse = " \u2192 ")
+    } else {
+      perm_title <- "Permutation"
+    }
+    title(main = paste0("Permutation ", perm_title))
+    tabp <- round_df(table_perm, digits = 3)
+    y_pos <- 0.9
+    step <- 0.05
+    text(0.05, y_pos, paste(names(tabp), collapse = " | "), adj = 0)
+    for (i in seq_len(nrow(tabp))) {
+      text(0.05, y_pos - step * i, paste(tabp[i, ], collapse = " | "), adj = 0)
+    }
+  }
   for (k in seq_along(params)) {
     p_df <- params[[k]]
     if (is.null(p_df)) next

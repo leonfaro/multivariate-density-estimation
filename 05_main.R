@@ -25,8 +25,6 @@ perm <- c(3, 4, 1, 2)
 
 #' @export
 main <- function() {
-  pdf("quick_test.pdf", width = 7, height = 7)
-  on.exit(dev.off())
   t0 <- proc.time()
 
   G <- list(
@@ -45,10 +43,18 @@ main <- function() {
   M_KS   <- fit_KS(S$X_tr, S$X_te, G$config)      # Script models/ks_model.R
   M_TTM  <- fit_TTM(S$X_tr, S$X_te)               # Script models/ttm_model.R
 
-  baseline_ll <- logL_TRUE_dim(M_TRUE, S$X_te)
-  trtf_ll     <- logL_TRTF_dim(M_TRTF, S$X_te)
-  ks_ll       <- logL_KS_dim(M_KS, S$X_te)
-  ttm_ll      <- logL_TTM_dim(M_TTM, S$X_te)
+  runtime_baseline <- system.time(
+    baseline_ll <- logL_TRUE_dim(M_TRUE, S$X_te)
+  )["elapsed"]
+  runtime_trtf <- system.time(
+    trtf_ll     <- logL_TRTF_dim(M_TRTF, S$X_te)
+  )["elapsed"]
+  runtime_ks <- system.time(
+    ks_ll       <- logL_KS_dim(M_KS, S$X_te)
+  )["elapsed"]
+  runtime_ttm <- system.time(
+    ttm_ll      <- logL_TTM_dim(M_TTM, S$X_te)
+  )["elapsed"]
 
   tab_normal <- data.frame(
     dim = as.character(seq_along(G$config)),
@@ -143,7 +149,19 @@ main <- function() {
     ld_ttm_p  = ld_ttm_p
   )
 
-  create_EDA_report(S$X_tr, G$config, scatter_data = scatter_data)
+  runtime_list <- list(
+    baseline = as.numeric(runtime_baseline),
+    trtf = as.numeric(runtime_trtf),
+    ks = as.numeric(runtime_ks),
+    ttm = as.numeric(runtime_ttm)
+  )
+
+  create_EDA_report(S$X_tr, G$config,
+                    scatter_data = scatter_data,
+                    predict_runtime = runtime_list,
+                    table_normal = tab_normal,
+                    table_perm = tab_perm,
+                    perm = perm)
 
 
   print(round_df(tab_normal, digits = 3))
