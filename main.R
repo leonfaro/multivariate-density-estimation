@@ -45,10 +45,18 @@ main <- function() {
   M_KS   <- fit_KS(S$X_tr, S$X_te, G$config)      # Script models/ks_model.R
   M_TTM  <- fit_TTM(S$X_tr, S$X_te)               # Script models/ttm_model.R
 
-  baseline_ll <- logL_TRUE_dim(M_TRUE, S$X_te)
-  trtf_ll     <- logL_TRTF_dim(M_TRTF, S$X_te)
-  ks_ll       <- logL_KS_dim(M_KS, S$X_te)
-  ttm_ll      <- logL_TTM_dim(M_TTM, S$X_te)
+  t_true  <- system.time(
+    baseline_ll <- logL_TRUE_dim(M_TRUE, S$X_te)
+  )["elapsed"]
+  t_trtf <- system.time(
+    trtf_ll     <- logL_TRTF_dim(M_TRTF, S$X_te)
+  )["elapsed"]
+  t_ks   <- system.time(
+    ks_ll       <- logL_KS_dim(M_KS, S$X_te)
+  )["elapsed"]
+  t_ttm  <- system.time(
+    ttm_ll      <- logL_TTM_dim(M_TTM, S$X_te)
+  )["elapsed"]
 
   tab_normal <- data.frame(
     dim = as.character(seq_along(G$config)),
@@ -143,7 +151,21 @@ main <- function() {
     ld_ttm_p  = ld_ttm_p
   )
 
-  create_EDA_report(S$X_tr, G$config, scatter_data = scatter_data)
+  runtime_list <- c("TRUE" = t_true, TRTF = t_trtf, KS = t_ks, TTM = t_ttm)
+  hyperparam_list <- list(
+    "TRUE" = "keine",
+    TRTF = "ntree=50, mtry=sqrt(K-1), minsplit=25, minbucket=20, maxdepth=4",
+    KS   = "bw.nrd0",
+    TTM  = "lr=0.01, epochs=200, patience=10"
+  )
+
+  create_EDA_report(S$X_tr, G$config,
+                    scatter_data = scatter_data,
+                    runtime_list = runtime_list,
+                    hyperparam_list = hyperparam_list,
+                    tab_normal = tab_normal,
+                    tab_perm = tab_perm,
+                    perm_vec = perm)
 
 
   print(round_df(tab_normal, digits = 3))
