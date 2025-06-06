@@ -51,57 +51,49 @@ compute_param_values <- function(X, cfg) {
 
 create_EDA_report <- function(X, cfg, output_file = "eda_report.pdf",
                               scatter_data = NULL) {
-  params <- compute_param_values(X, cfg)
-  pdf(output_file)
-  for (k in seq_along(params)) {
-    p_df <- params[[k]]
-    if (is.null(p_df)) next
-    for (nm in names(p_df)) {
-      hist(p_df[[nm]], breaks = 30, main = sprintf("%s for X%d", nm, k),
-           xlab = nm, col = "grey", border = "white")
-    }
-  }
-  for (k in 2:ncol(X)) {
-    p_df <- params[[k]]
-    if (is.null(p_df) || ncol(p_df) < 1) next
-    color_val <- p_df[[1]]
-    param_name <- names(p_df)[1]
-    cols <- colorRampPalette(c("blue", "red"))(100)
-    idx <- cut(color_val, breaks = 100, labels = FALSE, include.lowest = TRUE)
-    plot(X[, k - 1], X[, k], col = cols[idx], pch = 16,
-         xlab = paste0("X", k - 1), ylab = paste0("X", k),
-         main = sprintf("X%d vs X%d by %s", k, k - 1, param_name))
-    legend("topright", legend = c(sprintf("low %0.2f", min(color_val)),
-                                 sprintf("high %0.2f", max(color_val))),
-           fill = cols[c(1, 100)], bty = "n", title = param_name)
-  }
+  pdf(output_file, width = 8.27, height = 11.69)
 
- if (!is.null(scatter_data)) {
+  if (!is.null(scatter_data)) {
+    par(mfrow = c(3, 2))
     with(scatter_data, {
-      plot(ld_base, ld_base, pch = 16, col = "black",
+      plot(ld_base, ld_trtf, pch = 16, col = "blue",
            xlab = "True log-Dichte",
-           ylab = "Geschaetzte log-Dichte",
-           main = "Originalreihenfolge")
-      points(ld_base, ld_trtf, col = "blue", pch = 1)
-      points(ld_base, ld_ks,   col = "red",  pch = 2)
-      points(ld_base, ld_ttm,  col = "darkgreen", pch = 3)
+           ylab = "TRTF log-Dichte",
+           main = "TRTF vs true")
       abline(a = 0, b = 1)
-      legend("topleft", legend = c("true_baseline", "trtf", "ks", "ttm"),
-             col = c("black", "blue", "red", "darkgreen"), pch = c(16, 1, 2, 3))
 
-      plot(ld_base_p, ld_base_p, pch = 16, col = "black",
+      plot(ld_base_p, ld_trtf_p, pch = 16, col = "blue",
            xlab = "True log-Dichte",
-           ylab = "Geschaetzte log-Dichte",
-           main = "Permutation")
-      points(ld_base_p, ld_trtf_p, col = "blue", pch = 1)
-      points(ld_base_p, ld_ks_p,   col = "red",  pch = 2)
-      points(ld_base_p, ld_ttm_p,  col = "darkgreen", pch = 3)
+           ylab = "TRTF log-Dichte",
+           main = "TRTF vs true (perm)")
       abline(a = 0, b = 1)
-      legend("topleft", legend = c("true_baseline", "trtf", "ks", "ttm"),
-             col = c("black", "blue", "red", "darkgreen"), pch = c(16, 1, 2, 3))
+
+      plot(ld_base, ld_ks, pch = 16, col = "red",
+           xlab = "True log-Dichte",
+           ylab = "KS log-Dichte",
+           main = "KS vs true")
+      abline(a = 0, b = 1)
+
+      plot(ld_base_p, ld_ks_p, pch = 16, col = "red",
+           xlab = "True log-Dichte",
+           ylab = "KS log-Dichte",
+           main = "KS vs true (perm)")
+      abline(a = 0, b = 1)
+
+      plot(ld_base, ld_ttm, pch = 16, col = "darkgreen",
+           xlab = "True log-Dichte",
+           ylab = "TTM log-Dichte",
+           main = "TTM vs true")
+      abline(a = 0, b = 1)
+
+      plot(ld_base_p, ld_ttm_p, pch = 16, col = "darkgreen",
+           xlab = "True log-Dichte",
+           ylab = "TTM log-Dichte",
+           main = "TTM vs true (perm)")
+      abline(a = 0, b = 1)
     })
   }
-  
+
   dev.off()
   invisible(output_file)
 }
