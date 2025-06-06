@@ -1,7 +1,7 @@
 # Ablaufdiagramm der Skripte und Modelle
 
 Das folgende Mermaid-Diagramm veranschaulicht die Interaktion der Skripte
-`01_data_generation.R`, `02_split.R`, `04_evaluation.R` und `05_main.R` sowie der
+`01_data_generation.R`, `02_split.R`, `04_evaluation.R` und `main.R` sowie der
 vier Modellimplementierungen **TRTF**, **TrueModel**, **KS-Modell** und
 **TTM-Modell**. Alle Berechnungen der Log-Likelihood finden konsequent im
 Log-Raum statt, wie in `README.md` beschrieben. Parameter, die strikt positiv
@@ -47,7 +47,7 @@ graph TD
         G1["evaluate_all(X_te, model_list)"] -->|"ruft logL_<id> auf"| G2["Tabelle"]
     end
 
-    subgraph Script05["05_main.R"]
+    subgraph Script05["main.R"]
         H1["main()"] -->|"erstellt G"| Gsetup["G = list(N, config, seed, split_ratio)"]
         H1 -->|"ruft"| A1
         H1 -->|"ruft"| B1
