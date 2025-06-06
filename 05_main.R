@@ -121,20 +121,7 @@ main <- function() {
   runtime <- round((proc.time() - t0)[["elapsed"]], 2)
   message(paste0("Laufzeit: ", runtime, " Sekunden"))
 
-  plot(ld_base, ld_base, pch = 16, col = "black",
-       xlab = "True log-Dichte",
-       ylab = "Geschaetzte log-Dichte",
-       main = "Originalreihenfolge")
-  points(ld_base, ld_trtf, col = "blue", pch = 1)
-  points(ld_base, ld_ks,   col = "red",  pch = 2)
-  points(ld_base, ld_ttm,  col = "darkgreen", pch = 3)
-  abline(a = 0, b = 1)
-  legend("topleft", legend = c("true_baseline", "trtf", "ks", "ttm"),
-         col = c("black", "blue", "red", "darkgreen"), pch = c(16, 1, 2, 3))
 
-  mtext(paste0("Laufzeit: ", runtime, " Sekunden"), side = 3, line = 1, cex = 1.5)
-
-  create_EDA_report(S$X_tr, G$config)
 
 
   ## Log-Dichten fuer Plot (Permutation)
@@ -145,34 +132,19 @@ main <- function() {
   ld_ks_p   <- as.numeric(predict(M_KS_p,   X_te_p, type = "logdensity"))
   ld_ttm_p  <- as.numeric(predict(M_TTM_p,  X_te_p, type = "logdensity"))
 
-  plot(ld_base_p, ld_base_p, pch = 16, col = "black",
-       xlab = "True log-Dichte",
-       ylab = "Geschaetzte log-Dichte",
-       main = "Permutation")
-  points(ld_base_p, ld_trtf_p, col = "blue", pch = 1)
-  points(ld_base_p, ld_ks_p,   col = "red",  pch = 2)
-  points(ld_base_p, ld_ttm_p,  col = "darkgreen", pch = 3)
-  abline(a = 0, b = 1)
-  legend("topleft", legend = c("true_baseline", "trtf", "ks", "ttm"),
-         col = c("black", "blue", "red", "darkgreen"), pch = c(16, 1, 2, 3))
+  scatter_data <- list(
+    ld_base   = ld_base,
+    ld_trtf   = ld_trtf,
+    ld_ks     = ld_ks,
+    ld_ttm    = ld_ttm,
+    ld_base_p = ld_base_p,
+    ld_trtf_p = ld_trtf_p,
+    ld_ks_p   = ld_ks_p,
+    ld_ttm_p  = ld_ttm_p
+  )
 
-  plot.new()
-  title(main = "Normale iteration 1 \u2192 2 \u2192 3 \u2192 4")
-  tabn <- round_df(tab_normal, digits = 3)
-  y_pos <- 0.9
-  step <- 0.05
-  text(0.05, y_pos, paste(names(tabn), collapse = " | "), adj = 0)
-  for (i in seq_len(nrow(tabn))) {
-    text(0.05, y_pos - step * i, paste(tabn[i, ], collapse = " | "), adj = 0)
-  }
+  create_EDA_report(S$X_tr, G$config, scatter_data = scatter_data)
 
-  plot.new()
-  title(main = "Permutation 3 \u2192 4 \u2192 1 \u2192 2")
-  tabp <- round_df(tab_perm, digits = 3)
-  text(0.05, y_pos, paste(names(tabp), collapse = " | "), adj = 0)
-  for (i in seq_len(nrow(tabp))) {
-    text(0.05, y_pos - step * i, paste(tabp[i, ], collapse = " | "), adj = 0)
-  }
 
   print(round_df(tab_normal, digits = 3))
   print(round_df(tab_perm, digits = 3))
@@ -180,10 +152,7 @@ main <- function() {
   invisible(list(normal = tab_normal, permutation = tab_perm))
 }
 
-# einfache Möglichkeit, weitere Modelle anzuhängen:
-# - Quellcode in models/<neues>.R mit
-#     fit_<NAME>()  und  logL_<NAME>()
-# - anschließend hier laden und der Liste `models` hinzufügen.
+
 
 if (sys.nframe() == 0L) {
   main()
