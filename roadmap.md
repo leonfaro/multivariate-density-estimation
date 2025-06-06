@@ -261,7 +261,7 @@ FUNCTION evaluate_all(X_te, model_list):
 
 ---
 
-### **Script 7: 05\_main.R**  (Orchestrator)
+### **Script 7: main.R**  (Orchestrator)
 
 ```
 config <- list(
