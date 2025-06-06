@@ -1,8 +1,10 @@
 # Simplified TRTF model using BoxCox transformation models
 # Follows notation in README.md and Theory.md
+library(parallel)
+NC <- parallel::detectCores()
 
 mytrtf <- function(data, ntree = 50, mtry = floor(sqrt(ncol(data) - 1)),
-                   minsplit = 10, minbucket = 5, maxdepth = 4, seed = 42) {
+                   minsplit = 25, minbucket = 20, maxdepth = 4, seed = 42) {
   stopifnot(is.matrix(data))
   library(trtf)
   set.seed(seed)
@@ -24,21 +26,21 @@ mytrtf <- function(data, ntree = 50, mtry = floor(sqrt(ncol(data) - 1)),
     rhs <- paste(names(df)[1:(k - 1)], collapse = "+")
     fm <- as.formula(paste(names(df)[k], "~", rhs))
     forests[[k - 1L]] <- traforest(ymod[[k]], formula = fm, data = df,
-                                  ntree = ntree, mtry = mtry,
-                                  control = ctrl)
+                                  trace = TRUE, ntree = ntree,
+                                  min_update = 50, update = FALSE,
+                                  mltargs = list(), mtry = mtry,
+                                  cores = floor(NC / 2), control = ctrl)
   }
 
   res <- list(ymod = ymod, forests = forests, seed = seed,
-              oob = sapply(forests, function(fr) {
-                -mean(logLik(fr, OOB = TRUE))
-              }),
               varimp = lapply(forests, varimp))
   class(res) <- "mytrtf"
   res
 }
 
 predict.mytrtf <- function(object, newdata,
-                           type = c("logdensity", "logdensity_by_dim")) {
+                           type = c("logdensity", "logdensity_by_dim"),
+                           cores = floor(NC), trace = TRUE) {
   type <- match.arg(type)
   stopifnot(inherits(object, "mytrtf"), is.matrix(newdata))
 
@@ -50,7 +52,8 @@ predict.mytrtf <- function(object, newdata,
   ld_rest <- lapply(seq_along(object$forests), function(j) {
     fr <- object$forests[[j]]
     q <- df_new[, variable.names(fr$model)[1]]
-    pr <- predict(fr, newdata = df_new, type = "logdensity", q = q)
+    pr <- predict(fr, newdata = df_new, type = "logdensity", q = q,
+                  cores = cores, trace = trace)
     diag(do.call(cbind, pr))
   })
   ll <- cbind(ld1, do.call(cbind, ld_rest))
@@ -60,22 +63,24 @@ predict.mytrtf <- function(object, newdata,
 }
 
 logL_TRTF <- function(model, X) {
-  val <- -mean(predict(model, X, type = "logdensity"))
+  val <- -mean(predict(model, X, type = "logdensity",
+                       cores = floor(NC), trace = TRUE))
   if (!is.finite(val)) stop("log-likelihood not finite")
   val
 }
 
 logL_TRTF_dim <- function(model, X) {
-  ll <- predict(model, X, type = "logdensity_by_dim")
+  ll <- predict(model, X, type = "logdensity_by_dim",
+                cores = floor(NC), trace = TRUE)
   res <- -colMeans(ll)
   if (!all(is.finite(res))) stop("log-likelihood not finite")
   res
 }
 
 fit_TRTF <- function(X_tr, X_te, config,
-                     grid = list(ntree = c(5, 10),
+                     grid = list(ntree = 50,
                                  mtry = floor(sqrt(ncol(X_tr) - 1)),
-                                 minsplit = 10, minbucket = 5, maxdepth = 4),
+                                 minsplit = 25, minbucket = 20, maxdepth = 4),
                      folds = 2, seed = 42) {
   stopifnot(is.matrix(X_tr), is.matrix(X_te))
   set.seed(seed)
@@ -96,7 +101,8 @@ fit_TRTF <- function(X_tr, X_te, config,
       m <- mytrtf(X_train, ntree = cfg$ntree, mtry = cfg$mtry,
                    minsplit = cfg$minsplit, minbucket = cfg$minbucket,
                    maxdepth = cfg$maxdepth, seed = seed + f)
-      val_fold[f] <- -mean(predict(m, X_valid, type = "logdensity"))
+      val_fold[f] <- -mean(predict(m, X_valid, type = "logdensity",
+                                   cores = floor(NC), trace = TRUE))
     }
     val <- mean(val_fold)
     if (is.finite(val) && val < best_val) {
