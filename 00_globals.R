@@ -1,6 +1,17 @@
 # Global configuration for TRUE-Modell-Experimente
 # Notation follows Theory.md
 
+## Bibliotheken -------------------------------------------------------------
+library(parallel)
+library(trtf)
+library(ggplot2)
+library(gridExtra)
+library(kableExtra)
+library(dplyr)
+library(tibble)
+library(testthat)
+library(tidyr)
+
 softplus <- function(x) log1p(exp(x))
 
 

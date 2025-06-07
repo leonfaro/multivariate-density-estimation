@@ -1,12 +1,10 @@
 # Simplified TRTF model using BoxCox transformation models
 # Follows notation in README.md and Theory.md
-library(parallel)
 NC <- parallel::detectCores()
 
 mytrtf <- function(data, ntree = 50, mtry = floor(sqrt(ncol(data) - 1)),
                    minsplit = 25, minbucket = 20, maxdepth = 4, seed = 42) {
   stopifnot(is.matrix(data))
-  library(trtf)
   set.seed(seed)
   K <- ncol(data)
   df <- as.data.frame(data)
