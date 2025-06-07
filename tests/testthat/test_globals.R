@@ -1,7 +1,7 @@
 test_that("setup_global returns expected list", {
   out <- setup_global()
   expect_type(out, "list")
-  expect_equal(out$N, 500)
+  expect_equal(out$N, 50)
   expect_true(identical(out$config, config))
   expect_equal(out$seed, 42)
   expect_equal(out$split_ratio, 0.5)

@@ -19,12 +19,13 @@ softplus <- function(x) log1p(exp(x))
 #' @return list with elements N, config, seed, split_ratio,
 #'   H_grid, model_ids and P_max
 setup_global <- function() {
-  N <- 500
+  N <- 50
   seed <- 42
   split_ratio <- 0.5
   P_max <- 6
   H_grid <- seq_len(P_max)
   model_ids <- c("TRUE")
+  config <- get("config", envir = parent.frame())
 
   list(
     N = N,

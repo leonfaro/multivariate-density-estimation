@@ -77,8 +77,8 @@ add_sum_row <- function(tab, label = "k") {
 #' @return `kableExtra` table with average log-likelihoods and runtimes
 #' @export
 combine_logL_tables <- function(tab_normal, tab_perm,
-                                M_TRUE_p, M_TRTF_p, M_KS_p, M_TTM_p, X_te_p,
-                                t_normal) {
+                                M_TRUE_p, M_TRTF_p, M_KS_p, M_TTM_p = NULL,
+                                X_te_p, t_normal) {
   if (!requireNamespace("kableExtra", quietly = TRUE))
     install.packages("kableExtra", repos = "https://cloud.r-project.org")
 
@@ -86,23 +86,31 @@ combine_logL_tables <- function(tab_normal, tab_perm,
   t_true_p <- system.time(logL_TRUE_dim(M_TRUE_p, X_te_p))["elapsed"]
   t_trtf_p <- system.time(logL_TRTF_dim(M_TRTF_p, X_te_p))["elapsed"]
   t_ks_p   <- system.time(logL_KS_dim(M_KS_p,   X_te_p))["elapsed"]
-  t_ttm_p  <- system.time(logL_TTM_dim(M_TTM_p, X_te_p))["elapsed"]
+  if (!is.null(M_TTM_p)) {
+    t_ttm_p <- system.time(logL_TTM_dim(M_TTM_p, X_te_p))["elapsed"]
+  } else {
+    t_ttm_p <- NA_real_
+  }
 
-  clean_cols <- function(df, suffix) {
-    df %>%
+  clean_cols <- function(df, suffix, has_ttm = TRUE) {
+    df <- df %>%
       rename(
         distr = distribution,
         true  = logL_baseline,
         trtf  = logL_trtf,
-        ks    = logL_ks,
-        ttm   = logL_ttm
-      ) %>%
-      rename_with(~ paste0(.x, "_", suffix),
-                  c(true, trtf, ks, ttm))
+        ks    = logL_ks
+      )
+    if (has_ttm && "logL_ttm" %in% names(df)) {
+      df <- df %>% rename(ttm = logL_ttm)
+      rn <- c("true", "trtf", "ks", "ttm")
+    } else {
+      rn <- c("true", "trtf", "ks")
+    }
+    df %>% rename_with(~ paste0(.x, "_", suffix), rn)
   }
 
-  tab_norm <- clean_cols(tab_normal, "norm")
-  tab_perm <- clean_cols(tab_perm,   "perm")
+  tab_norm <- clean_cols(tab_normal, "norm", !is.null(M_TTM_p))
+  tab_perm <- clean_cols(tab_perm,   "perm", !is.null(M_TTM_p))
 
   tab_all <- left_join(tab_norm, tab_perm, by = c("dim", "distr"))
   tab_all <- tab_all %>%
@@ -112,36 +120,59 @@ combine_logL_tables <- function(tab_normal, tab_perm,
   tab_all <- tab_all %>%
     rename_with(~ sub("_norm$", "", .x), ends_with("_norm"))
 
-  tab_all <- tab_all %>%
-    add_row(
-      dim       = "runtime (ms)",
-      distr     = "",
-      true      = t_normal["true"] * 1000,
-      true_perm = t_true_p * 1000,
-      trtf      = t_normal["trtf"] * 1000,
-      trtf_perm = t_trtf_p * 1000,
-      ks        = t_normal["ks"] * 1000,
-      ks_perm   = t_ks_p * 1000,
-      ttm       = t_normal["ttm"] * 1000,
-      ttm_perm  = t_ttm_p * 1000
-    )
-
-  tab_all <- tab_all %>%
-    mutate(across(where(is.numeric), ~ round(.x, 0)))
-
-  header_lvl1 <- c(" " = 2,
-                   "true" = 2,
-                   "trtf" = 2,
-                   "ks"   = 2,
-                   "ttm"  = 2)
-  header_lvl2 <- c(
-    "dim" = 1,
-    "distr" = 1,
-    "normal" = 1, "permu" = 1,
-    "normal" = 1, "permu" = 1,
-    "normal" = 1, "permu" = 1,
-    "normal" = 1, "permu" = 1
+  runtime_row <- list(
+    dim       = "runtime (ms)",
+    distr     = "",
+    true      = t_normal["true"] * 1000,
+    true_perm = t_true_p * 1000,
+    trtf      = t_normal["trtf"] * 1000,
+    trtf_perm = t_trtf_p * 1000,
+    ks        = t_normal["ks"] * 1000,
+    ks_perm   = t_ks_p * 1000
   )
+  if (!is.null(M_TTM_p)) {
+    runtime_row$ttm <- t_normal["ttm"] * 1000
+    runtime_row$ttm_perm <- t_ttm_p * 1000
+  }
+
+  tab_all <- tab_all %>% add_row(!!!runtime_row)
+
+  tab_all <- tab_all %>%
+    identity()
+
+  num_cols <- vapply(tab_all, is.numeric, logical(1))
+  for (col in names(tab_all)[num_cols]) {
+    tab_all[-nrow(tab_all), col] <- round(tab_all[-nrow(tab_all), col], 3)
+    tab_all[nrow(tab_all), col] <- round(tab_all[nrow(tab_all), col], 0)
+  }
+
+  if (!is.null(M_TTM_p)) {
+    header_lvl1 <- c(" " = 2,
+                     "true" = 2,
+                     "trtf" = 2,
+                     "ks"   = 2,
+                     "ttm"  = 2)
+    header_lvl2 <- c(
+      "dim" = 1,
+      "distr" = 1,
+      "normal" = 1, "permu" = 1,
+      "normal" = 1, "permu" = 1,
+      "normal" = 1, "permu" = 1,
+      "normal" = 1, "permu" = 1
+    )
+  } else {
+    header_lvl1 <- c(" " = 2,
+                     "true" = 2,
+                     "trtf" = 2,
+                     "ks"   = 2)
+    header_lvl2 <- c(
+      "dim" = 1,
+      "distr" = 1,
+      "normal" = 1, "permu" = 1,
+      "normal" = 1, "permu" = 1,
+      "normal" = 1, "permu" = 1
+    )
+  }
 
   tab_all %>%
     kbl(caption = "Average -logLikelihood", align = "c", booktabs = TRUE) %>%

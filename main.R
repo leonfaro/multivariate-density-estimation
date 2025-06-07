@@ -7,7 +7,6 @@ source("02_split.R")
 source("models/true_model.R")
 source("models/trtf_model.R")
 source("models/ks_model.R")
-source("models/ttm_model.R")
 source("04_evaluation.R")
 source("EDA.R")
 
@@ -40,7 +39,6 @@ main <- function() {
   M_TRUE <- fit_TRUE(S$X_tr, S$X_te, G$config)    # Script 5
   M_TRTF <- fit_TRTF(S$X_tr, S$X_te, G$config)    # Script models/trtf_model.R
   M_KS   <- fit_KS(S$X_tr, S$X_te, G$config)      # Script models/ks_model.R
-  M_TTM  <- fit_TTM(S$X_tr, S$X_te)               # Script models/ttm_model.R
 
   t_true  <- system.time(
     baseline_ll <- logL_TRUE_dim(M_TRUE, S$X_te)
@@ -51,9 +49,6 @@ main <- function() {
   t_ks   <- system.time(
     ks_ll       <- logL_KS_dim(M_KS, S$X_te)
   )["elapsed"]
-  t_ttm  <- system.time(
-    ttm_ll      <- logL_TTM_dim(M_TTM, S$X_te)
-  )["elapsed"]
 
   tab_normal <- data.frame(
     dim = as.character(seq_along(G$config)),
@@ -61,7 +56,6 @@ main <- function() {
     logL_baseline = baseline_ll,
     logL_trtf = trtf_ll,
     logL_ks = ks_ll,
-    logL_ttm = ttm_ll,
     stringsAsFactors = FALSE
   )
 
@@ -76,12 +70,10 @@ main <- function() {
   M_TRUE_p <- fit_TRUE(X_tr_p, X_te_p, G$config)
   M_TRTF_p <- fit_TRTF(X_tr_p, X_te_p, G$config)
   M_KS_p   <- fit_KS(X_tr_p, X_te_p, G$config)
-  M_TTM_p  <- fit_TTM(X_tr_p, X_te_p)
 
   baseline_ll_p <- logL_TRUE_dim(M_TRUE_p, X_te_p)
   trtf_ll_p     <- logL_TRTF_dim(M_TRTF_p, X_te_p)
   ks_ll_p       <- logL_KS_dim(M_KS_p, X_te_p)
-  ttm_ll_p      <- logL_TTM_dim(M_TTM_p, X_te_p)
 
   tab_perm <- data.frame(
     dim = as.character(seq_along(G$config)),
@@ -89,7 +81,6 @@ main <- function() {
     logL_baseline = baseline_ll_p,
     logL_trtf = trtf_ll_p,
     logL_ks = ks_ll_p,
-    logL_ttm = ttm_ll_p,
     stringsAsFactors = FALSE
   )
 
@@ -101,7 +92,6 @@ main <- function() {
   }, numeric(nrow(S$X_te))))
   ld_trtf <- as.numeric(predict(M_TRTF, S$X_te, type = "logdensity"))
   ld_ks   <- as.numeric(predict(M_KS, S$X_te, type = "logdensity"))
-  ld_ttm  <- as.numeric(predict(M_TTM, S$X_te, type = "logdensity"))
 
   runtime <- round((proc.time() - t0)[["elapsed"]], 2)
   message(paste0("Laufzeit: ", runtime, " Sekunden"))
@@ -115,31 +105,37 @@ main <- function() {
   }, numeric(nrow(X_te_p))))
   ld_trtf_p <- as.numeric(predict(M_TRTF_p, X_te_p, type = "logdensity"))
   ld_ks_p   <- as.numeric(predict(M_KS_p,   X_te_p, type = "logdensity"))
-  ld_ttm_p  <- as.numeric(predict(M_TTM_p,  X_te_p, type = "logdensity"))
 
   scatter_data <- list(
     ld_base   = ld_base,
     ld_trtf   = ld_trtf,
     ld_ks     = ld_ks,
-    ld_ttm    = ld_ttm,
     ld_base_p = ld_base_p,
     ld_trtf_p = ld_trtf_p,
-    ld_ks_p   = ld_ks_p,
-    ld_ttm_p  = ld_ttm_p
+    ld_ks_p   = ld_ks_p
   )
 
 
-  vec_normal <- c(true = t_true, trtf = t_trtf, ks = t_ks, ttm = t_ttm)
+  vec_normal <- c(true = t_true, trtf = t_trtf, ks = t_ks)
   kbl_tab <- combine_logL_tables(tab_normal, tab_perm,
-                                 M_TRUE_p, M_TRTF_p, M_KS_p, M_TTM_p, X_te_p,
+                                 M_TRUE_p, M_TRTF_p, M_KS_p, NULL, X_te_p,
                                  vec_normal)
 
   create_EDA_report(S$X_tr, G$config,
                     scatter_data = scatter_data,
                     table_kbl = kbl_tab)
 
+  print(kbl_tab)
 
-  invisible(kbl_tab)
+  res <- list(
+    kbl = kbl_tab,
+    normal = tab_normal,
+    permutation = tab_perm
+  )
+  class(res) <- class(kbl_tab)
+  attr(res, "format") <- attr(kbl_tab, "format")
+  attr(res, "tab_data") <- attr(kbl_tab, "tab_data")
+  res
 }
 
 
