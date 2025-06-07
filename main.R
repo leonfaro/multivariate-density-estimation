@@ -151,27 +151,18 @@ main <- function() {
     ld_ttm_p  = ld_ttm_p
   )
 
-  runtime_list <- c("TRUE" = t_true, TRTF = t_trtf, KS = t_ks, TTM = t_ttm)
-  hyperparam_list <- list(
-    "TRUE" = "keine",
-    TRTF = "ntree=50, mtry=sqrt(K-1), minsplit=25, minbucket=20, maxdepth=4",
-    KS   = "bw.nrd0",
-    TTM  = "lr=0.01, epochs=200, patience=10"
-  )
+
+  vec_normal <- c(true = t_true, trtf = t_trtf, ks = t_ks, ttm = t_ttm)
+  kbl_tab <- combine_logL_tables(tab_normal, tab_perm,
+                                 M_TRUE_p, M_TRTF_p, M_KS_p, M_TTM_p, X_te_p,
+                                 vec_normal)
 
   create_EDA_report(S$X_tr, G$config,
                     scatter_data = scatter_data,
-                    runtime_list = runtime_list,
-                    hyperparam_list = hyperparam_list,
-                    tab_normal = tab_normal,
-                    tab_perm = tab_perm,
-                    perm_vec = perm)
+                    table_kbl = kbl_tab)
 
 
-  print(round_df(tab_normal, digits = 3))
-  print(round_df(tab_perm, digits = 3))
-
-  invisible(list(normal = tab_normal, permutation = tab_perm))
+  invisible(kbl_tab)
 }
 
 
