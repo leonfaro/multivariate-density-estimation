@@ -11,7 +11,7 @@ source("models/ttm_model.R")
 source("04_evaluation.R")
 source("EDA.R")
 
-N <- 50
+n <- 50
 config <- list(
   list(distr = "norm", parm = NULL),
   list(distr = "exp",  parm = function(d) list(rate = softplus(d$X1))),
@@ -27,7 +27,7 @@ main <- function() {
   t0 <- proc.time()
 
   G <- list(
-    N = N,
+    n = n,
     config = config,
     seed = 42,
     split_ratio = 0.5
@@ -138,12 +138,7 @@ main <- function() {
                     scatter_data = scatter_data,
                     table_kbl = kbl_tab)
 
-  res <- list(
-    kbl = kbl_tab,
-    normal = tab_normal,
-    permutation = tab_perm
-  )
-  class(res) <- c("knitr_kable", class(kbl_tab))
+  res <- kbl_tab
   attr(res, "tab_data") <- attr(kbl_tab, "tab_data")
   res
 }
