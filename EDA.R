@@ -20,9 +20,7 @@ create_EDA_report <- function(X, cfg, output_file = "eda_report.pdf",
   if (!requireNamespace("gridExtra", quietly = TRUE))
     install.packages("gridExtra", repos = "https://cloud.r-project.org")
 
-  library(ggplot2)
-  library(gridExtra)
-  library(kableExtra)
+
 
   make_plot <- function(x, y, ttl) {
     ggplot(data.frame(x = x, y = y), aes(x = x, y = y)) +
