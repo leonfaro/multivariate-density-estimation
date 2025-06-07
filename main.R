@@ -8,12 +8,6 @@ source("models/ttm_model.R")
 source("04_evaluation.R")
 source("EDA.R")
 
-round_df <- function(df, digits = 3) {
-  idx <- vapply(df, is.numeric, logical(1))
-  df[idx] <- lapply(df[idx], round, digits = digits)
-  df
-}
-
 N <- 50
 config <- list(
   list(distr = "norm", parm = NULL),
@@ -68,17 +62,7 @@ main <- function() {
     stringsAsFactors = FALSE
   )
 
-  sum_row <- setNames(vector("list", ncol(tab_normal)), names(tab_normal))
-  for (nm in names(tab_normal)) {
-    if (nm == "dim") {
-      sum_row[[nm]] <- "k"
-    } else if (is.numeric(tab_normal[[nm]])) {
-      sum_row[[nm]] <- sum(tab_normal[[nm]])
-    } else {
-      sum_row[[nm]] <- NA
-    }
-  }
-  tab_normal <- rbind(tab_normal, as.data.frame(sum_row, stringsAsFactors = FALSE))
+  tab_normal <- add_sum_row(tab_normal)
 
   ## Modelle mit Permutation
   X_tr_p <- S$X_tr[, perm, drop = FALSE]
@@ -106,17 +90,7 @@ main <- function() {
     stringsAsFactors = FALSE
   )
 
-  sum_row <- setNames(vector("list", ncol(tab_perm)), names(tab_perm))
-  for (nm in names(tab_perm)) {
-    if (nm == "dim") {
-      sum_row[[nm]] <- "k"
-    } else if (is.numeric(tab_perm[[nm]])) {
-      sum_row[[nm]] <- sum(tab_perm[[nm]])
-    } else {
-      sum_row[[nm]] <- NA
-    }
-  }
-  tab_perm <- rbind(tab_perm, as.data.frame(sum_row, stringsAsFactors = FALSE))
+  tab_perm <- add_sum_row(tab_perm)
 
   ## Log-Dichten fuer Plot (Originalreihenfolge)
   ld_base <- rowSums(vapply(seq_along(G$config), function(k) {
