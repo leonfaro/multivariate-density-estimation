@@ -10,7 +10,7 @@ source("04_evaluation.R")
 
 set.seed(1)
 G <- setup_global()
-G$N <- 10
+G$n <- 10
 X <- gen_samples(G)
 S <- train_test_split(X, G$split_ratio, G$seed)
 

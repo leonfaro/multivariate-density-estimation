@@ -106,7 +106,7 @@ combine_logL_tables <- function(tab_normal, tab_perm,
 
   tab_all <- left_join(tab_norm, tab_perm, by = c("dim", "distr"))
   tab_all <- tab_all %>%
-    mutate(across(where(is.numeric), replace_na, 0)) %>%
+    mutate(across(where(is.numeric), ~replace_na(.x, 0))) %>%
     mutate(distr = replace_na(distr, "SUM"))
 
   tab_all <- tab_all %>%

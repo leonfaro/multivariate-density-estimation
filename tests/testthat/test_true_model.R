@@ -5,7 +5,7 @@ source("../../models/true_model.R")
 set.seed(1)
 G <- setup_global()
 X <- gen_samples(G)
-N_tr <- floor(G$split_ratio * G$N)
+N_tr <- floor(G$split_ratio * G$n)
 X_tr <- X[seq_len(N_tr), ]
 X_te <- X[(N_tr + 1):nrow(X), ]
 

@@ -11,11 +11,11 @@
 #' @export
 train_test_split <- function(X, split_ratio, seed) {
   stopifnot(is.matrix(X), is.numeric(split_ratio), length(split_ratio) == 1)
-  N <- nrow(X)
+  n_tot <- nrow(X)
   set.seed(seed + 1L)
-  idx <- sample.int(N)
-  N_tr <- floor(split_ratio * N)
-  X_tr <- X[idx[seq_len(N_tr)], , drop = FALSE]
-  X_te <- X[idx[(N_tr + 1):N], , drop = FALSE]
+  idx <- sample.int(n_tot)
+  n_tr <- floor(split_ratio * n_tot)
+  X_tr <- X[idx[seq_len(n_tr)], , drop = FALSE]
+  X_te <- X[idx[(n_tr + 1):n_tot], , drop = FALSE]
   list(X_tr = X_tr, X_te = X_te)
 }
