@@ -1,4 +1,6 @@
 softplus <- function(x) log1p(exp(x))
+
+source("../../00_globals.R")
 source("../../01_data_generation.R")
 
 cfg <- list(
@@ -24,6 +26,7 @@ test_that("reproducibility", {
 test_that("map transforms to approx standard normal", {
   expect_true(max(abs(colMeans(z1))) < 0.1)
   expect_true(max(abs(cov(z1) - diag(2))) < 0.6)
+
 })
 
 test_that("round-trip property", {
