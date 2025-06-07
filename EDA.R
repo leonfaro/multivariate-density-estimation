@@ -46,7 +46,10 @@ create_EDA_report <- function(X, cfg, output_file = "eda_report.pdf",
 
   pdf(output_file, width = 8, height = 11)
   if (!is.null(table_kbl)) {
-    tbl <- gridExtra::tableGrob(attr(table_kbl, "tab_data"))
+    tbl <- gridExtra::tableGrob(
+      attr(table_kbl, "tab_data"), rows = NULL,
+      theme = gridExtra::ttheme_default(base_size = 8)
+    )
     gridExtra::grid.arrange(tbl)
   }
   if (!is.null(plots))
