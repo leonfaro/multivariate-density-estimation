@@ -1,5 +1,4 @@
 old_wd <- setwd("../..")
-source("05_logL_table.R")
 source("00_globals.R")
 source("01_data_generation.R")
 source("02_split.R")
