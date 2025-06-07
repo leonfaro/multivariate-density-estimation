@@ -138,8 +138,14 @@ main <- function() {
                     scatter_data = scatter_data,
                     table_kbl = kbl_tab)
 
-
-  invisible(kbl_tab)
+  res <- list(
+    kbl = kbl_tab,
+    normal = tab_normal,
+    permutation = tab_perm
+  )
+  class(res) <- c("knitr_kable", class(kbl_tab))
+  attr(res, "tab_data") <- attr(kbl_tab, "tab_data")
+  res
 }
 
 
