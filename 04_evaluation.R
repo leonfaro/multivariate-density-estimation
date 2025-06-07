@@ -127,7 +127,13 @@ combine_logL_tables <- function(tab_normal, tab_perm,
     )
 
   tab_all <- tab_all %>%
-    mutate(across(where(is.numeric), ~ round(.x, 0)))
+    identity()
+
+  num_cols <- vapply(tab_all, is.numeric, logical(1))
+  for (col in names(tab_all)[num_cols]) {
+    tab_all[-nrow(tab_all), col] <- round(tab_all[-nrow(tab_all), col], 3)
+    tab_all[nrow(tab_all), col] <- round(tab_all[nrow(tab_all), col], 0)
+  }
 
   header_lvl1 <- c(" " = 2,
                    "true" = 2,
@@ -144,7 +150,7 @@ combine_logL_tables <- function(tab_normal, tab_perm,
   )
 
   tab_all %>%
-    kbl(caption = "Average -logLikelihood", align = "c", booktabs = TRUE) %>%
+    kbl(caption = "Average logL", align = "c", booktabs = TRUE) %>%
     add_header_above(header_lvl1, align = "c") %>%
     add_header_above(header_lvl2, align = "c") %>%
     kable_styling(full_width = FALSE, position = "center") -> kbl_out
