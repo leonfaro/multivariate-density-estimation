@@ -22,5 +22,5 @@ test_that("main outputs combined kable table", {
   expect_s3_class(res, "knitr_kable")
   tab_data <- attr(res, "tab_data")
   expect_s3_class(tab_data, "data.frame")
-  expect_true(all(is.finite(tab_data$true_norm[1:length(G$config)])))
+  expect_true(all(is.finite(tab_data$true[1:length(G$config)])))
 })
