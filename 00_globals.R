@@ -16,23 +16,23 @@ softplus <- function(x) log1p(exp(x))
 
 #' Initialize global parameters
 #'
-#' @return list with elements N, config, seed, split_ratio,
-#'   H_grid, model_ids and P_max
-setup_global <- function() {
-  N <- 500
+#' @return list with elements `n`, `config`, `seed`, `split_ratio`,
+#'   `h_grid`, `model_ids` and `p_max`
+setup_global <- function(cfg = config) {
+  n <- 500
   seed <- 42
   split_ratio <- 0.5
-  P_max <- 6
-  H_grid <- seq_len(P_max)
+  p_max <- 6
+  h_grid <- seq_len(p_max)
   model_ids <- c("TRUE")
 
   list(
-    N = N,
-    config = config,
+    n = n,
+    config = cfg,
     seed = seed,
     split_ratio = split_ratio,
-    H_grid = H_grid,
+    h_grid = h_grid,
     model_ids = model_ids,
-    P_max = P_max
+    p_max = p_max
   )
 }

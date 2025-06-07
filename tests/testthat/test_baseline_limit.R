@@ -2,7 +2,7 @@ old_wd <- setwd("../..")
 source("main.R")
 
 set.seed(123)
-N <- 100
+n <- 100
 full_res <- main()
 setwd(old_wd)
 
