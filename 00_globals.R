@@ -2,15 +2,14 @@
 # Notation follows Theory.md
 
 ## Bibliotheken -------------------------------------------------------------
+pkgs <- c("trtf", "ggplot2", "gridExtra", "kableExtra", "dplyr",
+          "tibble", "testthat", "tidyr")
+for (p in pkgs) {
+  if (!requireNamespace(p, quietly = TRUE))
+    install.packages(p, repos = "https://cloud.r-project.org")
+  library(p, character.only = TRUE)
+}
 library(parallel)
-library(trtf)
-library(ggplot2)
-library(gridExtra)
-library(kableExtra)
-library(dplyr)
-library(tibble)
-library(testthat)
-library(tidyr)
 
 softplus <- function(x) log1p(exp(x))
 
