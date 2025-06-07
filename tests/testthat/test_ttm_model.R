@@ -5,7 +5,7 @@ source("../../models/ttm_model.R")
 
 set.seed(1)
 G <- setup_global()
-G$N <- 40
+G$n <- 40
 X <- gen_samples(G)
 S <- train_test_split(X, G$split_ratio, G$seed)
 

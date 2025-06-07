@@ -9,9 +9,9 @@ cfg <- list(
 )
 
 set.seed(123)
-res1 <- TTM_generate(cfg, N = 30, seed = 123)
+res1 <- TTM_generate(cfg, n = 30, seed = 123)
 set.seed(123)
-res2 <- TTM_generate(cfg, N = 30, seed = 123)
+res2 <- TTM_generate(cfg, n = 30, seed = 123)
 
 z1 <- t(apply(res1$X, 1L, S_forward, theta = res1$theta_hat))
 

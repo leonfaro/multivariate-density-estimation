@@ -7,8 +7,8 @@ G <- setup_global()
 X <- gen_samples(G)
 S <- train_test_split(X, G$split_ratio, G$seed)
 
-N_tr <- floor(G$split_ratio * G$N)
-N_te <- G$N - N_tr
+N_tr <- floor(G$split_ratio * G$n)
+N_te <- G$n - N_tr
 
 context("data_split")
 

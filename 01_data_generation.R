@@ -92,7 +92,7 @@ Conditional_Sample <- function(fix_idx, fix_val, theta_hat, m) {
 
 # Kompatibilitäts-Funktion für bestehende Tests
 gen_samples <- function(G) {
-  Generate_iid_from_config(G$N, G$config)
+  Generate_iid_from_config(G$n, G$config)
 }
 
 #' Generate samples via Triangular Transport Map
@@ -104,7 +104,7 @@ gen_samples <- function(G) {
 #' map to standard normal samples.
 #'
 #' @param config list of conditional specifications
-#' @param N      integer sample size
+#' @param n      integer sample size
 #' @param seed   RNG seed ensuring reproducibility
 #' @param fix_idx optional indices to condition on
 #' @param fix_val numeric vector with fixed values
@@ -112,8 +112,8 @@ gen_samples <- function(G) {
 #' @return list with elements `X` and `theta_hat`; if `fix_idx` is given
 #'   an additional matrix `X_cond` of conditional draws is returned
 #' @export
-TTM_generate <- function(config, N, seed, fix_idx = NULL, fix_val = NULL, m = 1L) {
-  stopifnot(is.list(config), is.numeric(N), N > 0)
+TTM_generate <- function(config, n, seed, fix_idx = NULL, fix_val = NULL, m = 1L) {
+  stopifnot(is.list(config), is.numeric(n), n > 0)
   set.seed(seed)
   K <- length(config)
 
@@ -121,8 +121,8 @@ TTM_generate <- function(config, N, seed, fix_idx = NULL, fix_val = NULL, m = 1L
   L_inv <- diag(1, K)
 
 
-  N_fit <- ceiling(0.8 * N)
-  X_fit <- Generate_iid_from_config(N_fit, config)
+  n_fit <- ceiling(0.8 * n)
+  X_fit <- Generate_iid_from_config(n_fit, config)
 
   idx_low  <- which(lower.tri(L_inv), arr.ind = TRUE)
   num_off  <- nrow(idx_low)
@@ -167,7 +167,7 @@ TTM_generate <- function(config, N, seed, fix_idx = NULL, fix_val = NULL, m = 1L
   theta_hat$log_det_gradS <- sum(par[idx_diag])
   theta_hat$L  <- solve(theta_hat$L_inv)
 
-  Z <- matrix(rnorm(K * N), nrow = N)
+  Z <- matrix(rnorm(K * n), nrow = n)
   X <- t(apply(Z, 1L, R_inverse, theta = theta_hat))
 
   colnames(X) <- paste0("X", seq_len(K))
