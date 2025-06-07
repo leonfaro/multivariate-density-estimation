@@ -57,9 +57,6 @@ combine_logL_tables <- function(tab_normal, tab_perm,
   if (!requireNamespace("kableExtra", quietly = TRUE))
     install.packages("kableExtra", repos = "https://cloud.r-project.org")
 
-  library(dplyr)
-  library(tibble)
-  library(kableExtra)
 
   t_true_p <- system.time(logL_TRUE_dim(M_TRUE_p, X_te_p))["elapsed"]
   t_trtf_p <- system.time(logL_TRTF_dim(M_TRTF_p, X_te_p))["elapsed"]
