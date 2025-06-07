@@ -67,26 +67,17 @@ add_sum_row <- function(tab, label = "k") {
 #'
 #' @param tab_normal table created in `main()` using the original order
 #' @param tab_perm   table created in `main()` on permuted variables
-#' @param M_TRUE_p   TRUE model fitted on permuted data
-#' @param M_TRTF_p   TRTF model fitted on permuted data
-#' @param M_KS_p     KS model fitted on permuted data
-#' @param M_TTM_p    TTM model fitted on permuted data
-#' @param X_te_p     test matrix corresponding to the permutation
-#' @param t_normal   named numeric vector with runtimes of the normal
-#'                   order (names: true, trtf, ks, ttm)
+#' @param t_normal named numeric vector with runtimes in normal order
+#'                 (names: true, trtf, ks, ttm)
+#' @param t_perm   named numeric vector with runtimes in permutation order
+#'                 (names: true, trtf, ks, ttm)
 #' @return `kableExtra` table with average log-likelihoods and runtimes
 #' @export
 combine_logL_tables <- function(tab_normal, tab_perm,
-                                M_TRUE_p, M_TRTF_p, M_KS_p, M_TTM_p, X_te_p,
-                                t_normal) {
+                                t_normal, t_perm) {
   if (!requireNamespace("kableExtra", quietly = TRUE))
     install.packages("kableExtra", repos = "https://cloud.r-project.org")
 
-
-  t_true_p <- system.time(logL_TRUE_dim(M_TRUE_p, X_te_p))["elapsed"]
-  t_trtf_p <- system.time(logL_TRTF_dim(M_TRTF_p, X_te_p))["elapsed"]
-  t_ks_p   <- system.time(logL_KS_dim(M_KS_p,   X_te_p))["elapsed"]
-  t_ttm_p  <- system.time(logL_TTM_dim(M_TTM_p, X_te_p))["elapsed"]
 
   clean_cols <- function(df, suffix) {
     df %>%
@@ -117,13 +108,13 @@ combine_logL_tables <- function(tab_normal, tab_perm,
       dim       = "runtime (ms)",
       distr     = "",
       true      = t_normal["true"] * 1000,
-      true_perm = t_true_p * 1000,
+      true_perm = t_perm["true"] * 1000,
       trtf      = t_normal["trtf"] * 1000,
-      trtf_perm = t_trtf_p * 1000,
+      trtf_perm = t_perm["trtf"] * 1000,
       ks        = t_normal["ks"] * 1000,
-      ks_perm   = t_ks_p * 1000,
+      ks_perm   = t_perm["ks"] * 1000,
       ttm       = t_normal["ttm"] * 1000,
-      ttm_perm  = t_ttm_p * 1000
+      ttm_perm  = t_perm["ttm"] * 1000
     )
 
   tab_all <- tab_all %>%
