@@ -120,6 +120,7 @@ TTM_generate <- function(config, N, seed, fix_idx = NULL, fix_val = NULL, m = 1L
   mu <- numeric(K)
   L_inv <- diag(1, K)
 
+
   N_fit <- ceiling(0.8 * N)
   X_fit <- Generate_iid_from_config(N_fit, config)
 
@@ -168,11 +169,13 @@ TTM_generate <- function(config, N, seed, fix_idx = NULL, fix_val = NULL, m = 1L
 
   Z <- matrix(rnorm(K * N), nrow = N)
   X <- t(apply(Z, 1L, R_inverse, theta = theta_hat))
+
   colnames(X) <- paste0("X", seq_len(K))
 
   res <- list(X = X, theta_hat = theta_hat)
   if (!is.null(fix_idx)) {
     res$X_cond <- Conditional_Sample(fix_idx, fix_val, theta_hat = theta_hat, m)
+
   }
   res
 }
