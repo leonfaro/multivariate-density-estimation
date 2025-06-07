@@ -33,6 +33,31 @@ evaluate_all <- function(X_te, model_list) {
   P
 }
 
+#' Summen-Zeile an Tabelle anhängen
+#'
+#' Fügt einer Log-Likelihood-Tabelle eine Zeile mit der
+#' Gesamt-Summe der numerischen Spalten hinzu. Die Spalte
+#' `dim` erhält den übergebenen Bezeichner.
+#'
+#' @param tab Datenrahmen mit numerischen Spalten
+#' @param label Zeichenkette für die `dim`-Spalte
+#' @return Datenrahmen mit zusätzlicher Summen-Zeile
+#' @export
+add_sum_row <- function(tab, label = "k") {
+  stopifnot(is.data.frame(tab))
+  sum_row <- setNames(vector("list", ncol(tab)), names(tab))
+  for (nm in names(tab)) {
+    if (nm == "dim") {
+      sum_row[[nm]] <- label
+    } else if (is.numeric(tab[[nm]])) {
+      sum_row[[nm]] <- sum(tab[[nm]])
+    } else {
+      sum_row[[nm]] <- NA
+    }
+  }
+  rbind(tab, as.data.frame(sum_row, stringsAsFactors = FALSE))
+}
+
 #' Merge log-likelihood tables and add runtime information
 #'
 #' Combines results from the normal variable order and a permutation
