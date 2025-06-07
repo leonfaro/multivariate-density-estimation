@@ -5,7 +5,7 @@ source("../../models/ks_model.R")
 
 set.seed(2)
 G <- setup_global()
-G$N <- 60
+G$n <- 60
 X <- gen_samples(G)
 S <- train_test_split(X, G$split_ratio, G$seed)
 

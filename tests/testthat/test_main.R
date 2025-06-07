@@ -2,7 +2,7 @@ old_wd <- setwd("../..")
 source("main.R")
 
 set.seed(42)
-G <- list(N = 20, config = config, seed = 42, split_ratio = 0.5)
+G <- list(n = 20, config = config, seed = 42, split_ratio = 0.5)
 
 expect_table <- data.frame(
   dim = c(as.character(seq_along(G$config)), "k"),
@@ -13,8 +13,8 @@ expect_table <- data.frame(
   logL_ttm = NA_real_
 )
 
-# run main with reduced N
-N <- 20
+# run main with reduced n
+n <- 20
 res <- main()
 setwd(old_wd)
 
