@@ -8,12 +8,6 @@
 #' @param output_file path to PDF file
 #' @return invisibly the path to the created PDF
 
-round_df <- function(df, digits = 3) {
-  idx <- vapply(df, is.numeric, logical(1))
-  df[idx] <- lapply(df[idx], round, digits = digits)
-  df
-}
-
 create_EDA_report <- function(X, cfg, output_file = "eda_report.pdf",
                               scatter_data = NULL,
                               table_kbl = NULL) {
@@ -46,8 +40,15 @@ create_EDA_report <- function(X, cfg, output_file = "eda_report.pdf",
 
   pdf(output_file, width = 8, height = 11, title = "Average logL")
   if (!is.null(table_kbl)) {
+    tab_data <- attr(table_kbl, "tab_data")
+    num_cols <- vapply(tab_data, is.numeric, logical(1))
+    for (col in names(tab_data)[num_cols]) {
+      last_val <- as.numeric(tab_data[nrow(tab_data), col])
+      tab_data[-nrow(tab_data), col] <- sprintf("%.3f", as.numeric(tab_data[-nrow(tab_data), col]))
+      tab_data[nrow(tab_data), col]  <- sprintf("%.0f", last_val)
+    }
     tbl <- gridExtra::tableGrob(
-      attr(table_kbl, "tab_data"), rows = NULL,
+      tab_data, rows = NULL,
       theme = gridExtra::ttheme_default(base_size = 9)
     )
     gridExtra::grid.arrange(tbl, top = "Average -logLikelihood")
