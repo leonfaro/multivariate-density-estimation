@@ -114,16 +114,16 @@ combine_logL_tables <- function(tab_normal, tab_perm,
 
   tab_all <- tab_all %>%
     add_row(
-      dim        = "runtime (ms)",
-      distr      = "",
-      true_norm  = t_normal["true"] * 1000,
-      true_perm  = t_true_p * 1000,
-      trtf_norm  = t_normal["trtf"] * 1000,
-      trtf_perm  = t_trtf_p * 1000,
-      ks_norm    = t_normal["ks"] * 1000,
-      ks_perm    = t_ks_p * 1000,
-      ttm_norm   = t_normal["ttm"] * 1000,
-      ttm_perm   = t_ttm_p * 1000
+      dim       = "runtime (ms)",
+      distr     = "",
+      true      = t_normal["true"] * 1000,
+      true_perm = t_true_p * 1000,
+      trtf      = t_normal["trtf"] * 1000,
+      trtf_perm = t_trtf_p * 1000,
+      ks        = t_normal["ks"] * 1000,
+      ks_perm   = t_ks_p * 1000,
+      ttm       = t_normal["ttm"] * 1000,
+      ttm_perm  = t_ttm_p * 1000
     )
 
   tab_all <- tab_all %>%
