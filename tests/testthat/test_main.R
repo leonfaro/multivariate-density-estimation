@@ -9,8 +9,7 @@ expect_table <- data.frame(
   distribution = c(sapply(G$config, `[[`, "distr"), NA_character_),
   logL_baseline = NA_real_,
   logL_trtf = NA_real_,
-  logL_ks = NA_real_,
-  logL_ttm = NA_real_
+  logL_ks = NA_real_
 )
 
 # run main with reduced N

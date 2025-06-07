@@ -4,7 +4,7 @@
 #' the wahren Werten. Results are written to a PDF.
 #'
 #' @param X matrix of generated samples
-#' @param cfg configuration list as in `gen_samples`
+#' @param config configuration list as in `gen_samples`
 #' @param output_file path to PDF file
 #' @return invisibly the path to the created PDF
 
@@ -14,7 +14,7 @@ round_df <- function(df, digits = 3) {
   df
 }
 
-create_EDA_report <- function(X, cfg, output_file = "eda_report.pdf",
+create_EDA_report <- function(X, config, output_file = "eda_report.pdf",
                               scatter_data = NULL,
                               table_kbl = NULL) {
   if (!requireNamespace("gridExtra", quietly = TRUE))
@@ -33,22 +33,26 @@ create_EDA_report <- function(X, cfg, output_file = "eda_report.pdf",
   plots <- NULL
   if (!is.null(scatter_data)) {
     with(scatter_data, {
-      plots <<- list(
+      plots_tmp <- list(
         make_plot(ld_base,   ld_trtf,   "TRTF"),
         make_plot(ld_base_p, ld_trtf_p, "TRTF (Perm.)"),
         make_plot(ld_base,   ld_ks,     "KS"),
-        make_plot(ld_base_p, ld_ks_p,   "KS (Perm.)"),
-        make_plot(ld_base,   ld_ttm,    "TTM"),
-        make_plot(ld_base_p, ld_ttm_p,  "TTM (Perm.)")
+        make_plot(ld_base_p, ld_ks_p,   "KS (Perm.)")
       )
+      if (exists("ld_ttm", inherits = FALSE) && exists("ld_ttm_p", inherits = FALSE)) {
+        plots_tmp <- c(plots_tmp,
+                       list(make_plot(ld_base,   ld_ttm,   "TTM"),
+                            make_plot(ld_base_p, ld_ttm_p, "TTM (Perm.)")))
+      }
+      plots <<- plots_tmp
     })
   }
 
-  pdf(output_file, width = 8, height = 11)
+  pdf(output_file, width = 8, height = 11, title = "Average logL")
   if (!is.null(table_kbl)) {
     tbl <- gridExtra::tableGrob(
       attr(table_kbl, "tab_data"), rows = NULL,
-      theme = gridExtra::ttheme_default(base_size = 8)
+      theme = gridExtra::ttheme_default(base_size = 9)
     )
     gridExtra::grid.arrange(tbl)
   }

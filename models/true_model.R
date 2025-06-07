@@ -15,6 +15,7 @@ neg_loglik_uni <- function(par, x, distr) {
   } else if (distr == "exp") {
     rate <- par[1]
     if (rate <= 0) return(Inf)
+    x <- pmax(x, 1e-6)
     -sum(dexp(x, rate = rate, log = TRUE))
   } else if (distr == "beta") {
     a <- par[1]; b <- par[2]
@@ -36,6 +37,7 @@ neg_loglik_uni <- function(par, x, distr) {
   if (distr == "norm") {
     dnorm(x, mean = par[1], sd = par[2], log = TRUE)
   } else if (distr == "exp") {
+    x <- pmax(x, 1e-6)
     dexp(x, rate = par[1], log = TRUE)
   } else if (distr == "beta") {
     x <- pmin(pmax(x, 1e-6), 1 - 1e-6)
@@ -53,7 +55,9 @@ neg_loglik_uni <- function(par, x, distr) {
   if (distr == "norm") {
     c(mean(x), sd(x))
   } else if (distr == "exp") {
-    c(1 / mean(x))
+    rate <- 1 / mean(x)
+    if (!is.finite(rate) || rate <= 0) rate <- 1
+    c(rate)
   } else if (distr == "beta") {
     m <- mean(x); v <- var(x)
     common <- m * (1 - m) / v - 1
