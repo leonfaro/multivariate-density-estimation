@@ -25,10 +25,11 @@ setup_global <- function() {
   P_max <- 6
   H_grid <- seq_len(P_max)
   model_ids <- c("TRUE")
+  cfg <- get("config", envir = parent.frame())
 
   list(
     N = N,
-    config = config,
+    config = cfg,
     seed = seed,
     split_ratio = split_ratio,
     H_grid = H_grid,

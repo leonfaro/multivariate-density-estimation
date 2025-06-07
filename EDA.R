@@ -44,11 +44,11 @@ create_EDA_report <- function(X, cfg, output_file = "eda_report.pdf",
     })
   }
 
-  pdf(output_file, width = 8, height = 11)
+  pdf(output_file, width = 8, height = 11, title = "Average logL")
   if (!is.null(table_kbl)) {
     tbl <- gridExtra::tableGrob(
       attr(table_kbl, "tab_data"), rows = NULL,
-      theme = gridExtra::ttheme_default(base_size = 8)
+      theme = gridExtra::ttheme_default(base_size = 9)
     )
     gridExtra::grid.arrange(tbl)
   }
