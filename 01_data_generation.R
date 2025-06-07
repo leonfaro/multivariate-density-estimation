@@ -40,38 +40,38 @@ Generate_iid_from_config <- function(N , cfg){
   X
 }
 
-Jacobian_Diagonal <- function(x , θ){
-  # Berechne ∂_{x_k} S_k  für k = 1..K  (θ enthält Map-Koeffizienten)
-  diag(θ$L_inv)
+Jacobian_Diagonal <- function(x , theta){
+  # Berechne ∂_{x_k} S_k  für k = 1..K  (theta enthaelt Map-Koeffizienten)
+  diag(theta$L_inv)
 }
 
-LogDet_Jacobian <- function(x , θ){
+LogDet_Jacobian <- function(x , theta){
   # log|det ∇S| = Σ_k log( diagJ_k )
-  sum(log(diag(θ$L_inv)))
+  sum(log(diag(theta$L_inv)))
 }
 
-S_forward <- function(x , θ){
+S_forward <- function(x , theta){
   # Untere-Dreieckige Abbildung:  S_k(x_1: k)
-  as.numeric(θ$L_inv %*% (x - θ$mu))
+  as.numeric(theta$L_inv %*% (x - theta$mu))
 }
 
-R_inverse <- function(z , θ){
-  # Löse triangular:   x = R(z)
-  as.numeric(θ$L %*% z + θ$mu)
+R_inverse <- function(z , theta){
+  # Loese triangular:   x = R(z)
+  as.numeric(theta$L %*% z + theta$mu)
 }
 
-Objective_J_N <- function(θ , X){
-  # J_N(θ) = -(1/N) Σ_n [ log η( S(x^(n);θ) ) + logDet_Jacobian(x^(n);θ ) ]
-  stopifnot(is.list(θ), is.matrix(X))
-  Z <- t(apply(X, 1L, S_forward, θ = θ))
+Objective_J_N <- function(theta , X){
+  # J_N(theta) = -(1/N) Σ_n [ log η( S(x^(n);theta) ) + logDet_Jacobian(x^(n);theta ) ]
+  stopifnot(is.list(theta), is.matrix(X))
+  Z <- t(apply(X, 1L, S_forward, theta = theta))
   log_eta <- rowSums(dnorm(Z, log = TRUE))
-  log_det <- rep(LogDet_Jacobian(X[1, ], θ), nrow(X))
+  log_det <- rep(LogDet_Jacobian(X[1, ], theta), nrow(X))
   -(1 / nrow(X)) * sum(log_eta + log_det)
 }
 
-Conditional_Sample <- function(fix_idx , fix_val , θ_hat , m){
-  mu <- θ_hat$mu
-  L <- θ_hat$L
+Conditional_Sample <- function(fix_idx , fix_val , theta_hat , m){
+  mu <- theta_hat$mu
+  L <- theta_hat$L
   Sigma <- L %*% t(L)
   A <- setdiff(seq_along(mu), fix_idx)
   Sigma_BB <- Sigma[fix_idx, fix_idx, drop = FALSE]
@@ -124,15 +124,18 @@ TTM_generate <- function(config, N, seed, fix_idx = NULL, fix_val = NULL, m = 1L
   N_fit <- ceiling(0.8 * N)
   X_fit <- Generate_iid_from_config(N_fit, config)
 
-  idx_lower <- which(lower.tri(L_inv), arr.ind = TRUE)
-  par_init <- c(mu, L_inv[idx_lower])
+  idx_low  <- which(lower.tri(L_inv), arr.ind = TRUE)          # Off-Diag
+  n_off    <- nrow(idx_low)
+  idx_diag <- (K + n_off + 1):(K + n_off + K)  # s_1:K
+
+  par_init <- c(mu, L_inv[idx_low], rep(0, K))   # s_k = log(1) = 0
 
   to_theta <- function(par) {
-    mu_p <- par[seq_len(K)]
-    L_inv_p <- diag(1, K)
-    if (length(par) > K) {
-      L_inv_p[idx_lower] <- par[(K + 1):length(par)]
-    }
+    mu_p      <- par[1:K]
+
+    L_inv_p   <- diag(exp(par[idx_diag]), K)         # diag = exp(s_k)
+    L_inv_p[idx_low] <- par[(K + 1):(K + n_off)]
+
     list(mu = mu_p, L_inv = L_inv_p)
   }
 
@@ -150,8 +153,8 @@ TTM_generate <- function(config, N, seed, fix_idx = NULL, fix_val = NULL, m = 1L
   opt <- optim(par_init, fn, gr, method = "BFGS", control = list(reltol = 1e-8))
 
   theta_hat <- to_theta(opt$par)
-  theta_hat$L <- solve(theta_hat$L_inv)
-  theta_hat$log_det_gradS <- sum(log(diag(theta_hat$L_inv)))
+  theta_hat$log_det_gradS <- sum(opt$par[idx_diag])
+  theta_hat$L  <- solve(theta_hat$L_inv)
 
   Z <- matrix(rnorm(K * N), nrow = N)
   X <- t(apply(Z, 1L, R_inverse, theta_hat))
