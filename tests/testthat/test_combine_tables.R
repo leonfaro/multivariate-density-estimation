@@ -5,7 +5,6 @@ source("02_split.R")
 source("models/true_model.R")
 source("models/trtf_model.R")
 source("models/ks_model.R")
-source("models/ttm_model.R")
 source("04_evaluation.R")
 
 set.seed(1)
@@ -17,17 +16,14 @@ S <- train_test_split(X, G$split_ratio, G$seed)
 M_TRUE <- fit_TRUE(S$X_tr, S$X_te, G$config)
 M_TRTF <- fit_TRTF(S$X_tr, S$X_te, G$config)
 M_KS   <- fit_KS(S$X_tr, S$X_te, G$config)
-M_TTM  <- fit_TTM(S$X_tr, S$X_te)
 
 t_true  <- system.time(logL_TRUE_dim(M_TRUE, S$X_te))["elapsed"]
 t_trtf <- system.time(logL_TRTF_dim(M_TRTF, S$X_te))["elapsed"]
 t_ks   <- system.time(logL_KS_dim(M_KS,   S$X_te))["elapsed"]
-t_ttm  <- system.time(logL_TTM_dim(M_TTM, S$X_te))["elapsed"]
 
 baseline_ll <- logL_TRUE_dim(M_TRUE, S$X_te)
 trtf_ll     <- logL_TRTF_dim(M_TRTF, S$X_te)
 ks_ll       <- logL_KS_dim(M_KS, S$X_te)
-ttm_ll      <- logL_TTM_dim(M_TTM, S$X_te)
 
 tab_normal <- data.frame(
   dim = as.character(seq_along(G$config)),
@@ -35,7 +31,6 @@ tab_normal <- data.frame(
   logL_baseline = baseline_ll,
   logL_trtf = trtf_ll,
   logL_ks = ks_ll,
-  logL_ttm = ttm_ll,
   stringsAsFactors = FALSE
 )
 
@@ -59,12 +54,10 @@ colnames(X_te_p) <- paste0("X", seq_len(ncol(X_te_p)))
 M_TRUE_p <- fit_TRUE(X_tr_p, X_te_p, G$config)
 M_TRTF_p <- fit_TRTF(X_tr_p, X_te_p, G$config)
 M_KS_p   <- fit_KS(X_tr_p, X_te_p, G$config)
-M_TTM_p  <- fit_TTM(X_tr_p, X_te_p)
 
 baseline_ll_p <- logL_TRUE_dim(M_TRUE_p, X_te_p)
 trtf_ll_p     <- logL_TRTF_dim(M_TRTF_p, X_te_p)
 ks_ll_p       <- logL_KS_dim(M_KS_p, X_te_p)
-ttm_ll_p      <- logL_TTM_dim(M_TTM_p, X_te_p)
 
 tab_perm <- data.frame(
   dim = as.character(seq_along(G$config)),
@@ -72,7 +65,6 @@ tab_perm <- data.frame(
   logL_baseline = baseline_ll_p,
   logL_trtf = trtf_ll_p,
   logL_ks = ks_ll_p,
-  logL_ttm = ttm_ll_p,
   stringsAsFactors = FALSE
 )
 
@@ -88,10 +80,10 @@ for (nm in names(tab_perm)) {
 }
 tab_perm <- rbind(tab_perm, as.data.frame(sum_row, stringsAsFactors = FALSE))
 
-vec_normal <- c(true = t_true, trtf = t_trtf, ks = t_ks, ttm = t_ttm)
+vec_normal <- c(true = t_true, trtf = t_trtf, ks = t_ks)
 
 kbl_obj <- combine_logL_tables(tab_normal, tab_perm,
-                              M_TRUE_p, M_TRTF_p, M_KS_p, M_TTM_p, X_te_p,
+                              M_TRUE_p, M_TRTF_p, M_KS_p, NULL, X_te_p,
                               vec_normal)
 
 setwd(old_wd)

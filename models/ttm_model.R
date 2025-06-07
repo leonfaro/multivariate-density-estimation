@@ -136,14 +136,14 @@ fit_TTM <- function(X_tr, X_te, config = NULL, lr = 1e-2, epochs = 200,
     }
 
     val_loss <- Objective_J_N(theta, X_tr[val_idx, , drop = FALSE])
-    if (val_loss < best_val - 1e-4) {
+    if (is.finite(val_loss) && val_loss < best_val - 1e-4) {
       best_val <- val_loss
       best_par_m <- lapply(theta$env$par_m, identity)
       best_par_s <- lapply(theta$env$par_s, identity)
       stale <- 0
     } else {
       stale <- stale + 1
-      if (stale >= patience) break
+      if (stale >= patience || !is.finite(val_loss)) break
     }
   }
 
@@ -170,6 +170,7 @@ predict.ttm <- function(object, newdata,
     for (k in seq_len(K)) {
       m_k <- object$theta$m[[k]](x)
       s_k <- object$theta$s[[k]](x)
+      s_k <- pmin(pmax(s_k, 1e-6), 1e6)
       z_k <- (x[k] - m_k) / s_k
       ll[i, k] <- dnorm(z_k, log = TRUE) - log(s_k)
     }
