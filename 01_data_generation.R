@@ -94,3 +94,72 @@ Conditional_Sample <- function(fix_idx , fix_val , θ_hat , m){
 gen_samples <- function(G) {
   Generate_iid_from_config(G$N, G$config)
 }
+
+#' Generate samples via Triangular Transport Map
+#'
+#' Implements the procedure described in `Theory.md` for a linear
+#' triangular map.  First provisional data are drawn with the
+#' sequential generator to fit the map parameters via BFGS on
+#' `Objective_J_N`.  Final draws are obtained by applying the inverse
+#' map to standard normal samples.
+#'
+#' @param config list of conditional specifications
+#' @param N      integer sample size
+#' @param seed   RNG seed ensuring reproducibility
+#' @param fix_idx optional indices to condition on
+#' @param fix_val numeric vector with fixed values
+#' @param m       number of conditional samples if `fix_idx` is supplied
+#' @return list with elements `X` and `theta_hat`; if `fix_idx` is given
+#'   an additional matrix `X_cond` of conditional draws is returned
+#' @export
+TTM_generate <- function(config, N, seed, fix_idx = NULL, fix_val = NULL, m = 1L) {
+  stopifnot(is.list(config), is.numeric(N), N > 0)
+  set.seed(seed)
+  K <- length(config)
+
+  mu <- numeric(K)
+  L_inv <- diag(1, K)
+  theta0 <- list(mu = mu, L_inv = L_inv)
+
+  N_fit <- ceiling(0.8 * N)
+  X_fit <- Generate_iid_from_config(N_fit, config)
+
+  idx_lower <- which(lower.tri(L_inv), arr.ind = TRUE)
+  par_init <- c(mu, L_inv[idx_lower])
+
+  to_theta <- function(par) {
+    mu_p <- par[seq_len(K)]
+    L_inv_p <- diag(1, K)
+    if (length(par) > K) {
+      L_inv_p[idx_lower] <- par[(K + 1):length(par)]
+    }
+    list(mu = mu_p, L_inv = L_inv_p)
+  }
+
+  fn <- function(par) Objective_J_N(to_theta(par), X_fit)
+
+  gr <- function(par) {
+    eps <- 1e-6
+    sapply(seq_along(par), function(i) {
+      p1 <- par; p1[i] <- p1[i] + eps
+      p2 <- par; p2[i] <- p2[i] - eps
+      (fn(p1) - fn(p2)) / (2 * eps)
+    })
+  }
+
+  opt <- optim(par_init, fn, gr, method = "BFGS", control = list(reltol = 1e-8))
+
+  theta_hat <- to_theta(opt$par)
+  theta_hat$L <- solve(theta_hat$L_inv)
+  theta_hat$log_det_gradS <- sum(log(diag(theta_hat$L_inv)))
+
+  Z <- matrix(rnorm(K * N), nrow = N)
+  X <- t(apply(Z, 1L, R_inverse, theta_hat))
+  colnames(X) <- paste0("X", seq_len(K))
+
+  res <- list(X = X, theta_hat = theta_hat)
+  if (!is.null(fix_idx)) {
+    res$X_cond <- Conditional_Sample(fix_idx, fix_val, theta_hat, m)
+  }
+  res
+}
