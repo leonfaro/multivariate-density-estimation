@@ -47,11 +47,7 @@ create_EDA_report <- function(X, cfg, output_file = "eda_report.pdf",
       tab_data[-nrow(tab_data), col] <- sprintf("%.3f", as.numeric(tab_data[-nrow(tab_data), col]))
       tab_data[nrow(tab_data), col]  <- sprintf("%.0f", last_val)
     }
-    tbl <- gridExtra::tableGrob(
-      tab_data, rows = NULL,
-      theme = gridExtra::ttheme_default(base_size = 9)
-    )
-    gridExtra::grid.arrange(tbl, top = "Average -logLikelihood")
+    print(tab_data)
   }
   if (!is.null(plots))
     gridExtra::grid.arrange(grobs = plots, ncol = 2)
