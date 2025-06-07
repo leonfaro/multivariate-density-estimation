@@ -127,7 +127,7 @@ FUNCTION log_fprime_k (x_k ; α_k, h):
 #### 4.2 Map $S_\theta$, Jacobian-Logdet und Log-Likelihood
 
 ```
-FUNCTION S(x ; θ=(β,α), h):
+FUNCTION S(x ; theta=(β,α), h):
     INPUT  : x ∈ ℝ^K
     OUTPUT : z ∈ ℝ^K
 
@@ -139,7 +139,7 @@ FUNCTION S(x ; θ=(β,α), h):
 ```
 
 ```
-FUNCTION logJ(x ; θ, h):
+FUNCTION logJ(x ; theta, h):
     # log |det ∇S| = Σ_k log f'_k(x_k)
     logdet ← 0
     FOR k = 1,…,K:
@@ -148,9 +148,9 @@ FUNCTION logJ(x ; θ, h):
 ```
 
 ```
-FUNCTION ℓ(θ | x, h):
-    z      ← S(x ; θ , h)
-    RETURN log_phi_K(z) + logJ(x ; θ , h)      # sample-LogLikelihood
+FUNCTION ℓ(theta | x, h):
+    z      ← S(x ; theta , h)
+    RETURN log_phi_K(z) + logJ(x ; theta , h)      # sample-LogLikelihood
 ```
 
 ---
@@ -158,31 +158,31 @@ FUNCTION ℓ(θ | x, h):
 #### 4.3 Training (empirische KL / –log L)
 
 ```
-FUNCTION 𝔏_train(θ | h, X_tr):
-    RETURN − (1/|X_tr|) * Σ_{x ∈ X_tr} ℓ(θ | x , h)
+FUNCTION 𝔏_train(theta | h, X_tr):
+    RETURN − (1/|X_tr|) * Σ_{x ∈ X_tr} ℓ(theta | x , h)
 ```
 
 ```
 FUNCTION fit_SEPAR(X_tr, X_te, H_grid):
     INPUT  : Trainings-/Testdaten, Polynomgrade
-    OUTPUT : M_SEP = (θ*, h*, logL_te*)
+    OUTPUT : M_SEP = (theta*, h*, logL_te*)
 
     FOR h ∈ H_grid:
-        θ⁰      ← 0
-        θ̂(h)   ← argmin_θ  𝔏_train(θ | h, X_tr)     # L-BFGS-B
+        theta⁰      ← 0
+        theta_hat(h)   ← argmin_theta  𝔏_train(theta | h, X_tr)     # L-BFGS-B
                   stop wenn ||∇𝔏_train||_∞ < 1e−6
-        logL_te(h) ← − (1/|X_te|) Σ_{x ∈ X_te} ℓ( θ̂(h) | x , h )
+        logL_te(h) ← − (1/|X_te|) Σ_{x ∈ X_te} ℓ( theta_hat(h) | x , h )
         MESSAGE "h={h}, logL_te={logL_te(h)}"
 
     h*  ← argmin_h logL_te(h)
-    θ*  ← θ̂(h*)
-    RETURN (θ*, h*, logL_te(h*))
+    theta*  ← theta_hat(h*)
+    RETURN (theta*, h*, logL_te(h*))
 ```
 
 ```
 FUNCTION logL_SEPAR(M_SEP, X):
-    (θ*, h*) ← M_SEP
-    RETURN − (1/|X|) Σ_{x ∈ X} ℓ( θ*, x , h* )
+    (theta*, h*) ← M_SEP
+    RETURN − (1/|X|) Σ_{x ∈ X} ℓ( theta*, x , h* )
 ```
 
 ---
@@ -194,7 +194,7 @@ FUNCTION sample_SEPAR(M_SEP, Z):
     INPUT  : Z ~ N(0,I_K)
     OUTPUT : X  via sequentielle Inversion
 
-    (θ*, h*) ← M_SEP
+    (theta*, h*) ← M_SEP
     FOR k = 1,…,K:
         g_k ← poly_deg(h*)( X[1:(k−1)] ; β*_k )
         # löse   f_k(x_k) = Z_k − g_k   nach x_k  (1-D root-finding, z.B. Newton)
@@ -205,8 +205,8 @@ FUNCTION sample_SEPAR(M_SEP, Z):
 
 ```
 FUNCTION density_SEPAR(M_SEP, x):
-    z      ← S(x ; θ*, h*)
-    logdet ← logJ(x ; θ*, h*)
+    z      ← S(x ; theta*, h*)
+    logdet ← logJ(x ; theta*, h*)
     RETURN exp( log_phi_K(z) + logdet )        # π̂(x)
 ```
 
@@ -221,17 +221,17 @@ FUNCTION density_SEPAR(M_SEP, x):
 ```
 FUNCTION fit_TRUE(X_tr, X_te, config):
     INPUT : X_tr, X_te, config
-    OUTPUT: M_TRUE = (Θ̂, logL_te)
+    OUTPUT: M_TRUE = (theta_hat, logL_te)
 
     FOR k = 1,…,K:
         distr_k ← config[k].distr
-        Θ̂_k    ← argmax_θ_k Σ_{x∈X_tr[,k]} log f_{distr_k}(x | θ_k)   # wie bisher
+        theta_hat_k    ← argmax_theta_k Σ_{x∈X_tr[,k]} log f_{distr_k}(x | theta_k)   # wie bisher
                  # in der Implementierung ist log f() ohnehin im Log-Raum
-    logL_te ← − |X_te|^{-1} Σ_i Σ_k log f_{distr_k}( X_te[i,k] | Θ̂_k )
-    RETURN (Θ̂, logL_te)
+    logL_te ← − |X_te|^{-1} Σ_i Σ_k log f_{distr_k}( X_te[i,k] | theta_hat_k )
+    RETURN (theta_hat, logL_te)
 
 FUNCTION logL_TRUE(M_TRUE, X):
-    RETURN − |X|^{-1} Σ_i Σ_k log f_{distr_k}( X[i,k] | Θ̂_k )
+    RETURN − |X|^{-1} Σ_i Σ_k log f_{distr_k}( X[i,k] | theta_hat_k )
 
 
 ```
