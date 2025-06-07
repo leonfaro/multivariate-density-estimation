@@ -5,7 +5,7 @@ source("01_data_generation.R")
 
 set.seed(1)
 G <- setup_global()
-G$N <- 10
+G$n <- 10
 X <- gen_samples(G)
 
 
