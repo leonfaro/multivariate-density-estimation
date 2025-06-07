@@ -1,3 +1,6 @@
+if (!requireNamespace("gridExtra", quietly = TRUE))
+  install.packages("gridExtra", repos = "https://cloud.r-project.org")
+
 source("00_globals.R")
 source("01_data_generation.R")
 source("02_split.R")
