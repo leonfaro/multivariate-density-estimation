@@ -50,7 +50,7 @@ create_EDA_report <- function(X, cfg, output_file = "eda_report.pdf",
       attr(table_kbl, "tab_data"), rows = NULL,
       theme = gridExtra::ttheme_default(base_size = 9)
     )
-    gridExtra::grid.arrange(tbl)
+    gridExtra::grid.arrange(tbl, top = "Average -logLikelihood")
   }
   if (!is.null(plots))
     gridExtra::grid.arrange(grobs = plots, ncol = 2)
