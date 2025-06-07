@@ -174,6 +174,7 @@ combine_logL_tables <- function(tab_normal, tab_perm,
     )
   }
 
+
   tab_all %>%
     kbl(caption = "Average logL", align = "c", booktabs = TRUE) %>%
     add_header_above(header_lvl1, align = "c") %>%

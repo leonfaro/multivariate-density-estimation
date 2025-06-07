@@ -127,6 +127,7 @@ main <- function() {
 
   print(kbl_tab)
 
+
   res <- list(
     kbl = kbl_tab,
     normal = tab_normal,
@@ -134,6 +135,7 @@ main <- function() {
   )
   class(res) <- class(kbl_tab)
   attr(res, "format") <- attr(kbl_tab, "format")
+
   attr(res, "tab_data") <- attr(kbl_tab, "tab_data")
   res
 }
