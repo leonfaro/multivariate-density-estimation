@@ -115,5 +115,6 @@ fit_TRTF <- function(X_tr, X_te, config,
   final$config <- config
   final$cv_logL <- best_val
   final$logL_te <- logL_TRTF(final, X_te)
+  final$best_cfg <- best_cfg
   final
 }
