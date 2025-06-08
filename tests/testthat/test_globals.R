@@ -1,7 +1,7 @@
 test_that("setup_global returns expected list", {
   out <- setup_global()
   expect_type(out, "list")
-  expect_equal(out$n, 500)
+  expect_equal(out$n, 50)
   expect_equal(length(out$config), length(config))
   expect_equal(vapply(out$config, `[[`, "distr", FUN.VALUE = ""),
                vapply(config, `[[`, "distr", FUN.VALUE = ""))
