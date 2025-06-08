@@ -4,7 +4,6 @@ source("02_split.R")
 source("models/true_model.R")
 source("models/trtf_model.R")
 source("models/ks_model.R")
-source("models/ttm_model.R")
 source("04_evaluation.R")
 source("EDA.R")
 
@@ -49,10 +48,6 @@ main <- function() {
     ks_ll <- logL_KS_dim(M_KS, S$X_te)
   })[["elapsed"]]
 
-  t_ttm <- system.time({
-    M_TTM <- fit_TTM(S$X_tr, S$X_te)               # Script models/ttm_model.R
-    ttm_ll <- logL_TTM_dim(M_TTM, S$X_te)
-  })[["elapsed"]]
 
   tab_normal <- data.frame(
     dim = as.character(seq_along(G$config)),
@@ -60,7 +55,6 @@ main <- function() {
     logL_baseline = baseline_ll,
     logL_trtf = trtf_ll,
     logL_ks = ks_ll,
-    logL_ttm = ttm_ll,
     stringsAsFactors = FALSE
   )
 
@@ -87,10 +81,6 @@ main <- function() {
     ks_ll_p <- logL_KS_dim(M_KS_p, X_te_p)
   })[["elapsed"]]
 
-  t_ttm_p <- system.time({
-    M_TTM_p <- fit_TTM(X_tr_p, X_te_p)
-    ttm_ll_p <- logL_TTM_dim(M_TTM_p, X_te_p)
-  })[["elapsed"]]
 
   tab_perm <- data.frame(
     dim = as.character(seq_along(G$config)),
@@ -98,7 +88,6 @@ main <- function() {
     logL_baseline = baseline_ll_p,
     logL_trtf = trtf_ll_p,
     logL_ks = ks_ll_p,
-    logL_ttm = ttm_ll_p,
     stringsAsFactors = FALSE
   )
 
@@ -110,7 +99,6 @@ main <- function() {
   }, numeric(nrow(S$X_te))))
   ld_trtf <- as.numeric(predict(M_TRTF, S$X_te, type = "logdensity"))
   ld_ks   <- as.numeric(predict(M_KS, S$X_te, type = "logdensity"))
-  ld_ttm  <- as.numeric(predict(M_TTM, S$X_te, type = "logdensity"))
 
   runtime <- round((proc.time() - t0)[["elapsed"]], 2)
   message(paste0("Laufzeit: ", runtime, " Sekunden"))
@@ -124,22 +112,19 @@ main <- function() {
   }, numeric(nrow(X_te_p))))
   ld_trtf_p <- as.numeric(predict(M_TRTF_p, X_te_p, type = "logdensity"))
   ld_ks_p   <- as.numeric(predict(M_KS_p,   X_te_p, type = "logdensity"))
-  ld_ttm_p  <- as.numeric(predict(M_TTM_p,  X_te_p, type = "logdensity"))
 
   scatter_data <- list(
     ld_base   = ld_base,
     ld_trtf   = ld_trtf,
     ld_ks     = ld_ks,
-    ld_ttm    = ld_ttm,
     ld_base_p = ld_base_p,
     ld_trtf_p = ld_trtf_p,
-    ld_ks_p   = ld_ks_p,
-    ld_ttm_p  = ld_ttm_p
+    ld_ks_p   = ld_ks_p
   )
 
 
-  vec_normal <- c(true = t_true, trtf = t_trtf, ks = t_ks, ttm = t_ttm)
-  vec_perm   <- c(true = t_true_p, trtf = t_trtf_p, ks = t_ks_p, ttm = t_ttm_p)
+  vec_normal <- c(true = t_true, trtf = t_trtf, ks = t_ks)
+  vec_perm   <- c(true = t_true_p, trtf = t_trtf_p, ks = t_ks_p)
   kbl_tab <- combine_logL_tables(tab_normal, tab_perm,
                                  vec_normal, vec_perm)
 
