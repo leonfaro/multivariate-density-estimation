@@ -19,7 +19,7 @@ softplus <- function(x) log1p(exp(x))
 #' @return list with elements `n`, `config`, `seed`, `split_ratio`,
 #'   `h_grid`, `model_ids` and `p_max`
 setup_global <- function(cfg = config) {
-  n <- 500
+  n <- 50
   seed <- 42
   split_ratio <- 0.5
   p_max <- 6
