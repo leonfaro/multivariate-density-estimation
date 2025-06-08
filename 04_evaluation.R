@@ -68,9 +68,9 @@ add_sum_row <- function(tab, label = "k") {
 #' @param tab_normal table created in `main()` using the original order
 #' @param tab_perm   table created in `main()` on permuted variables
 #' @param t_normal named numeric vector with runtimes in normal order
-#'                 (names: true, trtf, ks, ttm)
+#'                 (names: true, trtf, ks)
 #' @param t_perm   named numeric vector with runtimes in permutation order
-#'                 (names: true, trtf, ks, ttm)
+#'                 (names: true, trtf, ks)
 #' @return `kableExtra` table with average log-likelihoods and runtimes
 #' @export
 combine_logL_tables <- function(tab_normal, tab_perm,
@@ -81,15 +81,14 @@ combine_logL_tables <- function(tab_normal, tab_perm,
 
   clean_cols <- function(df, suffix) {
     df %>%
-      rename(
-        distr = distribution,
-        true  = logL_baseline,
-        trtf  = logL_trtf,
-        ks    = logL_ks,
-        ttm   = logL_ttm
-      ) %>%
-      rename_with(~ paste0(.x, "_", suffix),
-                  c(true, trtf, ks, ttm))
+        rename(
+          distr = distribution,
+          true  = logL_baseline,
+          trtf  = logL_trtf,
+          ks    = logL_ks
+        ) %>%
+        rename_with(~ paste0(.x, "_", suffix),
+                    c(true, trtf, ks))
   }
 
   tab_norm <- clean_cols(tab_normal, "norm")
@@ -104,18 +103,16 @@ combine_logL_tables <- function(tab_normal, tab_perm,
     rename_with(~ sub("_norm$", "", .x), ends_with("_norm"))
 
   tab_all <- tab_all %>%
-    add_row(
-      dim       = "runtime (ms)",
-      distr     = "",
-      true      = t_normal["true"] * 1000,
-      true_perm = t_perm["true"] * 1000,
-      trtf      = t_normal["trtf"] * 1000,
-      trtf_perm = t_perm["trtf"] * 1000,
-      ks        = t_normal["ks"] * 1000,
-      ks_perm   = t_perm["ks"] * 1000,
-      ttm       = t_normal["ttm"] * 1000,
-      ttm_perm  = t_perm["ttm"] * 1000
-    )
+      add_row(
+        dim       = "runtime (ms)",
+        distr     = "",
+        true      = t_normal["true"] * 1000,
+        true_perm = t_perm["true"] * 1000,
+        trtf      = t_normal["trtf"] * 1000,
+        trtf_perm = t_perm["trtf"] * 1000,
+        ks        = t_normal["ks"] * 1000,
+        ks_perm   = t_perm["ks"] * 1000
+      )
 
   tab_all <- tab_all %>%
     identity()
@@ -129,12 +126,10 @@ combine_logL_tables <- function(tab_normal, tab_perm,
   header_lvl1 <- c(" " = 2,
                    "true" = 2,
                    "trtf" = 2,
-                   "ks"   = 2,
-                   "ttm"  = 2)
+                   "ks"   = 2)
   header_lvl2 <- c(
     "dim" = 1,
     "distr" = 1,
-    "normal" = 1, "permu" = 1,
     "normal" = 1, "permu" = 1,
     "normal" = 1, "permu" = 1,
     "normal" = 1, "permu" = 1

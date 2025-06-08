@@ -5,7 +5,6 @@ source("02_split.R")
 source("models/true_model.R")
 source("models/trtf_model.R")
 source("models/ks_model.R")
-source("models/ttm_model.R")
 source("04_evaluation.R")
 
 set.seed(1)
@@ -29,10 +28,6 @@ t_ks <- system.time({
   ks_ll <- logL_KS_dim(M_KS, S$X_te)
 })[["elapsed"]]
 
-t_ttm <- system.time({
-  M_TTM <- fit_TTM(S$X_tr, S$X_te)
-  ttm_ll <- logL_TTM_dim(M_TTM, S$X_te)
-})[["elapsed"]]
 
 tab_normal <- data.frame(
   dim = as.character(seq_along(G$config)),
@@ -40,7 +35,6 @@ tab_normal <- data.frame(
   logL_baseline = baseline_ll,
   logL_trtf = trtf_ll,
   logL_ks = ks_ll,
-  logL_ttm = ttm_ll,
   stringsAsFactors = FALSE
 )
 
@@ -76,10 +70,6 @@ t_ks_p <- system.time({
   ks_ll_p <- logL_KS_dim(M_KS_p, X_te_p)
 })[["elapsed"]]
 
-t_ttm_p <- system.time({
-  M_TTM_p <- fit_TTM(X_tr_p, X_te_p)
-  ttm_ll_p <- logL_TTM_dim(M_TTM_p, X_te_p)
-})[["elapsed"]]
 
 tab_perm <- data.frame(
   dim = as.character(seq_along(G$config)),
@@ -87,7 +77,6 @@ tab_perm <- data.frame(
   logL_baseline = baseline_ll_p,
   logL_trtf = trtf_ll_p,
   logL_ks = ks_ll_p,
-  logL_ttm = ttm_ll_p,
   stringsAsFactors = FALSE
 )
 
@@ -103,8 +92,8 @@ for (nm in names(tab_perm)) {
 }
 tab_perm <- rbind(tab_perm, as.data.frame(sum_row, stringsAsFactors = FALSE))
 
-vec_normal <- c(true = t_true, trtf = t_trtf, ks = t_ks, ttm = t_ttm)
-vec_perm   <- c(true = t_true_p, trtf = t_trtf_p, ks = t_ks_p, ttm = t_ttm_p)
+vec_normal <- c(true = t_true, trtf = t_trtf, ks = t_ks)
+vec_perm   <- c(true = t_true_p, trtf = t_trtf_p, ks = t_ks_p)
 
 kbl_obj <- combine_logL_tables(tab_normal, tab_perm,
                               vec_normal, vec_perm)
