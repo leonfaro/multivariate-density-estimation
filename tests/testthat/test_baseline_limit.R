@@ -3,10 +3,11 @@ source("main.R")
 
 set.seed(123)
 n <- 100
-full_res <- main()
+res <- main()
+tab <- attr(res, "tab_data")
 setwd(old_wd)
 
 test_that("logL_baseline within +/-10 for N=100", {
-  expect_true(all(abs(full_res$normal$logL_baseline) <= 10))
-  expect_true(all(abs(full_res$permutation$logL_baseline) <= 10))
+  expect_true(all(abs(tab$true[seq_along(config)]) <= 10))
+  expect_true(all(abs(tab$true_perm[seq_along(config)]) <= 10))
 })

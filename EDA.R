@@ -31,9 +31,7 @@ create_EDA_report <- function(X, cfg, output_file = "eda_report.pdf",
         make_plot(ld_base,   ld_trtf,   "TRTF"),
         make_plot(ld_base_p, ld_trtf_p, "TRTF (Perm.)"),
         make_plot(ld_base,   ld_ks,     "KS"),
-        make_plot(ld_base_p, ld_ks_p,   "KS (Perm.)"),
-        make_plot(ld_base,   ld_ttm,    "TTM"),
-        make_plot(ld_base_p, ld_ttm_p,  "TTM (Perm.)")
+        make_plot(ld_base_p, ld_ks_p,   "KS (Perm.)")
       )
     })
   }
