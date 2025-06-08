@@ -8,9 +8,28 @@
 #' @param output_file path to PDF file
 #' @return invisibly the path to the created PDF
 
+create_param_plots <- function(param_list) {
+  plots <- list()
+  idx <- 1L
+  for (k in seq_along(param_list)) {
+    df <- param_list[[k]]
+    if (k == 1 || is.null(df)) next
+    for (nm in names(df)) {
+      plt <- ggplot(df, aes_string(x = nm)) +
+        geom_histogram(bins = 30, fill = "steelblue", color = "black") +
+        labs(title = paste0("X", k, ": ", nm), x = nm, y = "Haeufigkeit") +
+        theme_minimal()
+      plots[[idx]] <- plt
+      idx <- idx + 1L
+    }
+  }
+  plots
+}
+
 create_EDA_report <- function(X, cfg, output_file = "eda_report.pdf",
                               scatter_data = NULL,
-                              table_kbl = NULL) {
+                              table_kbl = NULL,
+                              param_list = NULL) {
   if (!requireNamespace("gridExtra", quietly = TRUE))
     install.packages("gridExtra", repos = "https://cloud.r-project.org")
 
@@ -25,6 +44,7 @@ create_EDA_report <- function(X, cfg, output_file = "eda_report.pdf",
   }
 
   plots <- NULL
+  param_plots <- NULL
   if (!is.null(scatter_data)) {
     with(scatter_data, {
       plots <<- list(
@@ -35,6 +55,8 @@ create_EDA_report <- function(X, cfg, output_file = "eda_report.pdf",
       )
     })
   }
+  if (!is.null(param_list))
+    param_plots <- create_param_plots(param_list)
 
   pdf(output_file, width = 8, height = 11, title = "Average logL")
   if (!is.null(table_kbl)) {
@@ -49,6 +71,10 @@ create_EDA_report <- function(X, cfg, output_file = "eda_report.pdf",
   }
   if (!is.null(plots))
     gridExtra::grid.arrange(grobs = plots, ncol = 2)
+  if (!is.null(param_plots)) {
+    for (pg in param_plots)
+      print(pg)
+  }
   dev.off()
   invisible(output_file)
 }

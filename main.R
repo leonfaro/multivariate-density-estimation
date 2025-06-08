@@ -29,7 +29,9 @@ main <- function() {
     split_ratio = 0.5
   )
 
-  X <- gen_samples(G)                             # Script 2
+  X_dat <- gen_samples(G, return_params = TRUE)   # Script 2
+  X <- X_dat$X
+  param_list <- X_dat$params
   S <- train_test_split(X, G$split_ratio, G$seed) # Script 3
 
   ## Modelle in Originalreihenfolge inklusive Laufzeitmessung
@@ -130,7 +132,8 @@ main <- function() {
 
   create_EDA_report(S$X_tr, G$config,
                     scatter_data = scatter_data,
-                    table_kbl = kbl_tab)
+                    table_kbl = kbl_tab,
+                    param_list = param_list)
 
   message(paste0("N = ", G$n))
   message("Beste Hyperparameter fuer TRTF:")
@@ -151,6 +154,9 @@ main <- function() {
       make_plot(ld_base_p, ld_ks_p,   "KS (Perm.)")
     ))
     gridExtra::grid.arrange(grobs = plots, ncol = 2)
+    param_plots <- create_param_plots(param_list)
+    if (length(param_plots) > 0)
+      for (pg in param_plots) print(pg)
   }
 
   res <- kbl_tab
