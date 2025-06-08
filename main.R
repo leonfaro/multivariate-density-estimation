@@ -18,8 +18,6 @@ perm <- c(3, 4, 1, 2)
 
 #' @export
 main <- function() {
-  pdf("quick_test.pdf", width = 7, height = 7)
-  on.exit(dev.off())
   t0 <- proc.time()
 
   G <- list(
@@ -157,6 +155,27 @@ main <- function() {
     param_plots <- create_param_plots(param_list)
     if (length(param_plots) > 0)
       for (pg in param_plots) print(pg)
+  }
+
+  message(paste0("N = ", G$n))
+  message("Beste Hyperparameter fuer TRTF:")
+  print(M_TRTF$best_cfg)
+  print(attr(kbl_tab, "tab_data"))
+  if (requireNamespace("gridExtra", quietly = TRUE)) {
+    make_plot <- function(x, y, ttl) {
+      ggplot(data.frame(x = x, y = y), aes(x = x, y = y)) +
+        geom_point(color = "steelblue", size = 1) +
+        geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+        labs(title = ttl, x = "True log-Dichte", y = "Geschaetzte log-Dichte") +
+        theme_minimal()
+    }
+    plots <- with(scatter_data, list(
+      make_plot(ld_base,   ld_trtf,   "TRTF"),
+      make_plot(ld_base_p, ld_trtf_p, "TRTF (Perm.)"),
+      make_plot(ld_base,   ld_ks,     "KS"),
+      make_plot(ld_base_p, ld_ks_p,   "KS (Perm.)")
+    ))
+    print(gridExtra::grid.arrange(grobs = plots, ncol = 2))
   }
 
   message(paste0("N = ", G$n))
