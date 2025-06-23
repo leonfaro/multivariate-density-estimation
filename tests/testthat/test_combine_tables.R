@@ -13,18 +13,18 @@ G$n <- 10
 X <- gen_samples(G)
 S <- train_test_split(X, G$split_ratio, G$seed)
 
+M_TRUE <- fit_TRUE(S$X_tr, S$X_te, G$config)
 t_true <- system.time({
-  M_TRUE <- fit_TRUE(S$X_tr, S$X_te, G$config)
   baseline_ll <- logL_TRUE_dim(M_TRUE, S$X_te)
 })[["elapsed"]]
 
+M_TRTF <- fit_TRTF(S$X_tr, S$X_te, G$config)
 t_trtf <- system.time({
-  M_TRTF <- fit_TRTF(S$X_tr, S$X_te, G$config)
   trtf_ll <- logL_TRTF_dim(M_TRTF, S$X_te)
 })[["elapsed"]]
 
+M_KS <- fit_KS(S$X_tr, S$X_te, G$config)
 t_ks <- system.time({
-  M_KS <- fit_KS(S$X_tr, S$X_te, G$config)
   ks_ll <- logL_KS_dim(M_KS, S$X_te)
 })[["elapsed"]]
 
@@ -55,18 +55,18 @@ X_te_p <- S$X_te[, c(2,1,3,4)[seq_len(ncol(S$X_te))], drop = FALSE]
 colnames(X_tr_p) <- paste0("X", seq_len(ncol(X_tr_p)))
 colnames(X_te_p) <- paste0("X", seq_len(ncol(X_te_p)))
 
+M_TRUE_p <- fit_TRUE(X_tr_p, X_te_p, G$config)
 t_true_p <- system.time({
-  M_TRUE_p <- fit_TRUE(X_tr_p, X_te_p, G$config)
   baseline_ll_p <- logL_TRUE_dim(M_TRUE_p, X_te_p)
 })[["elapsed"]]
 
+M_TRTF_p <- fit_TRTF(X_tr_p, X_te_p, G$config)
 t_trtf_p <- system.time({
-  M_TRTF_p <- fit_TRTF(X_tr_p, X_te_p, G$config)
   trtf_ll_p <- logL_TRTF_dim(M_TRTF_p, X_te_p)
 })[["elapsed"]]
 
+M_KS_p <- fit_KS(X_tr_p, X_te_p, G$config)
 t_ks_p <- system.time({
-  M_KS_p <- fit_KS(X_tr_p, X_te_p, G$config)
   ks_ll_p <- logL_KS_dim(M_KS_p, X_te_p)
 })[["elapsed"]]
 
