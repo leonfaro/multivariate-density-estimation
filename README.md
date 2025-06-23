@@ -1,5 +1,5 @@
 # Parametric Baseline Extension
-Read `Theory.md` and 'roadmap.md' before starting any task.
+Read `Theory.md` and 'roadmap.md' before starting any task. Adjust ALGORITHM_SPEC.md after every task if necessary.
 This repository implements simple experiments for multivariate conditional density estimation.
 All notation follows `Theory.md` and the instructions in `AGENTS.md`.
 
