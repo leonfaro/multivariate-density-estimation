@@ -33,6 +33,18 @@ main <- function() {
 
   print(tab_normal)
   print(tab_perm)
+
+  hyp_n <- paste(names(mods_norm$models$trtf$best_cfg),
+                 mods_norm$models$trtf$best_cfg,
+                 sep = "=", collapse = ", ")
+  hyp_p <- paste(names(mods_perm$models$trtf$best_cfg),
+                 mods_perm$models$trtf$best_cfg,
+                 sep = "=", collapse = ", ")
+
+  cat(sprintf("TRTF Predict normal: %.2f s [%s]\n",
+              mods_norm$times["trtf"], hyp_n))
+  cat(sprintf("TRTF Predict permutiert: %.2f s [%s]\n",
+              mods_perm$times["trtf"], hyp_p))
   invisible(list(normal = tab_normal, perm = tab_perm))
 }
 
