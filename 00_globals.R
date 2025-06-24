@@ -2,7 +2,7 @@
 # Notation follows Theory.md
 
 ## Bibliotheken -------------------------------------------------------------
-pkgs <- c("trtf", "ggplot2", "gridExtra", "kableExtra", "dplyr",
+pkgs <- c("trtf", "kableExtra", "dplyr",
           "tibble", "testthat", "tidyr")
 for (p in pkgs) {
   if (!requireNamespace(p, quietly = TRUE))
