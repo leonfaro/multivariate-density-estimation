@@ -20,7 +20,17 @@ scale.
 ## Configuration Syntax
 
 The configuration `config` is a list of length $K`.  Each entry has a field
-`distr` specifying the family.  
+`distr` specifying the family.
+
+## Interactive Analysis
+
+Knit `analysis_pipeline.Rmd` to run the exploratory workflow.  In a shell this
+amounts to
+
+```bash
+Rscript -e "rmarkdown::render('analysis_pipeline.Rmd')"
+```
+which produces an HTML report with all tables and plots.
 
 ## End_of_readme
 
