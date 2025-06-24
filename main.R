@@ -82,7 +82,14 @@ main <- function() {
   res_norm <- run_normal(prep, config)
   res_perm <- run_perm(prep, config)
 
-  invisible(list(normal = res_norm$tab, perm = res_perm$tab))
+  scat_norm <- make_scatter_data(res_norm$mods, prep$S)
+  scat_perm <- make_scatter_data(res_perm$mods, prep$S_perm)
+  scatter_data <- c(scat_norm,
+                    setNames(scat_perm, paste0(names(scat_perm), "_p")))
+  plt <- plot_scatter_matrix(scatter_data)
+
+  invisible(list(normal = res_norm$tab, perm = res_perm$tab,
+                 scatter_plot = plt))
 }
 
 if (sys.nframe() == 0L) {
