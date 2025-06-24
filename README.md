@@ -20,7 +20,15 @@ scale.
 ## Configuration Syntax
 
 The configuration `config` is a list of length $K`.  Each entry has a field
-`distr` specifying the family.  
+`distr` specifying the family.
+
+## Explorative Datenanalyse
+
+Die Datei `EDA.R` stellt mit `run_pipeline()` und `create_EDA_report()` zwei
+modulare Funktionen bereit, die den gesamten Ablauf von der Datengenerierung bis
+zur Auswertung kapseln. Die resultierenden Tabellen und Plots werden über ein
+RMarkdown-Template (`docs/eda_template.Rmd`) gerendert und können anschließend
+nach HTML oder PDF exportiert werden.
 
 ## End_of_readme
 

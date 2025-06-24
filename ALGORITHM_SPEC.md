@@ -27,7 +27,8 @@ where
 6. $f_6 = \texttt{logL\_\*\_dim}$ – compute dimension-wise log-likelihoods.
 7. $f_7 = \texttt{add\_sum\_row}$ – append totals to tables.
 8. $f_8 = \texttt{combine\_logL\_tables}$ – assemble final evaluation table.
-Additional reporting is produced via `create_EDA_report` (plots/tables).
+Reporting geschieht über `create_EDA_report` und wird mittels eines
+RMarkdown-Templates gerendert.
 
 ## 3. Module Specifications
 ### setup_global
@@ -259,8 +260,17 @@ function combine_logL_tables(tab_normal, tab_perm, t_normal, t_perm)
 
 ### create_EDA_report
 `create_EDA_report(X, cfg, output_file, scatter_data, table_kbl, param_list)`
-- **Description:** generate PDF with histograms and scatter plots comparing true vs. estimated log-densities.
-- **Pre/Post:** purely side effects; no returned values of interest.
+- **Description:** erstellt Plots und Tabellen der explorativen Analyse und rendert sie 
+  mittels des RMarkdown-Templates.
+- **Pre/Post:** rein durch Seiteneffekte; kein Rückgabewert von Interesse.
+
+### create_param_plots
+`create_param_plots(param_list) : list \to list(plot)`
+- **Description:** erzeugt Histogramme zu geschätzten Parametern zur Verwendung in `create_EDA_report`.
+
+### run_pipeline
+`run_pipeline(n, config, perm) : (integer, list, integer vector) \to kable`
+- **Description:** führt den kompletten Workflow aus Daten- und Modellgenerierung aus und nutzt `create_EDA_report` zur Berichtserstellung.
 
 ## 4. Randomness & Reproducibility
 Each module drawing random numbers sets the RNG via `set.seed` with an integer seed. Seeds are derived from the global seed (`G.seed`) with deterministic offsets. Random variables are sampled from base R distributions (`rnorm`, `rexp`, `rbeta`, `rgamma`) or via transformation forests and kernel smoothing. All optimization routines are deterministic given these seeds. To reproduce results, record `G.seed` and any hyperparameter grid.
