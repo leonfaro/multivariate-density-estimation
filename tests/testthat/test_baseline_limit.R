@@ -4,7 +4,7 @@ source("main.R")
 set.seed(123)
 n <- 50
 res <- main()
-tab <- attr(res, "tab_data")
+tab <- attr(res$tables$combined, "tab_data")
 setwd(old_wd)
 
 test_that("logL_baseline within +/-10 for N=50", {
