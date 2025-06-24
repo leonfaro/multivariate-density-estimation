@@ -10,7 +10,7 @@
 #' @param param_list optionale Parameterlisten fuer Histogramme
 #' @return Liste mit Elementen `plots`, `param_plots` und `table`
 
-create_param_plots <- function(param_list) {
+plot_parameters <- function(param_list) {
   plots <- list()
   idx <- 1L
   for (k in seq_along(param_list)) {
@@ -30,13 +30,7 @@ create_param_plots <- function(param_list) {
   plots
 }
 
-create_EDA_report <- function(X, cfg,
-                              scatter_data = NULL,
-                              table_kbl = NULL,
-                              param_list = NULL) {
-
-
-
+plot_scatter <- function(scatter_data) {
   make_plot <- function(x, y, ttl) {
     tmp <- tempfile(fileext = ".png")
     png(tmp)
@@ -50,20 +44,25 @@ create_EDA_report <- function(X, cfg,
     plt
   }
 
+  with(scatter_data, list(
+    make_plot(ld_base,   ld_trtf,   "TRTF"),
+    make_plot(ld_base_p, ld_trtf_p, "TRTF (Perm.)"),
+    make_plot(ld_base,   ld_ks,     "KS"),
+    make_plot(ld_base_p, ld_ks_p,   "KS (Perm.)")
+  ))
+}
+
+create_EDA_report <- function(X, cfg,
+                              scatter_data = NULL,
+                              table_kbl = NULL,
+                              param_list = NULL) {
+
   plots <- NULL
   param_plots <- NULL
-  if (!is.null(scatter_data)) {
-    with(scatter_data, {
-      plots <<- list(
-        make_plot(ld_base,   ld_trtf,   "TRTF"),
-        make_plot(ld_base_p, ld_trtf_p, "TRTF (Perm.)"),
-        make_plot(ld_base,   ld_ks,     "KS"),
-        make_plot(ld_base_p, ld_ks_p,   "KS (Perm.)")
-      )
-    })
-  }
+  if (!is.null(scatter_data))
+    plots <- plot_scatter(scatter_data)
   if (!is.null(param_list))
-    param_plots <- create_param_plots(param_list)
+    param_plots <- plot_parameters(param_list)
 
   if (!is.null(table_kbl)) {
     tab_data <- attr(table_kbl, "tab_data")
@@ -175,7 +174,7 @@ make_scatter_data <- function(models, S) {
 #' @param n      StichprobengrÃ¶Ãe
 #' @param config Listenkonfiguration der Zielverteilungen
 #' @param perm   Permutationsvektor der Spalten
-#' @return Liste mit Daten, Modellen, Tabellen und Streudaten
+#' @return Liste mit Daten, Modellen, Tabellen, Streudaten und Plots
 #' @export
 run_pipeline <- function(n, config, perm) {
   t0 <- proc.time()
@@ -195,20 +194,19 @@ run_pipeline <- function(n, config, perm) {
   kbl_tab <- combine_logL_tables(tab_normal, tab_perm,
                                  mods_norm$times, mods_perm$times)
 
-  create_EDA_report(prep$S$X_tr, config,
-                    scatter_data = scatter_data,
-                    table_kbl = kbl_tab,
-                    param_list = prep$param_list)
+  scatter_plots <- plot_scatter(scatter_data)
+  param_plots <- plot_parameters(prep$param_list)
 
   runtime <- round((proc.time() - t0)[["elapsed"]], 2)
-  message(paste0("Laufzeit: ", runtime, " Sekunden"))
 
   res <- list(
     data = prep,
     models = list(normal = mods_norm$models, perm = mods_perm$models),
     tables = list(normal = tab_normal, perm = tab_perm, combined = kbl_tab),
     scatter_data = scatter_data,
-    times = list(normal = mods_norm$times, perm = mods_perm$times)
+    plots = list(scatter = scatter_plots, parameters = param_plots),
+    times = list(normal = mods_norm$times, perm = mods_perm$times),
+    runtime = runtime
   )
   res
 }
