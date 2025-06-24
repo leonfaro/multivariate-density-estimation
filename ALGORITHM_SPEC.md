@@ -258,7 +258,7 @@ function combine_logL_tables(tab_normal, tab_perm, t_normal, t_perm)
 ```
 
 ### create_EDA_report
-`create_EDA_report(X, cfg, output_file, scatter_data, table_kbl, param_list)`
+`create_EDA_report(X, cfg, scatter_data, table_kbl, param_list)`
 - **Description:** erzeugt Histogramme und Streuplots der Log-Dichten und gibt
   eine Liste mit `plots`, `param_plots` und `table` zurueck.
 - **Pre/Post:** keine Seiteneffekte auf Dateien.

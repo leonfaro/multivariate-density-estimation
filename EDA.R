@@ -5,7 +5,9 @@
 #'
 #' @param X matrix of generated samples
 #' @param cfg configuration list as in `gen_samples`
-#' @param output_file bislang Pfad zu einer PDF-Datei (wird ignoriert)
+#' @param scatter_data optional Daten fuer Streudiagramme
+#' @param table_kbl optional formatiere Tabelle
+#' @param param_list optionale Parameterlisten fuer Histogramme
 #' @return Liste mit Elementen `plots`, `param_plots` und `table`
 
 create_param_plots <- function(param_list) {
@@ -28,7 +30,7 @@ create_param_plots <- function(param_list) {
   plots
 }
 
-create_EDA_report <- function(X, cfg, output_file = "eda_report.pdf",
+create_EDA_report <- function(X, cfg,
                               scatter_data = NULL,
                               table_kbl = NULL,
                               param_list = NULL) {
