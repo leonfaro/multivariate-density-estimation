@@ -16,18 +16,17 @@
 All densities are evaluated in log-space. Strictly positive parameters are transformed via `softplus`.
 
 ## 2. Top-Level Pipeline
-The overarching routine `main()` follows the composition
-$$\operatorname{mainPipeline} := f_8 \circ f_7 \circ \cdots \circ f_1,$$
+The full workflow is implemented in `run_pipeline()` and called from `main()`.
+It can be written as the composition
+$$\operatorname{mainPipeline} := g_6 \circ g_5 \circ \cdots \circ g_1,$$
 where
-1. $f_1 = \texttt{gen\_samples}$ – generate $X$ from configuration.
-2. $f_2 = \texttt{train\_test\_split}$ – obtain $(X_{\text{tr}}, X_{\text{te}})$.
-3. $f_3 = \texttt{fit\_TRUE}$ – fit independent parametric marginals.
-4. $f_4 = \texttt{fit\_TRTF}$ – fit transformation forests.
-5. $f_5 = \texttt{fit\_KS}$ – fit kernel smoother model.
-6. $f_6 = \texttt{logL\_\*\_dim}$ – compute dimension-wise log-likelihoods.
-7. $f_7 = \texttt{add\_sum\_row}$ – append totals to tables.
-8. $f_8 = \texttt{combine\_logL\_tables}$ – assemble final evaluation table.
-Optional EDA helper functions are defined in `04_evaluation.R`.
+1. $g_1 = \texttt{prepare\_data}$ – generate $X$ with `gen_samples`, split into $(X_{\text{tr}},X_{\text{te}})$ and additionally produce a permuted version.
+2. $g_2 = \texttt{fit\_models}$ – fit `M_{TRUE}`, `M_{TRTF}` and `M_{KS}` on the training part and evaluate log-likelihoods on $X_{\text{te}}$.
+3. $g_3 = \texttt{calc\_loglik\_tables}$ – create per-dimension tables using `add_sum_row`.
+4. $g_4 = \texttt{make\_scatter\_data}$ – compute true versus predicted log-densities for plotting.
+5. $g_5 = \texttt{combine\_logL\_tables}$ – merge the normal and permuted tables and append prediction runtimes.
+6. $g_6 = \texttt{plot\_scatter}/\texttt{plot\_parameters}$ – optional EDA visualisations.
+The helper `run_pipeline()` returns a list with data, fitted models, tables, scatter data, plots and runtimes.
 
 ## 3. Module Specifications
 ### setup_global
@@ -256,6 +255,70 @@ function combine_logL_tables(tab_normal, tab_perm, t_normal, t_perm)
     add runtime row in milliseconds
     return formatted table
 ```
+
+### prepare_data
+`prepare_data(n, config, perm) : (\mathbb N, list, permutation) \to list`
+- **Description:** draw samples via `gen_samples`, split into $(X_{\text{tr}}, X_{\text{te}})$ and create a permuted version.
+- **Post:** returns list with `G`, `S` (normal split) and `S_perm` (permuted split) as used by `fit_models`.
+- **Randomness:** relies on `set.seed(G$seed)` and permutation seed `G$seed + 1`.
+- **Pseudocode:**
+```
+function prepare_data(n, config, perm)
+    G <- list(n=n, config=config, seed=42, split_ratio=0.5)
+    X_dat <- gen_samples(G, return_params=TRUE)
+    S <- train_test_split(X_dat$X, G$split_ratio, G$seed)
+    S_perm <- list(X_tr = S$X_tr[, perm], X_te = S$X_te[, perm])
+    return list(G=G, S=S, S_perm=S_perm, param_list=X_dat$params)
+```
+
+### fit_models
+`fit_models(S, config) : (list, list) \to list`
+- **Description:** fit `M_{TRUE}`, `M_{TRTF}` and `M_{KS}` using `S$X_tr`; compute dimension-wise log-likelihoods on `S$X_te` and store prediction runtimes.
+- **Post:** returns list `models`, `ll` and `times`.
+- **Pseudocode:**
+```
+function fit_models(S, config)
+    M_TRUE <- fit_TRUE(S$X_tr, S$X_te, config)
+    M_TRTF <- fit_TRTF(S$X_tr, S$X_te, config)
+    M_KS   <- fit_KS(S$X_tr, S$X_te, config)
+    ll_true  <- logL_TRUE_dim(M_TRUE, S$X_te)
+    ll_trtf  <- logL_TRTF_dim(M_TRTF, S$X_te)
+    ll_ks    <- logL_KS_dim(M_KS, S$X_te)
+    return list(models = {true=M_TRUE, trtf=M_TRTF, ks=M_KS},
+                ll = {true=ll_true, trtf=ll_trtf, ks=ll_ks},
+                times = ...)
+```
+
+### calc_loglik_tables
+`calc_loglik_tables(models, config) : (list, list) \to data.frame`
+- **Description:** build a data.frame of average negative log-likelihoods and append a sum row using `add_sum_row`.
+- **Pseudocode:**
+```
+function calc_loglik_tables(models, config)
+    tab <- data.frame(dim = 1..K,
+                      distribution = cfg$distr,
+                      logL_baseline = models$ll$true,
+                      logL_trtf = models$ll$trtf,
+                      logL_ks = models$ll$ks)
+    add_sum_row(tab)
+```
+
+### make_scatter_data
+`make_scatter_data(models, S) : (list, list) \to list`
+- **Description:** compute log-density vectors of test data under each fitted model for scatter plots.
+- **Pseudocode:**
+```
+function make_scatter_data(models, S)
+    ld_base <- rowSums(log_density_true(S$X_te, models$models$true))
+    ld_trtf <- predict(models$models$trtf, S$X_te, 'logdensity')
+    ld_ks   <- predict(models$models$ks, S$X_te, 'logdensity')
+    return list(ld_base=ld_base, ld_trtf=ld_trtf, ld_ks=ld_ks)
+```
+
+### run_pipeline
+`run_pipeline(n, config, perm) : (...) \to list`
+- **Description:** orchestrates `prepare_data`, `fit_models`, `calc_loglik_tables`, `make_scatter_data` for both normal and permuted orders, then calls `combine_logL_tables` and plotting utilities.
+- **Post:** returns list containing data, fitted models, tables, scatter data, plots and total runtime.
 
 ### create_EDA_report
 `create_EDA_report(X, cfg, scatter_data, table_kbl, param_list)`
