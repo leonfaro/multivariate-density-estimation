@@ -87,6 +87,10 @@ fit_TRTF <- function(X_tr, X_te, config,
 
   best_val <- Inf
   best_cfg <- grid_df[1, ]
+  pb_total <- nrow(grid_df) * folds + 1
+  pb <- txtProgressBar(min = 0, max = pb_total, style = 3)
+  progress <- 0
+  on.exit(close(pb))
   for (i in seq_len(nrow(grid_df))) {
     cfg <- grid_df[i, ]
     ctrl <- partykit::ctree_control(minsplit = cfg$minsplit,
@@ -101,6 +105,8 @@ fit_TRTF <- function(X_tr, X_te, config,
                    maxdepth = cfg$maxdepth, seed = seed + f)
       val_fold[f] <- -mean(predict(m, X_valid, type = "logdensity",
                                    cores = floor(NC), trace = TRUE))
+      progress <- progress + 1
+      setTxtProgressBar(pb, progress)
     }
     val <- mean(val_fold)
     if (is.finite(val) && val < best_val) {
@@ -112,6 +118,8 @@ fit_TRTF <- function(X_tr, X_te, config,
   final <- mytrtf(X_tr, ntree = best_cfg$ntree, mtry = best_cfg$mtry,
                   minsplit = best_cfg$minsplit, minbucket = best_cfg$minbucket,
                   maxdepth = best_cfg$maxdepth, seed = seed)
+  progress <- progress + 1
+  setTxtProgressBar(pb, progress)
   final$config <- config
   final$cv_logL <- best_val
   final$logL_te <- logL_TRTF(final, X_te)

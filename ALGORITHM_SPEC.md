@@ -17,7 +17,7 @@ All densities are evaluated in log-space. Strictly positive parameters are trans
 
 ## 2. Top-Level Pipeline
 The overarching routine `main()` follows the composition
-$$\operatorname{mainPipeline} := f_8 \circ f_7 \circ \cdots \circ f_1,$$
+$$\operatorname{mainPipeline} := f_9 \circ f_8 \circ \cdots \circ f_1,$$
 where
 1. $f_1 = \texttt{gen\_samples}$ – generate $X$ from configuration.
 2. $f_2 = \texttt{train\_test\_split}$ – obtain $(X_{\text{tr}}, X_{\text{te}})$.
@@ -27,6 +27,7 @@ where
 6. $f_6 = \texttt{logL\_\*\_dim}$ – compute dimension-wise log-likelihoods.
 7. $f_7 = \texttt{add\_sum\_row}$ – append totals to tables.
 8. $f_8 = \texttt{combine\_logL\_tables}$ – assemble final evaluation table.
+9. $f_9 = \texttt{plot\_scatter\_matrix}$ – display four log-density scatter plots.
 Optional EDA helper functions are defined in `04_evaluation.R`.
 
 ## 3. Module Specifications
