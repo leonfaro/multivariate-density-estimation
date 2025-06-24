@@ -5,7 +5,6 @@ source("models/true_model.R")
 source("models/trtf_model.R")
 source("models/ks_model.R")
 source("04_evaluation.R")
-source("EDA.R")
 
 n <- 50
 config <- list(
@@ -18,18 +17,23 @@ perm <- c(3, 4, 1, 2)
 
 #' Starte die komplette Analyse
 #'
-#' Diese Wrapper-Funktion ruft `run_pipeline()` aus `EDA.R` auf und gibt
-#' die erzeugte Ergebnistabelle zurück.
+#' Es werden zwei Log-Likelihood-Tabellen ausgegeben: einmal für die
+#' normale Reihenfolge der Dimensionen und einmal für eine vorgegebene
+#' Permutation.
 #'
 #' @export
 main <- function() {
-  res <- run_pipeline(n, config, perm)
-  create_EDA_report(res$data$S$X_tr, config,
-                    scatter_data = res$scatter_data,
-                    table_kbl = res$tables$combined,
-                    param_list = res$data$param_list)
-  print(res$tables$combined)
-  invisible(res)
+  prep <- prepare_data(n, config, perm)
+
+  mods_norm <- fit_models(prep$S, config)
+  tab_normal <- calc_loglik_tables(mods_norm, config)
+
+  mods_perm <- fit_models(prep$S_perm, config)
+  tab_perm <- calc_loglik_tables(mods_perm, config)
+
+  print(tab_normal)
+  print(tab_perm)
+  invisible(list(normal = tab_normal, perm = tab_perm))
 }
 
 if (sys.nframe() == 0L) {

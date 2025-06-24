@@ -1,5 +1,5 @@
 source("helper_config.R")
-source("../../EDA.R")
+source("../../04_evaluation.R")
 
 set.seed(1)
 res <- prepare_data(20, config, c(3,2,1,4))
