@@ -32,6 +32,7 @@ prep <- prepare_data(50, config, perm)
 
 ```{r}
 mods <- fit_models(prep$S, config)
+mods_p <- fit_models(prep$S_perm, config)
 ```
 
 ## Log-Likelihood Tables
@@ -44,7 +45,9 @@ print(tab)
 ## Scatter Data and Plots
 
 ```{r}
-scat <- make_scatter_data(mods, prep$S)
+scat_n <- make_scatter_data(mods, prep$S)
+scat_p <- make_scatter_data(mods_p, prep$S_perm)
+scat <- c(scat_n, setNames(scat_p, paste0(names(scat_p), "_p")))
 scat_plots <- plot_scatter(scat)
 ```
 
