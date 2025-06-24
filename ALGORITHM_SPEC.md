@@ -27,7 +27,7 @@ where
 6. $f_6 = \texttt{logL\_\*\_dim}$ – compute dimension-wise log-likelihoods.
 7. $f_7 = \texttt{add\_sum\_row}$ – append totals to tables.
 8. $f_8 = \texttt{combine\_logL\_tables}$ – assemble final evaluation table.
-Additional reporting is produced via `create_EDA_report` (plots/tables).
+Optional EDA helper functions are defined in `04_evaluation.R`.
 
 ## 3. Module Specifications
 ### setup_global
@@ -259,8 +259,9 @@ function combine_logL_tables(tab_normal, tab_perm, t_normal, t_perm)
 
 ### create_EDA_report
 `create_EDA_report(X, cfg, scatter_data, table_kbl, param_list)`
-- **Description:** erzeugt Histogramme und Streuplots der Log-Dichten und gibt
-  eine Liste mit `plots`, `param_plots` und `table` zurueck.
+- **Description:** erzeugt optional Histogramme und Streuplots der Log-Dichten
+  und gibt eine Liste mit `plots`, `param_plots` und `table` zurück.
+- **Location:** definiert in `04_evaluation.R`.
 - **Pre/Post:** keine Seiteneffekte auf Dateien.
 
 ## 4. Randomness & Reproducibility
