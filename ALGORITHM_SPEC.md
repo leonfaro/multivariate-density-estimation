@@ -259,8 +259,9 @@ function combine_logL_tables(tab_normal, tab_perm, t_normal, t_perm)
 
 ### create_EDA_report
 `create_EDA_report(X, cfg, output_file, scatter_data, table_kbl, param_list)`
-- **Description:** generate PDF with histograms and scatter plots comparing true vs. estimated log-densities.
-- **Pre/Post:** purely side effects; no returned values of interest.
+- **Description:** erzeugt Histogramme und Streuplots der Log-Dichten und gibt
+  eine Liste mit `plots`, `param_plots` und `table` zurueck.
+- **Pre/Post:** keine Seiteneffekte auf Dateien.
 
 ## 4. Randomness & Reproducibility
 Each module drawing random numbers sets the RNG via `set.seed` with an integer seed. Seeds are derived from the global seed (`G.seed`) with deterministic offsets. Random variables are sampled from base R distributions (`rnorm`, `rexp`, `rbeta`, `rgamma`) or via transformation forests and kernel smoothing. All optimization routines are deterministic given these seeds. To reproduce results, record `G.seed` and any hyperparameter grid.

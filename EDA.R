@@ -1,12 +1,12 @@
 #' Exploratory Data Analysis for Generated Samples
 #'
-#' Creates tables and scatter plots comparing estimated log-densities with
-#' the wahren Werten. Results are written to a PDF.
+#' Creates tables and Scatter-Plots der geschaetzten gegen die wahren
+#' Log-Dichten.  Gibt Plots und Tabellen als Liste zurueck.
 #'
 #' @param X matrix of generated samples
 #' @param cfg configuration list as in `gen_samples`
-#' @param output_file path to PDF file
-#' @return invisibly the path to the created PDF
+#' @param output_file bislang Pfad zu einer PDF-Datei (wird ignoriert)
+#' @return Liste mit Elementen `plots`, `param_plots` und `table`
 
 create_param_plots <- function(param_list) {
   plots <- list()
@@ -58,7 +58,6 @@ create_EDA_report <- function(X, cfg, output_file = "eda_report.pdf",
   if (!is.null(param_list))
     param_plots <- create_param_plots(param_list)
 
-  pdf(output_file, width = 8, height = 11, title = "Average logL")
   if (!is.null(table_kbl)) {
     tab_data <- attr(table_kbl, "tab_data")
     num_cols <- vapply(tab_data, is.numeric, logical(1))
@@ -67,16 +66,14 @@ create_EDA_report <- function(X, cfg, output_file = "eda_report.pdf",
       tab_data[-nrow(tab_data), col] <- sprintf("%.3f", as.numeric(tab_data[-nrow(tab_data), col]))
       tab_data[nrow(tab_data), col]  <- sprintf("%.0f", last_val)
     }
-    print(tab_data)
   }
   if (!is.null(plots))
     gridExtra::grid.arrange(grobs = plots, ncol = 2)
   if (!is.null(param_plots)) {
     for (pg in param_plots)
-      print(pg)
+      gridExtra::grid.arrange(pg)
   }
-  dev.off()
-  invisible(output_file)
+  list(plots = plots, param_plots = param_plots, table = table_kbl)
 }
 
 #' VollstÃ¤ndigen Analyseablauf ausfÃ¼hren
