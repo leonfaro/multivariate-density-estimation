@@ -1,9 +1,7 @@
-# Global configuration for TRUE-Modell-Experimente
-# Notation follows Theory.md
 
-## Bibliotheken -------------------------------------------------------------
 pkgs <- c("trtf", "kableExtra", "dplyr",
-          "tibble", "testthat", "tidyr")
+          "tibble", "tidyr")
+
 for (p in pkgs) {
   if (!requireNamespace(p, quietly = TRUE))
     install.packages(p, repos = "https://cloud.r-project.org")
