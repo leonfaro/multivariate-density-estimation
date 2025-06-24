@@ -15,11 +15,13 @@ create_param_plots <- function(param_list) {
     df <- param_list[[k]]
     if (k == 1 || is.null(df)) next
     for (nm in names(df)) {
-      plt <- ggplot(df, aes_string(x = nm)) +
-        geom_histogram(bins = 30, fill = "steelblue", color = "black") +
-        labs(title = paste0("X", k, ": ", nm), x = nm, y = "Haeufigkeit") +
-        theme_minimal()
-      plots[[idx]] <- plt
+      tmp <- tempfile(fileext = ".png")
+      png(tmp)
+      hist(df[[nm]], breaks = 30, col = "steelblue", border = "black",
+           main = paste0("X", k, ": ", nm), xlab = nm)
+      plots[[idx]] <- recordPlot()
+      dev.off()
+      unlink(tmp)
       idx <- idx + 1L
     }
   }
@@ -30,17 +32,20 @@ create_EDA_report <- function(X, cfg, output_file = "eda_report.pdf",
                               scatter_data = NULL,
                               table_kbl = NULL,
                               param_list = NULL) {
-  if (!requireNamespace("gridExtra", quietly = TRUE))
-    install.packages("gridExtra", repos = "https://cloud.r-project.org")
 
 
 
   make_plot <- function(x, y, ttl) {
-    ggplot(data.frame(x = x, y = y), aes(x = x, y = y)) +
-      geom_point(color = "steelblue", size = 1) +
-      geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
-      labs(title = ttl, x = "True log-Dichte", y = "Geschaetzte log-Dichte") +
-      theme_minimal()
+    tmp <- tempfile(fileext = ".png")
+    png(tmp)
+    plot(x, y, main = ttl, xlab = "True log-Dichte",
+         ylab = "Geschaetzte log-Dichte",
+         col = "steelblue", pch = 16)
+    abline(a = 0, b = 1, lty = 2)
+    plt <- recordPlot()
+    dev.off()
+    unlink(tmp)
+    plt
   }
 
   plots <- NULL
@@ -68,11 +73,9 @@ create_EDA_report <- function(X, cfg, output_file = "eda_report.pdf",
     }
   }
   if (!is.null(plots))
-    gridExtra::grid.arrange(grobs = plots, ncol = 2)
-  if (!is.null(param_plots)) {
-    for (pg in param_plots)
-      gridExtra::grid.arrange(pg)
-  }
+    for (pg in plots) replayPlot(pg)
+  if (!is.null(param_plots))
+    for (pg in param_plots) replayPlot(pg)
   list(plots = plots, param_plots = param_plots, table = table_kbl)
 }
 
