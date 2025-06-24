@@ -32,7 +32,6 @@ prep <- prepare_data(50, config, perm)
 
 ```{r}
 mods <- fit_models(prep$S, config)
-# Permutationsmodell zur Erzeugung von 'ld_base_p'
 mods_p <- fit_models(prep$S_perm, config)
 ```
 
