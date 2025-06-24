@@ -39,6 +39,36 @@ run_perm <- function(prep, cfg) {
   list(tab = tab, mods = mods)
 }
 
+#' Kombinierte Streuplots anzeigen
+#'
+#' Vier Streudiagramme werden im Layout 2x2 ausgegeben. Die oberen
+#' beiden Plots zeigen die Daten in normaler Reihenfolge, unten folgt
+#' die Permutation. Links steht jeweils der TRTF-Vergleich, rechts der
+#' Vergleich mit KS.
+#'
+#' @param scatter_data Liste mit Einträgen `ld_base`, `ld_trtf`,
+#'   `ld_ks`, `ld_base_p`, `ld_trtf_p`, `ld_ks_p`
+#' @return Ein aufgezeichneter Plot
+plot_scatter_matrix <- function(scatter_data) {
+  op <- par(mfrow = c(2, 2))
+  on.exit(par(op))
+  with(scatter_data, {
+    plot(ld_trtf, ld_base, xlab = "predicted log-density",
+         ylab = "true log-density")
+    abline(0, 1)
+    plot(ld_ks, ld_base, xlab = "predicted log-density",
+         ylab = "true log-density")
+    abline(0, 1)
+    plot(ld_trtf_p, ld_base_p, xlab = "predicted log-density",
+         ylab = "true log-density")
+    abline(0, 1)
+    plot(ld_ks_p, ld_base_p, xlab = "predicted log-density",
+         ylab = "true log-density")
+    abline(0, 1)
+  })
+  recordPlot()
+}
+
 #' Starte die komplette Analyse
 #'
 #' Es werden zwei Log-Likelihood-Tabellen ausgegeben: einmal für die
@@ -52,7 +82,14 @@ main <- function() {
   res_norm <- run_normal(prep, config)
   res_perm <- run_perm(prep, config)
 
-  invisible(list(normal = res_norm$tab, perm = res_perm$tab))
+  scat_norm <- make_scatter_data(res_norm$mods, prep$S)
+  scat_perm <- make_scatter_data(res_perm$mods, prep$S_perm)
+  scatter_data <- c(scat_norm,
+                    setNames(scat_perm, paste0(names(scat_perm), "_p")))
+  plt <- plot_scatter_matrix(scatter_data)
+
+  invisible(list(normal = res_norm$tab, perm = res_perm$tab,
+                 scatter_plot = plt))
 }
 
 if (sys.nframe() == 0L) {
