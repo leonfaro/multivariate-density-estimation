@@ -17,9 +17,10 @@ n <- 20
 res <- main()
 setwd(old_wd)
 
-test_that("main outputs combined kable table", {
-  expect_s3_class(res, "knitr_kable")
-  tab_data <- attr(res, "tab_data")
+test_that("main gibt Ergebnisliste zurueck", {
+  expect_true(is.list(res))
+  expect_s3_class(res$kbl_tab, "knitr_kable")
+  tab_data <- attr(res$kbl_tab, "tab_data")
   expect_s3_class(tab_data, "data.frame")
   expect_true(all(is.finite(tab_data$true[1:length(G$config)])))
 })

@@ -19,7 +19,7 @@ perm <- c(3, 4, 1, 2)
 #' Starte die komplette Analyse
 #'
 #' Diese Wrapper-Funktion ruft `run_pipeline()` aus `EDA.R` auf und gibt
-#' die erzeugte Ergebnistabelle zurück.
+#' die erzeugten Zwischenergebnisse zurück.
 #'
 #' @export
 main <- function() {
