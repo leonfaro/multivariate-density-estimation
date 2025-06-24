@@ -15,6 +15,30 @@ config <- list(
 )
 perm <- c(3, 4, 1, 2)
 
+run_normal <- function(prep, cfg) {
+  mods <- fit_models(prep$S, cfg)
+  tab <- calc_loglik_tables(mods, cfg)
+  print(tab)
+  hyp <- paste(names(mods$models$trtf$best_cfg),
+               mods$models$trtf$best_cfg,
+               sep = "=", collapse = ", ")
+  cat(sprintf("TRTF Predict normal: %.2f s [%s]\n",
+              mods$times["trtf"], hyp))
+  list(tab = tab, mods = mods)
+}
+
+run_perm <- function(prep, cfg) {
+  mods <- fit_models(prep$S_perm, cfg)
+  tab <- calc_loglik_tables(mods, cfg)
+  print(tab)
+  hyp <- paste(names(mods$models$trtf$best_cfg),
+               mods$models$trtf$best_cfg,
+               sep = "=", collapse = ", ")
+  cat(sprintf("TRTF Predict permutiert: %.2f s [%s]\n",
+              mods$times["trtf"], hyp))
+  list(tab = tab, mods = mods)
+}
+
 #' Starte die komplette Analyse
 #'
 #' Es werden zwei Log-Likelihood-Tabellen ausgegeben: einmal für die
@@ -25,27 +49,10 @@ perm <- c(3, 4, 1, 2)
 main <- function() {
   prep <- prepare_data(n, config, perm)
 
-  mods_norm <- fit_models(prep$S, config)
-  tab_normal <- calc_loglik_tables(mods_norm, config)
+  res_norm <- run_normal(prep, config)
+  res_perm <- run_perm(prep, config)
 
-  mods_perm <- fit_models(prep$S_perm, config)
-  tab_perm <- calc_loglik_tables(mods_perm, config)
-
-  print(tab_normal)
-  print(tab_perm)
-
-  hyp_n <- paste(names(mods_norm$models$trtf$best_cfg),
-                 mods_norm$models$trtf$best_cfg,
-                 sep = "=", collapse = ", ")
-  hyp_p <- paste(names(mods_perm$models$trtf$best_cfg),
-                 mods_perm$models$trtf$best_cfg,
-                 sep = "=", collapse = ", ")
-
-  cat(sprintf("TRTF Predict normal: %.2f s [%s]\n",
-              mods_norm$times["trtf"], hyp_n))
-  cat(sprintf("TRTF Predict permutiert: %.2f s [%s]\n",
-              mods_perm$times["trtf"], hyp_p))
-  invisible(list(normal = tab_normal, perm = tab_perm))
+  invisible(list(normal = res_norm$tab, perm = res_perm$tab))
 }
 
 if (sys.nframe() == 0L) {
