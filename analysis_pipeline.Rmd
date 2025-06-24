@@ -1,0 +1,59 @@
+---
+title: "Analysis Pipeline"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+source("00_globals.R")
+source("01_data_generation.R")
+source("02_split.R")
+source("models/true_model.R")
+source("models/trtf_model.R")
+source("models/ks_model.R")
+source("04_evaluation.R")
+source("EDA.R")
+```
+
+## Data Preparation
+
+```{r}
+set.seed(1)
+perm <- c(3, 4, 1, 2)
+config <- list(
+  list(distr = "norm", parm = NULL),
+  list(distr = "exp",  parm = function(d) list(rate = softplus(d$X1))),
+  list(distr = "beta", parm = function(d) list(shape1 = softplus(d$X2), shape2 = softplus(d$X1))),
+  list(distr = "gamma", parm = function(d) list(shape = softplus(d$X3), scale = softplus(d$X2)))
+)
+prep <- prepare_data(50, config, perm)
+```
+
+## Fit Models
+
+```{r}
+mods <- fit_models(prep$S, config)
+```
+
+## Log-Likelihood Tables
+
+```{r}
+tab <- calc_loglik_tables(mods, config)
+print(tab)
+```
+
+## Scatter Data and Plots
+
+```{r}
+scat <- make_scatter_data(mods, prep$S)
+scat_plots <- plot_scatter(scat)
+```
+
+```{r}
+for(p in scat_plots) replayPlot(p)
+```
+
+## Optional Full Pipeline
+
+```{r}
+# run_pipeline(50, config, perm)
+```
