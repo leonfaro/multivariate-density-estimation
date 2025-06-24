@@ -23,7 +23,13 @@ perm <- c(3, 4, 1, 2)
 #'
 #' @export
 main <- function() {
-  run_pipeline(n, config, perm)
+  res <- run_pipeline(n, config, perm)
+  create_EDA_report(res$data$S$X_tr, config,
+                    scatter_data = res$scatter_data,
+                    table_kbl = res$tables$combined,
+                    param_list = res$data$param_list)
+  print(res$tables$combined)
+  invisible(res)
 }
 
 if (sys.nframe() == 0L) {
