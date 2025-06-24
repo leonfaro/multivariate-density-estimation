@@ -17,33 +17,33 @@
 #   • Val:    3 284 × 43                                                     #
 #   • Test:   3 648 × 43                                                     #
 ###############################################################################
-
-# ------------------------- 1 | Download & Roh-Import -------------------------
-url <- "https://archive.ics.uci.edu/ml/machine-learning-databases/00199/MiniBooNE_PID.txt"
-tf  <- tempfile()
-download.file(url, tf, mode = "wb")          # ~87 MB
-
-con   <- file(tf, "r")
-nums  <- scan(con, what = integer(), n = 2, quiet = TRUE)
-n_sig <- nums[1]                             # Zeile 1: #positiver Events
-# Zeile 2: #negativer Events (wird ignoriert)
-
-raw   <- scan(con, what = numeric(), quiet = TRUE)  # restliche Zahlen
-close(con)
-
-x <- matrix(raw, ncol = 50, byrow = TRUE)[1:n_sig, ]  # 50 Merkmale, nur positives
-
-# --------------------- 2 | 11 vollständige Ausreißer löschen -----------------
-bad <- apply(x, 1, function(r) all(r == -1000) || all(r == -999))
-stopifnot(sum(bad) == 11)
-x <- x[!bad, ]                              # 36 488 Zeilen verbleiben
-
-# ----------- 3 | 7 Features mit extrem häufiger Wiederholung streichen -------
-mode_ratio <- function(v) {                 # Anteil häufigster abgeschnittener Wert
-#   t <- table(signif(v, 6))
-#   max(t) / length(v)
-# }
-# ratios    <- apply(x, 2, mode_ratio)
+# 
+# # ------------------------- 1 | Download & Roh-Import -------------------------
+# url <- "https://archive.ics.uci.edu/ml/machine-learning-databases/00199/MiniBooNE_PID.txt"
+# tf  <- tempfile()
+# download.file(url, tf, mode = "wb")          # ~87 MB
+# 
+# con   <- file(tf, "r")
+# nums  <- scan(con, what = integer(), n = 2, quiet = TRUE)
+# n_sig <- nums[1]                             # Zeile 1: #positiver Events
+# # Zeile 2: #negativer Events (wird ignoriert)
+# 
+# raw   <- scan(con, what = numeric(), quiet = TRUE)  # restliche Zahlen
+# close(con)
+# 
+# x <- matrix(raw, ncol = 50, byrow = TRUE)[1:n_sig, ]  # 50 Merkmale, nur positives
+# 
+# # --------------------- 2 | 11 vollständige Ausreißer löschen -----------------
+# bad <- apply(x, 1, function(r) all(r == -1000) || all(r == -999))
+# stopifnot(sum(bad) == 11)
+# x <- x[!bad, ]                              # 36 488 Zeilen verbleiben
+# 
+# # ----------- 3 | 7 Features mit extrem häufiger Wiederholung streichen -------
+# mode_ratio <- function(v) {                 # Anteil häufigster abgeschnittener Wert
+# #   t <- table(signif(v, 6))
+# #   max(t) / length(v)
+# # }
+# # ratios    <- apply(x, 2, mode_ratio)
 # drop_cols <- order(ratios, decreasing = TRUE)[1:7]    # Top-7
 # x         <- x[, -drop_cols]                          # 43 Dimensionen
 # 
