@@ -1,6 +1,5 @@
 # Simplified TRTF model using BoxCox transformation models
 # Follows notation in README.md and Theory.md
-NC <- parallel::detectCores()
 
 mytrtf <- function(data, ntree = 50, mtry = floor(sqrt(ncol(data) - 1)),
                    minsplit = 25, minbucket = 20, maxdepth = 4, seed = 42) {
@@ -27,7 +26,7 @@ mytrtf <- function(data, ntree = 50, mtry = floor(sqrt(ncol(data) - 1)),
                                   trace = TRUE, ntree = ntree,
                                   min_update = 50, update = FALSE,
                                   mltargs = list(), mtry = mtry,
-                                  cores = floor(NC / 2), control = ctrl)
+                                  cores = NC, control = ctrl)
   }
 
   res <- list(ymod = ymod, forests = forests, seed = seed,
@@ -38,7 +37,7 @@ mytrtf <- function(data, ntree = 50, mtry = floor(sqrt(ncol(data) - 1)),
 
 predict.mytrtf <- function(object, newdata,
                            type = c("logdensity", "logdensity_by_dim"),
-                           cores = floor(NC), trace = TRUE) {
+                           cores = NC, trace = TRUE) {
   type <- match.arg(type)
   stopifnot(inherits(object, "mytrtf"), is.matrix(newdata))
 
@@ -62,14 +61,14 @@ predict.mytrtf <- function(object, newdata,
 
 logL_TRTF <- function(model, X) {
   val <- -mean(predict(model, X, type = "logdensity",
-                       cores = floor(NC), trace = TRUE))
+                       cores = NC, trace = TRUE))
   if (!is.finite(val)) stop("log-likelihood not finite")
   val
 }
 
 logL_TRTF_dim <- function(model, X) {
   ll <- predict(model, X, type = "logdensity_by_dim",
-                cores = floor(NC), trace = TRUE)
+                cores = NC, trace = TRUE)
   res <- -colMeans(ll)
   if (!all(is.finite(res))) stop("log-likelihood not finite")
   res
@@ -104,7 +103,7 @@ fit_TRTF <- function(X_tr, X_te, config,
                    minsplit = cfg$minsplit, minbucket = cfg$minbucket,
                    maxdepth = cfg$maxdepth, seed = seed + f)
       val_fold[f] <- -mean(predict(m, X_valid, type = "logdensity",
-                                   cores = floor(NC), trace = TRUE))
+                                   cores = NC, trace = TRUE))
       progress <- progress + 1
       setTxtProgressBar(pb, progress)
     }

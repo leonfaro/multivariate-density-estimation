@@ -33,15 +33,15 @@ fit_KS <- function(X_tr, X_te, config, seed = 42) {
 #' @return Matrix oder Vektor von Log-Dichten
 #' @export
 predict.ks_model <- function(object, newdata,
-                            type = c("logdensity", "logdensity_by_dim")) {
+                            type = c("logdensity", "logdensity_by_dim"),
+                            cores = NC) {
   type <- match.arg(type)
   X_tr <- object$X_tr
   h <- object$h
   stopifnot(is.matrix(newdata))
   K <- ncol(X_tr)
   n <- nrow(newdata)
-  ll <- matrix(NA_real_, nrow = n, ncol = K)
-  for (i in seq_len(n)) {
+  ll_list <- parallel::mclapply(seq_len(n), function(i) {
     x <- newdata[i, ]
 
     logkern <- vapply(seq_len(K), function(r) {
@@ -51,11 +51,14 @@ predict.ks_model <- function(object, newdata,
     cumsums <- t(apply(logkern, 1, cumsum))
     log_g <- apply(cumsums, 2, function(v) .log_sum_exp(v) - log(nrow(X_tr)))
 
-    ll[i, 1] <- log_g[1]
+    ll_i <- numeric(K)
+    ll_i[1] <- log_g[1]
     if (K > 1) {
-      ll[i, 2:K] <- diff(log_g)
+      ll_i[2:K] <- diff(log_g)
     }
-  }
+    ll_i
+  }, mc.cores = cores)
+  ll <- do.call(rbind, ll_list)
   if (type == "logdensity_by_dim") return(ll)
   rowSums(ll)
 }
@@ -66,8 +69,8 @@ predict.ks_model <- function(object, newdata,
 #' @param X Matrix von Beobachtungen
 #' @return Skalar
 #' @export
-logL_KS <- function(model, X) {
-  val <- -mean(predict(model, X, type = "logdensity"))
+logL_KS <- function(model, X, cores = NC) {
+  val <- -mean(predict(model, X, type = "logdensity", cores = cores))
   if (!is.finite(val)) stop("log-likelihood not finite")
   val
 }
@@ -78,8 +81,8 @@ logL_KS <- function(model, X) {
 #' @param X Matrix von Beobachtungen
 #' @return numerischer Vektor
 #' @export
-logL_KS_dim <- function(model, X) {
-  ll <- predict(model, X, type = "logdensity_by_dim")
+logL_KS_dim <- function(model, X, cores = NC) {
+  ll <- predict(model, X, type = "logdensity_by_dim", cores = cores)
   res <- -colMeans(ll)
   if (!all(is.finite(res))) stop("log-likelihood not finite")
   res
