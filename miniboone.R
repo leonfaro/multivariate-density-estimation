@@ -89,9 +89,9 @@
 #   ),
 #   file = "miniboone.rds"
 # )
-# write.csv(x_train, "miniboone_train.csv", row.names = FALSE)
-# write.csv(x_val,   "miniboone_val.csv",   row.names = FALSE)
-# write.csv(x_test,  "miniboone_test.csv",  row.names = FALSE)
+# write.csv(x_train, "data/miniboone_train.csv", row.names = FALSE)
+# write.csv(x_val,   "data/miniboone_val.csv",   row.names = FALSE)
+# write.csv(x_test,  "data/miniboone_test.csv",  row.names = FALSE)
 
 
 library("trtf")
@@ -122,9 +122,9 @@ n_train_keep <- 50
 d_keep       <- 2 
 set.seed(42)                 
 
-train <- read.csv("miniboone_train.csv")
-val   <- read.csv("miniboone_val.csv")
-test  <- read.csv("miniboone_test.csv")
+train <- read.csv("data/miniboone_train.csv")
+val   <- read.csv("data/miniboone_val.csv")
+test  <- read.csv("data/miniboone_test.csv")
 
 keep_num <- sapply(train, is.numeric)
 train <- train[ , keep_num]
