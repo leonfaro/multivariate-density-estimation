@@ -8,6 +8,8 @@ for (p in pkgs) {
   library(p, character.only = TRUE)
 }
 library(parallel)
+NC <- detectCores()
+options(mc.cores = NC)
 
 softplus <- function(x) log1p(exp(x))
 

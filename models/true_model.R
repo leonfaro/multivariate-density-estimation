@@ -81,11 +81,10 @@ neg_loglik_uni <- function(par, x, distr) {
 #' @param config configuration list as in `setup_global()`
 #' @return list with elements `theta` (list) and `logL_te`
 #' @export
-fit_TRUE <- function(X_tr, X_te, config) {
+fit_TRUE <- function(X_tr, X_te, config, cores = NC) {
   stopifnot(is.matrix(X_tr), is.matrix(X_te))
   K <- length(config)
-  theta_list <- vector("list", K)
-  for (k in seq_len(K)) {
+  theta_list <- parallel::mclapply(seq_len(K), function(k) {
     distr_k <- config[[k]]$distr
     x_k <- X_tr[, k]
     init <- .start_par(x_k, distr_k)
@@ -97,8 +96,8 @@ fit_TRUE <- function(X_tr, X_te, config) {
       method = "L-BFGS-B",
       lower = rep(1e-6, length(init))
     )
-    theta_list[[k]] <- opt$par
-  }
+    opt$par
+  }, mc.cores = cores)
   model <- list(theta = theta_list, config = config)
   logL_te <- logL_TRUE(model, X_te)
   model$logL_te <- logL_te
@@ -111,16 +110,16 @@ fit_TRUE <- function(X_tr, X_te, config) {
 #' @param X matrix of observations
 #' @return mean negative log-likelihood
 #' @export
-logL_TRUE <- function(M_TRUE, X) {
+logL_TRUE <- function(M_TRUE, X, cores = NC) {
   stopifnot(is.matrix(X))
   theta_list <- M_TRUE$theta
   config <- M_TRUE$config
   K <- length(theta_list)
-  ll <- matrix(0, nrow = nrow(X), ncol = K)
-  for (k in seq_len(K)) {
+  ll_list <- parallel::mclapply(seq_len(K), function(k) {
     distr_k <- config[[k]]$distr
-    ll[, k] <- .log_density_vec(X[, k], distr_k, theta_list[[k]])
-  }
+    .log_density_vec(X[, k], distr_k, theta_list[[k]])
+  }, mc.cores = cores)
+  ll <- do.call(cbind, ll_list)
   val <- -mean(rowSums(ll))
   if (!is.finite(val)) stop("log-likelihood not finite")
   val
@@ -135,18 +134,17 @@ logL_TRUE <- function(M_TRUE, X) {
 #' @param X Matrix von Beobachtungen
 #' @return numerischer Vektor mit L\u00e4nge `K`
 #' @export
-logL_TRUE_dim <- function(M_TRUE, X) {
+logL_TRUE_dim <- function(M_TRUE, X, cores = NC) {
   stopifnot(is.matrix(X))
   theta_list <- M_TRUE$theta
   config <- M_TRUE$config
   K <- length(theta_list)
-  res <- numeric(K)
-  for (k in seq_len(K)) {
+  res <- parallel::mclapply(seq_len(K), function(k) {
     distr_k <- config[[k]]$distr
     ll_k <- .log_density_vec(X[, k], distr_k, theta_list[[k]])
     val <- -mean(ll_k)
     if (!is.finite(val)) stop("log-likelihood not finite")
-    res[k] <- val
-  }
-  res
+    val
+  }, mc.cores = cores)
+  unlist(res)
 }
