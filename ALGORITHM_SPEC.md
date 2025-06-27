@@ -26,7 +26,7 @@ where
 5. $f_5 = \texttt{fit\_KS}$ – fit kernel smoother model.
 6. $f_6 = \texttt{logL\_\*\_dim}$ – compute dimension-wise log-likelihoods.
 7. $f_7 = \texttt{add\_sum\_row}$ – append totals to tables.
-8. $f_8 = \texttt{combine\_logL\_tables}$ – assemble final evaluation table.
+8. $f_8 = \texttt{format\_loglik\_table}$ – present final evaluation table.
 9. $f_9 = \texttt{plot\_scatter\_matrix}$ – display four log-density scatter plots.
 Optional EDA helper functions are defined in `04_evaluation.R`.
 
@@ -283,17 +283,6 @@ function format_loglik_table(tab_mean, tab_sd)
     return tab
 ```
 
-### combine_logL_tables
-`combine_logL_tables(tab_normal, tab_perm, t_normal, t_perm) : (...) \to kable`
-- **Description:** merge normal/permutation tables and attach runtime information.
-- **Pseudocode:**
-```
-function combine_logL_tables(tab_normal, tab_perm, t_normal, t_perm)
-    rename columns
-    join tables by (dim, distr)
-    add runtime row in milliseconds
-    return formatted table
-```
 
 ### create_EDA_report
 `create_EDA_report(X, cfg, scatter_data, table_kbl, param_list)`
