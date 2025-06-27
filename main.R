@@ -13,7 +13,6 @@ config <- list(
   list(distr = "beta", parm = function(d) list(shape1 = softplus(d$X2), shape2 = softplus(d$X1))),
   list(distr = "gamma", parm = function(d) list(shape = softplus(d$X3), scale = softplus(d$X2)))
 )
-perm <- c(3, 4, 1, 2)
 
 run_normal <- function(prep, cfg) {
   mods <- fit_models(prep$S, cfg)
@@ -29,19 +28,6 @@ run_normal <- function(prep, cfg) {
   list(tab = tab_mean, mods = mods)
 }
 
-run_perm <- function(prep, cfg) {
-  mods <- fit_models(prep$S_perm, cfg)
-  tab_mean <- calc_loglik_tables(mods, cfg)
-  tab_sd   <- calc_loglik_sds(mods, prep$S_perm, cfg)
-  tab_fmt  <- format_loglik_table(tab_mean, tab_sd)
-  print(tab_fmt)
-  hyp <- paste(names(mods$models$trtf$best_cfg),
-               mods$models$trtf$best_cfg,
-               sep = "=", collapse = ", ")
-  cat(sprintf("TRTF Predict permutiert: %.2f s [%s]\n",
-              mods$times["trtf"], hyp))
-  list(tab = tab_mean, mods = mods)
-}
 
 #' Kombinierte Streuplots anzeigen
 #'
@@ -81,19 +67,11 @@ plot_scatter_matrix <- function(scatter_data) {
 #'
 #' @export
 main <- function() {
-  prep <- prepare_data(n, config, perm)
+  prep <- prepare_data(n, config, seq_along(config))
 
   res_norm <- run_normal(prep, config)
-  res_perm <- run_perm(prep, config)
 
-  scat_norm <- make_scatter_data(res_norm$mods, prep$S)
-  scat_perm <- make_scatter_data(res_perm$mods, prep$S_perm)
-  scatter_data <- c(scat_norm,
-                    setNames(scat_perm, paste0(names(scat_perm), "_p")))
-  plt <- plot_scatter_matrix(scatter_data)
-
-  invisible(list(normal = res_norm$tab, perm = res_perm$tab,
-                 scatter_plot = plt))
+  invisible(list(normal = res_norm$tab))
 }
 
 if (sys.nframe() == 0L) {
