@@ -246,6 +246,43 @@ function add_sum_row(tab, label)
     return rbind(tab, sum_row)
 ```
 
+### calc_loglik_tables
+`calc_loglik_tables(models, config) : (list, list) \to data.frame`
+- **Description:** compute mean negative log-likelihoods per dimension for all models.
+- **Pseudocode:**
+```
+function calc_loglik_tables(models, config)
+    tab <- data.frame(dim, distribution,
+                      logL_baseline, logL_trtf, logL_ks)
+    tab <- add_sum_row(tab)
+    return tab
+```
+
+### calc_loglik_sds
+`calc_loglik_sds(models, S, config) : (list, list, list) \to data.frame`
+- **Description:** standard deviations of the negative log-likelihoods across test observations.
+- **Pseudocode:**
+```
+function calc_loglik_sds(models, S, config)
+    sd_true <- sd(-log_density_true(S$X_te)) per dimension
+    sd_trtf <- sd over -predict(TRTF, S$X_te)
+    sd_ks   <- sd over -predict(KS, S$X_te)
+    tab <- data.frame(dim, distribution, sd_true, sd_trtf, sd_ks)
+    add_sum_row(tab)
+```
+
+### format_loglik_table
+`format_loglik_table(tab_mean, tab_sd) : (data.frame, data.frame) \to data.frame`
+- **Description:** combine mean and sd tables to strings of the form `"m ± s"`.
+- **Pseudocode:**
+```
+function format_loglik_table(tab_mean, tab_sd)
+    for each numeric column col
+        tab[col] <- sprintf("%.2f ± %.2f", round(tab_mean[col],2),
+                            round(2 * tab_sd[col],2))
+    return tab
+```
+
 ### combine_logL_tables
 `combine_logL_tables(tab_normal, tab_perm, t_normal, t_perm) : (...) \to kable`
 - **Description:** merge normal/permutation tables and attach runtime information.
