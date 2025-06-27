@@ -294,6 +294,66 @@ calc_loglik_tables <- function(models, config) {
   add_sum_row(tab)
 }
 
+#' Standardabweichungen der Log-Likelihoods berechnen
+#'
+#' Fuer jede Dimension wird die Standardabweichung der negativen
+#' Log-Likelihood ueber alle Testbeobachtungen bestimmt.
+#'
+#' @param models Rueckgabe von `fit_models`
+#' @param S Liste mit `X_te`
+#' @param config Konfiguration
+#' @return Datenrahmen analog zu `calc_loglik_tables`
+#' @export
+calc_loglik_sds <- function(models, S, config) {
+  K <- length(config)
+  sd_true <- numeric(K)
+  for (k in seq_len(K)) {
+    ll_vec <- .log_density_vec(S$X_te[, k], config[[k]]$distr,
+                               models$models$true$theta[[k]])
+    sd_true[k] <- sd(-ll_vec)
+  }
+  ll_trtf <- -predict(models$models$trtf, S$X_te,
+                      type = "logdensity_by_dim")
+  ll_ks   <- -predict(models$models$ks,  S$X_te,
+                      type = "logdensity_by_dim")
+  sd_trtf <- apply(ll_trtf, 2, sd)
+  sd_ks   <- apply(ll_ks,   2, sd)
+
+  tab <- data.frame(
+    dim = as.character(seq_len(K)),
+    distribution = sapply(config, `[[`, "distr"),
+    logL_baseline = sd_true,
+    logL_trtf = sd_trtf,
+    logL_ks = sd_ks,
+    stringsAsFactors = FALSE
+  )
+  sum_row <- list(
+    dim = "k",
+    distribution = "SUM",
+    logL_baseline = sqrt(sum(sd_true^2)),
+    logL_trtf = sqrt(sum(sd_trtf^2)),
+    logL_ks = sqrt(sum(sd_ks^2))
+  )
+  rbind(tab, as.data.frame(sum_row, stringsAsFactors = FALSE))
+}
+
+#' Formatiere Log-Likelihood Tabellen mit Mittelwert und 2xSD
+#'
+#' @param tab_mean Datenrahmen aus `calc_loglik_tables`
+#' @param tab_sd   Datenrahmen aus `calc_loglik_sds`
+#' @return Datenrahmen mit Zeichenketten der Form "m ± s"
+#' @export
+format_loglik_table <- function(tab_mean, tab_sd) {
+  tab <- tab_mean
+  cols <- c("logL_baseline", "logL_trtf", "logL_ks")
+  for (col in cols) {
+    tab[[col]] <- sprintf("%.2f ± %.2f",
+                          round(tab_mean[[col]], 2),
+                          round(2 * tab_sd[[col]], 2))
+  }
+  tab
+}
+
 #' Daten fuer Scatter-Plots erzeugen
 #'
 #' @param models Rueckgabe von `fit_models`

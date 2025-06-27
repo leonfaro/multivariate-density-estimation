@@ -17,26 +17,30 @@ perm <- c(3, 4, 1, 2)
 
 run_normal <- function(prep, cfg) {
   mods <- fit_models(prep$S, cfg)
-  tab <- calc_loglik_tables(mods, cfg)
-  print(tab)
+  tab_mean <- calc_loglik_tables(mods, cfg)
+  tab_sd   <- calc_loglik_sds(mods, prep$S, cfg)
+  tab_fmt  <- format_loglik_table(tab_mean, tab_sd)
+  print(tab_fmt)
   hyp <- paste(names(mods$models$trtf$best_cfg),
                mods$models$trtf$best_cfg,
                sep = "=", collapse = ", ")
   cat(sprintf("TRTF Predict normal: %.2f s [%s]\n",
               mods$times["trtf"], hyp))
-  list(tab = tab, mods = mods)
+  list(tab = tab_mean, mods = mods)
 }
 
 run_perm <- function(prep, cfg) {
   mods <- fit_models(prep$S_perm, cfg)
-  tab <- calc_loglik_tables(mods, cfg)
-  print(tab)
+  tab_mean <- calc_loglik_tables(mods, cfg)
+  tab_sd   <- calc_loglik_sds(mods, prep$S_perm, cfg)
+  tab_fmt  <- format_loglik_table(tab_mean, tab_sd)
+  print(tab_fmt)
   hyp <- paste(names(mods$models$trtf$best_cfg),
                mods$models$trtf$best_cfg,
                sep = "=", collapse = ", ")
   cat(sprintf("TRTF Predict permutiert: %.2f s [%s]\n",
               mods$times["trtf"], hyp))
-  list(tab = tab, mods = mods)
+  list(tab = tab_mean, mods = mods)
 }
 
 #' Kombinierte Streuplots anzeigen
