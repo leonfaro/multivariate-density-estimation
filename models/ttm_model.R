@@ -27,6 +27,7 @@ sample_reference <- function(n, k, seed = 42) {
   stopifnot(length(n) == 1L, length(k) == 1L)
   set.seed(seed)
   matrix(rnorm(n * k), nrow = n, ncol = k)
+
 }
 
 #' Permute ordering of dimensions
@@ -64,5 +65,5 @@ MapStruct <- function(type = c("marginal", "separable", "cross"),
                  basisG = basisG,
                  basisH = basisH),
             class = "MapStruct")
-}
 
+}
