@@ -174,53 +174,35 @@ function logL_TRTF(model, X)
     return -mean(ll)
 ```
 
-### fit_TTM
-`fit_TTM(X_tr, X_te, config, lr, epochs, patience, seed) : (...) \to M_{TTM}`
-- **Description:** stochastic gradient descent training of a shift-scale triangular transport.
-- **Pre:** learning rate $lr>0$, `epochs` positive integer.
-- **Post:** fitted parameters with train and test log-likelihoods.
-- **Randomness:** `set.seed(seed)`; random mini-batch order.
+### standardize_data
+`standardize_data(X) : \mathbb R^{N\times K} \to (\tilde X, \mu, \sigma)`
+- **Description:** zentriert und skaliert jede Spalte von `X`.
 - **Pseudocode:**
 ```
-function fit_TTM(X_tr, X_te, config, lr, epochs, patience, seed)
-    set seed to seed
-    initialize theta via .make_theta(K)
-    split X_tr into train/validation
-    for epoch in 1..epochs
-        compute gradient of Objective_J_N on training part
-        update parameters via lr
-        if validation loss improves store parameters
-        if patience exceeded break
-    return (theta, logL_TTM(theta, X_te))
+function standardize_data(X)
+    μ <- mean(X, axis=0)
+    σ <- std(X, axis=0) + ε
+    return (X-μ)/σ , μ , σ
 ```
 
-### logL_TTM
-`logL_TTM(model, X) : (M_{TTM}, \mathbb R^{n\times K}) \to \mathbb R`
-- **Description:** mean negative log-likelihood for the TTM model.
+### sample_reference
+`sample_reference(N, K, seed) : (\mathbb N, \mathbb N, \mathbb N) \to Z`
+- **Description:** erzeugt `N` Standardnormal-Samples der Dimension `K`.
 - **Pseudocode:**
 ```
-function logL_TTM(model, X)
-    ll <- predict(model, X, 'logdensity')
-    return -mean(ll)
+function sample_reference(N, K, seed)
+    set seed to seed
+    return matrix of rnorm(N*K) reshaped (N,K)
 ```
 
-### TTM_generate
-`TTM_generate(config, n, seed, fix_idx=NULL, fix_val=NULL, m=1) : (...) \to {X,\theta, X_{cond}}`
-- **Description:** draw samples from a linear triangular transport estimated from provisional data.
-- **Pre:** configuration as in `gen_samples`.
-- **Post:** list with samples `X` and fitted parameters; if `fix_idx` supplied, conditional draws `X_cond` are returned.
-- **Randomness:** `set.seed(seed)` for both provisional data and Gaussian base samples.
+### shuffle_ordering
+`shuffle_ordering(K, seed) : (\mathbb N, \mathbb N) \to \pi`
+- **Description:** optionale Permutation der Spaltenindizes.
 - **Pseudocode:**
 ```
-function TTM_generate(config, n, seed, fix_idx, fix_val, m)
+function shuffle_ordering(K, seed)
     set seed to seed
-    X_fit <- Generate_iid_from_config(0.8*n, config)
-    theta_hat <- optimize Objective_J_N using X_fit
-    Z <- N(0,I_K) samples
-    X <- apply inverse map R_inverse to each Z
-    if fix_idx not null
-        X_cond <- Conditional_Sample(fix_idx, fix_val, theta_hat, m)
-    return (X, theta_hat, X_cond)
+    return random permutation of 1..K
 ```
 
 ### evaluate_all
@@ -299,7 +281,7 @@ Each module drawing random numbers sets the RNG via `set.seed` with an integer s
 - `train_test_split`: $\Theta(N)$ for shuffling.
 - `fit_TRUE`: dominated by optimization per dimension; roughly $\Theta(K n_{tr} I)$ with iteration count $I$.
 - `fit_KS`: kernel evaluations yield $\Theta(n_{te} n_{tr} K)$ during prediction.
-- `fit_TRTF` and `fit_TTM` complexity depend on tree depth or epochs and are data-driven.
+- `fit_TRTF` complexity hängt von der Tiefe der Bäume ab und ist datengesteuert.
 
 ## 6. Appendix A – Data Schemas
 - **Configuration Entry**: list with fields
@@ -310,5 +292,4 @@ Each module drawing random numbers sets the RNG via `set.seed` with an integer s
   - `M_TRUE`: list `theta` (per-dimension parameter vectors), `config`, `logL_te`.
   - `ks_model`: list `X_tr`, `h`, `config`, `logL_te`.
   - `mytrtf`: list `ymod`, `forests`, `seed`, `varimp`, `config`, `best_cfg`, `logL_te`.
-  - `ttm`: list `theta`, `config`, `train_logL`, `test_logL`.
 
