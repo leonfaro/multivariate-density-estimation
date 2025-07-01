@@ -1,8 +1,8 @@
 # Simplified TRTF model using BoxCox transformation models
 # Follows notation in README.md and Theory.md
 
-mytrtf <- function(data, ntree = 50, mtry = floor(sqrt(ncol(data) - 1)),
-                   minsplit = 25, minbucket = 20, maxdepth = 4, seed = 42) {
+mytrtf <- function(data, ntree = 50, mtry = 22,
+                   minsplit = 40, minbucket = 10, maxdepth = 6, seed = 42) {
   stopifnot(is.matrix(data))
   set.seed(seed)
   K <- ncol(data)
