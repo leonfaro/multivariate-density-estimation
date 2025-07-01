@@ -305,4 +305,5 @@ Each module drawing random numbers sets the RNG via `set.seed` with an integer s
   - `M_TRUE`: list `theta` (per-dimension parameter vectors), `config`, `logL_te`.
   - `ks_model`: list `X_tr`, `h`, `config`, `logL_te`.
   - `mytrtf`: list `ymod`, `forests`, `seed`, `varimp`, `config`, `best_cfg`, `logL_te`.
+  - `ttm_model`: functions implementing triangular transport maps.
 
