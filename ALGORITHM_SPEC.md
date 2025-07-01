@@ -205,6 +205,19 @@ function shuffle_ordering(K, seed)
     return random permutation of 1..K
 ```
 
+
+### MapStruct
+`MapStruct(type, coeffA, coeffB, coeffC, basisF, basisG, basisH)`
+- **Description:** Container-Objekt für Koeffizienten und Basisfunktionen einer triangularen Map.
+- **Pseudocode:**
+```
+struct MapStruct:
+    type           # string
+    coeffA[k]      # α-Vektor für f_k
+    coeffB[k]      # β-Vektor für g_k
+    coeffC[k]      # γ-Vektor für h_k
+    basisF[k], basisG[k], basisH[k]   # callable handles
+```
 ### evaluate_all
 `evaluate_all(X_te, model_list) : (\mathbb R^{n_{te}\times K}, list) \to \text{data.frame}`
 - **Description:** compute negative log-likelihoods for named models via dynamic dispatch.
