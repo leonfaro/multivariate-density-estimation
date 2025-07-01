@@ -18,25 +18,52 @@ standardize_data <- function(X, eps = 1e-8) {
 
 #' Draw samples from the standard normal reference
 #'
-#' @param N Number of samples
-#' @param K Dimension of each sample
+#' @param n Number of samples
+#' @param k Dimension of each sample
 #' @param seed RNG seed
 #' @return Numeric matrix of dimension N x K
 #' @export
-sample_reference <- function(N, K, seed = 42) {
-  stopifnot(length(N) == 1L, length(K) == 1L)
+sample_reference <- function(n, k, seed = 42) {
+  stopifnot(length(n) == 1L, length(k) == 1L)
   set.seed(seed)
-  matrix(rnorm(N * K), nrow = N, ncol = K)
+  matrix(rnorm(n * k), nrow = n, ncol = k)
+
 }
 
 #' Permute ordering of dimensions
 #'
-#' @param K Dimension of the space
+#' @param k Dimension of the space
 #' @param seed RNG seed
 #' @return Integer vector giving a permutation of 1:K
 #' @export
-shuffle_ordering <- function(K, seed = 42) {
-  stopifnot(length(K) == 1L)
+shuffle_ordering <- function(k, seed = 42) {
+  stopifnot(length(k) == 1L)
   set.seed(seed)
-  sample.int(K, size = K, replace = FALSE)
+  sample.int(k, size = k, replace = FALSE)
+}
+
+#' Container for triangular map coefficients and basis functions
+#'
+#' @param type Character string: "marginal", "separable" or "cross"
+#' @param coeffA List of coefficient vectors for monotone terms f_k
+#' @param coeffB List of coefficient vectors for offsets g_k
+#' @param coeffC List of coefficient vectors for cross-terms h_k
+#' @param basisF List of functions for f_k
+#' @param basisG List of functions for g_k
+#' @param basisH List of functions for h_k
+#' @return Object of class 'MapStruct'
+#' @export
+MapStruct <- function(type = c("marginal", "separable", "cross"),
+                      coeffA, coeffB = NULL, coeffC = NULL,
+                      basisF, basisG = NULL, basisH = NULL) {
+  type <- match.arg(type)
+  structure(list(type = type,
+                 coeffA = coeffA,
+                 coeffB = coeffB,
+                 coeffC = coeffC,
+                 basisF = basisF,
+                 basisG = basisG,
+                 basisH = basisH),
+            class = "MapStruct")
+
 }
