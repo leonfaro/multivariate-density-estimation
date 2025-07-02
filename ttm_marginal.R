@@ -33,11 +33,32 @@ initializeCoeffs <- function(S) {
 }
 
 updateCoeffsMarginal <- function(S, X_batch, lr) {
-  stop("updateCoeffsMarginal() noch nicht implementiert")
+  d <- length(S$order)
+  for (j in seq_len(d)) {
+    k <- S$order[j]
+    xk <- X_batch[, k]
+    u <- rank(xk, ties.method = "average") / (length(xk) + 1)
+    z_star <- qnorm(u)
+    covxz <- mean((xk - mean(xk)) * (z_star - mean(z_star)))
+    varx <- var(xk) + 1e-12
+    b_star <- max(0, covxz / varx)
+    a_star <- mean(z_star) - b_star * mean(xk)
+
+    S$coeffA[[k]] <- log(b_star + 1e-12)
+    S$coeffB[[k]] <- a_star
+    S$coeffC[[k]] <- 0
+  }
+  S
 }
 
 computeRowwiseLosses <- function(S, X_set) {
-  stop("computeRowwiseLosses() noch nicht implementiert")
+  losses <- numeric(nrow(X_set))
+  for (i in seq_len(nrow(X_set))) {
+    z <- forwardPass(S, X_set[i, ])
+    ell <- logJacDiag(S, X_set[i, ])
+    losses[i] <- 0.5 * sum(z^2) - sum(ell)
+  }
+  losses
 }
 
 ## Hauptfunktion ------------------------------------------------------------
