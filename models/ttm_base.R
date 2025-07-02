@@ -21,7 +21,14 @@ shuffleOrdering <- function(K, seed = NULL) {
 
 # --- 2 Map-Abstraktion ---------------------------------------------------------
 
-MapStruct <- function(type, coeffA, coeffB, coeffC, basisF, basisG, basisH) {
+MapStruct <- function(type,
+                      coeffA = NULL,
+                      coeffB = NULL,
+                      coeffC = NULL,
+                      basisF = NULL,
+                      basisG = NULL,
+                      basisH = NULL,
+                      order = NULL) {
   structure(
     list(
       type = type,
@@ -30,9 +37,22 @@ MapStruct <- function(type, coeffA, coeffB, coeffC, basisF, basisG, basisH) {
       coeffC = coeffC,
       basisF = basisF,
       basisG = basisG,
-      basisH = basisH
+      basisH = basisH,
+      order = order
     ),
-    class = 'MapStruct'
+    class = "MapStruct"
+  )
+}
+
+setOrdering <- function(S, ord) {
+  S$order <- ord
+  S
+}
+
+defaultBasis <- function() {
+  list(
+    value = function(x, theta) x,
+    deriv = function(x, theta) rep(1, length(x))
   )
 }
 
