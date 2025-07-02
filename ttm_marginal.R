@@ -20,9 +20,12 @@ loadCSV <- function(filepath) {
 
 initializeCoeffs <- function(S) {
   d <- length(S$order)
+  S$coeffA <- vector("list", d)
+  S$coeffB <- vector("list", d)
+  S$coeffC <- vector("list", d)
   for (k in seq_len(d)) {
-    # Ableitung strictly positive ⇒ log-space init
-    S$coeffA[[k]] <- log(1)
+    # log(1.0) = 0   ⇒ f' = exp(0) = 1 > 0
+    S$coeffA[[k]] <- log(1.0)
     S$coeffB[[k]] <- 0
     S$coeffC[[k]] <- 0
   }
@@ -60,8 +63,11 @@ trainMarginalMap <- function(filepath) {
   S <- MapStruct(type = "marginal")
   S <- setOrdering(S, shuffleOrdering(d))
   S <- initializeCoeffs(S)
+  if (is.null(S$basisF)) {
+    S$basisF <- vector("list", d)
+  }
   for (k in seq_len(d)) {
-    S$basisF[[k]] <- defaultBasis()
+    S$basisF[[k]] <- function(x) x
   }
 
   lr <- lr0
