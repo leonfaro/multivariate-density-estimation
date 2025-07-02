@@ -1,6 +1,5 @@
 # TTM - Marginal Map Trainer
 # arbeitet komplett in Basis-R
-source("ttm_base.R")
 
 ## Reproduzierbarkeit -------------------------------------------------------
 set.seed(42)
@@ -11,12 +10,15 @@ T_max <- 100L
 P <- 10L
 decay <- 1.0
 
-# Datenladefunktion -------------------------------------------------------
-loadCSV <- function(filepath) {
-  as.matrix(read.csv(filepath))
-}
-
 ## Hilfsfunktionen ----------------------------------------------------------
+
+linearBasis <- function(S, idx) {
+  f <- function(x, theta) {
+    S$coeffB[[idx]] + exp(theta) * x
+  }
+  attr(f, "deriv") <- function(x, theta) rep(exp(theta), length(x))
+  f
+}
 
 initializeCoeffs <- function(S) {
   d <- length(S$order)
@@ -63,47 +65,45 @@ computeRowwiseLosses <- function(S, X_set) {
 
 ## Hauptfunktion ------------------------------------------------------------
 
-trainMarginalMap <- function(filepath) {
-  X_raw <- loadCSV(filepath)
-  std_res <- standardizeData(X_raw)
-  X_std  <- std_res[[1]]
-  N <- nrow(X_std)
-  d <- ncol(X_std)
+trainMarginalMap <- function(S) {
+  stopifnot(is.list(S))
+  X_tr  <- S$X_tr
+  X_val <- S$X_val
+  X_te  <- S$X_te
 
-  idx <- shuffleOrdering(N)
-  train_idx <- idx[1:floor(0.8 * N)]
-  val_idx   <- idx[(floor(0.8 * N) + 1):floor(0.9 * N)]
-  test_idx  <- idx[(floor(0.9 * N) + 1):N]
+  X_all <- rbind(X_tr, X_val, X_te)
+  std_res <- standardizeData(X_all)
+  X_std <- std_res$X
+  n_tr <- nrow(X_tr)
+  n_val <- nrow(X_val)
+  X_train <- X_std[seq_len(n_tr), , drop = FALSE]
+  X_val   <- X_std[seq_len(n_val) + n_tr, , drop = FALSE]
+  X_test  <- X_std[(n_tr + n_val + 1):nrow(X_std), , drop = FALSE]
 
-  X_train <- X_std[train_idx, , drop = FALSE]
-  X_val   <- X_std[val_idx, , drop = FALSE]
-  X_test  <- X_std[test_idx, , drop = FALSE]
-
-  S <- MapStruct(type = "marginal")
-  S <- setOrdering(S, shuffleOrdering(d))
-  S <- initializeCoeffs(S)
-  if (is.null(S$basisF)) {
-    S$basisF <- vector("list", d)
-  }
+  d <- ncol(X_train)
+  S_map <- MapStruct(type = "marginal")
+  S_map <- setOrdering(S_map, shuffleOrdering(d))
+  S_map <- initializeCoeffs(S_map)
+  S_map$basisF <- vector("list", d)
   for (k in seq_len(d)) {
-    S$basisF[[k]] <- function(x) x
+    S_map$basisF[[k]] <- linearBasis(S_map, k)
   }
 
   best_val <- Inf
-  best_state <- S
+  best_state <- S_map
   best_epoch <- 0L
   best_train <- Inf
   patience <- 0L
   lr <- lr0
 
   for (epoch in seq_len(T_max)) {
-    S <- updateCoeffsMarginal(S, X_train, lr)
-    NLL_train <- mean(computeRowwiseLosses(S, X_train))
-    NLL_val <- mean(computeRowwiseLosses(S, X_val))
+    S_map <- updateCoeffsMarginal(S_map, X_train, lr)
+    NLL_train <- mean(computeRowwiseLosses(S_map, X_train))
+    NLL_val <- mean(computeRowwiseLosses(S_map, X_val))
 
     if (NLL_val < best_val - 1e-6) {
       best_val <- NLL_val
-      best_state <- S
+      best_state <- S_map
       best_epoch <- epoch
       best_train <- NLL_train
       patience <- 0L
@@ -117,13 +117,13 @@ trainMarginalMap <- function(filepath) {
     }
   }
 
-  S <- best_state
-  loss_test_vec <- computeRowwiseLosses(S, X_test)
+  S_map <- best_state
+  loss_test_vec <- computeRowwiseLosses(S_map, X_test)
   NLL_test <- mean(loss_test_vec)
   stderr_test <- stderr(loss_test_vec)
 
   list(
-    S = S,
+    S = S_map,
     best_epoch = best_epoch,
     NLL_train = best_train,
     NLL_val = best_val,
@@ -131,4 +131,3 @@ trainMarginalMap <- function(filepath) {
     stderr_test = stderr_test
   )
 }
-
