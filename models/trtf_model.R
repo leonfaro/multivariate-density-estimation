@@ -2,7 +2,8 @@
 # Follows notation in README.md and Theory.md
 
 mytrtf <- function(data, ntree = 50, mtry = 22,
-                   minsplit = 40, minbucket = 10, maxdepth = 6, seed = 42) {
+                   minsplit = 40, minbucket = 10, maxdepth = 6,
+                   seed = 42, cores = NC) {
   stopifnot(is.matrix(data))
   set.seed(seed)
   K <- ncol(data)
@@ -26,7 +27,7 @@ mytrtf <- function(data, ntree = 50, mtry = 22,
                                   trace = TRUE, ntree = ntree,
                                   min_update = 50, update = FALSE,
                                   mltargs = list(), mtry = mtry,
-                                  cores = NC, control = ctrl)
+                                  cores = cores, control = ctrl)
   }
 
   res <- list(ymod = ymod, forests = forests, seed = seed,
@@ -59,55 +60,41 @@ predict.mytrtf <- function(object, newdata,
   rowSums(ll)
 }
 
-logL_TRTF <- function(model, X) {
+logL_TRTF <- function(model, X, cores = NC) {
   val <- -mean(predict(model, X, type = "logdensity",
-                       cores = NC, trace = TRUE))
+                       cores = cores, trace = TRUE))
   if (!is.finite(val)) stop("log-likelihood not finite")
   val
 }
 
-logL_TRTF_dim <- function(model, X) {
+logL_TRTF_dim <- function(model, X, cores = NC) {
   ll <- predict(model, X, type = "logdensity_by_dim",
-                cores = NC, trace = TRUE)
+                cores = cores, trace = TRUE)
   res <- -colMeans(ll)
   if (!all(is.finite(res))) stop("log-likelihood not finite")
   res
 }
 
+## One-shot training on train, evaluation on test; no validation.
 fit_TRTF <- function(S, config,
-                     grid = list(ntree = 50,
-                                 mtry = floor(sqrt(ncol(S$X_tr) - 1)),
-                                 minsplit = 25, minbucket = 20, maxdepth = 4),
-                     seed = 42) {
+                     ntree = 100,
+                     mtry = floor(sqrt(ncol(S$X_tr) - 1)),
+                     minsplit = 25,
+                     minbucket = 20,
+                     maxdepth = 4,
+                     seed = 42,
+                     cores = NC) {
   stopifnot(is.list(S))
   X_tr <- S$X_tr
-  X_val <- S$X_val
   X_te <- S$X_te
-  stopifnot(is.matrix(X_tr), is.matrix(X_val), is.matrix(X_te))
+  stopifnot(is.matrix(X_tr), is.matrix(X_te))
   set.seed(seed)
-  grid_df <- expand.grid(grid, KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
-
-  best_val <- Inf
-  best_cfg <- grid_df[1, ]
-  for (i in seq_len(nrow(grid_df))) {
-    cfg <- grid_df[i, ]
-    m <- mytrtf(X_tr, ntree = cfg$ntree, mtry = cfg$mtry,
-                minsplit = cfg$minsplit, minbucket = cfg$minbucket,
-                maxdepth = cfg$maxdepth, seed = seed)
-    val <- -mean(predict(m, X_val, type = "logdensity",
-                         cores = NC, trace = TRUE))
-    if (is.finite(val) && val < best_val) {
-      best_val <- val
-      best_cfg <- cfg
-    }
-  }
-
-  final <- mytrtf(X_tr, ntree = best_cfg$ntree, mtry = best_cfg$mtry,
-                  minsplit = best_cfg$minsplit, minbucket = best_cfg$minbucket,
-                  maxdepth = best_cfg$maxdepth, seed = seed)
-  final$config <- config
-  final$val_logL <- best_val
-  final$logL_te <- logL_TRTF(final, X_te)
-  final$best_cfg <- best_cfg
-  final
+  mod <- mytrtf(X_tr,
+                ntree = ntree, mtry = mtry,
+                minsplit = minsplit, minbucket = minbucket,
+                maxdepth = maxdepth, seed = seed,
+                cores = cores)
+  mod$config  <- config
+  mod$logL_te <- logL_TRTF(mod, S$X_te, cores = cores)
+  mod
 }
