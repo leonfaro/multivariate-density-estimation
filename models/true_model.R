@@ -76,12 +76,14 @@ neg_loglik_uni <- function(par, x, distr) {
 
 #' Fit TRUE model via univariate MLE
 #'
-#' @param X_tr training matrix
-#' @param X_te test matrix
-#' @param config configuration list as in `setup_global()`
+#' @param S Liste mit `X_tr`, `X_val`, `X_te`
+#' @param config configuration list
 #' @return list with elements `theta` (list) and `logL_te`
 #' @export
-fit_TRUE <- function(X_tr, X_te, config, cores = NC) {
+fit_TRUE <- function(S, config, cores = NC) {
+  stopifnot(is.list(S))
+  X_tr <- S$X_tr
+  X_te <- S$X_te
   stopifnot(is.matrix(X_tr), is.matrix(X_te))
   K <- length(config)
   theta_list <- parallel::mclapply(seq_len(K), function(k) {
