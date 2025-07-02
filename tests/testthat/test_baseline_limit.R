@@ -3,10 +3,10 @@ source("main.R")
 
 set.seed(123)
 n <- 50
-res <- main()
-tab1 <- res$normal
+tab1 <- main()
 setwd(old_wd)
 
-test_that("logL_baseline within +/-10 for N=50", {
-  expect_true(all(abs(tab1$logL_baseline[seq_along(config)]) <= 10))
+vals <- as.numeric(sub(" ±.*", "", tab1$true))
+test_that("logL_true within +/-10 for N=50", {
+  expect_true(all(abs(vals[seq_along(config)]) <= 10))
 })

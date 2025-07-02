@@ -82,8 +82,9 @@ neg_loglik_uni <- function(par, x, distr) {
 #' @export
 fit_TRUE <- function(S, config, cores = NC) {
   stopifnot(is.list(S))
-  X_tr <- S$X_tr
-  X_te <- S$X_te
+  X_tr  <- S$X_tr
+  X_val <- S$X_val
+  X_te  <- S$X_te
   stopifnot(is.matrix(X_tr), is.matrix(X_te))
   K <- length(config)
   theta_list <- parallel::mclapply(seq_len(K), function(k) {

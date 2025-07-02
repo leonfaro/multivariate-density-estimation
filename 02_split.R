@@ -9,6 +9,10 @@
 #' @param seed integer RNG seed
 #' @return list with `X_tr`, `X_val`, `X_te`
 #' @export
+SplitStruct <- function(X_tr, X_val, X_te) {
+  list(X_tr = X_tr, X_val = X_val, X_te = X_te)
+}
+
 split_data <- function(X, seed) {
   stopifnot(is.matrix(X))
   N <- nrow(X)
@@ -19,9 +23,9 @@ split_data <- function(X, seed) {
   idx_tr  <- idx[seq_len(n_tr)]
   idx_val <- idx[seq_len(n_val) + n_tr]
   idx_te  <- idx[(n_tr + n_val + 1):N]
-  list(
-    X_tr  = X[idx_tr , , drop = FALSE],
-    X_val = X[idx_val, , drop = FALSE],
-    X_te  = X[idx_te , , drop = FALSE]
+  SplitStruct(
+    X[idx_tr , , drop = FALSE],
+    X[idx_val, , drop = FALSE],
+    X[idx_te , , drop = FALSE]
   )
 }

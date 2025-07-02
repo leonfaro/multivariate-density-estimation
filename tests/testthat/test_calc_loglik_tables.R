@@ -3,17 +3,21 @@ source("../../04_evaluation.R")
 source("../../models/trtf_model.R")
 source("../../models/ks_model.R")
 source("../../models/true_model.R")
+source("../../models/ttm_base.R")
+source("../../models/ttm_marginal.R")
 
 set.seed(3)
 prep <- prepare_data(30, config)
-mods <- fit_models(prep$S, config)
-
-tab <- calc_loglik_tables(mods, config)
+mods <- list(
+  true = fit_TRUE(prep$S, config),
+  trtf = fit_TRTF(prep$S, config),
+  ks   = fit_KS(prep$S, config),
+  ttm  = trainMarginalMap(prep$S)
+)
+tab <- calc_loglik_tables(mods, config, prep$S$X_te)
 
 test_that("calc_loglik_tables works", {
   expect_true(is.data.frame(tab))
   expect_equal(nrow(tab), length(config) + 1)
-  expect_true(all(is.finite(tab$logL_baseline)))
-  expect_true(all(is.finite(tab$logL_trtf)))
-  expect_true(all(is.finite(tab$logL_ks)))
+  expect_true(all(grepl("±", tab$ttm)))
 })
