@@ -42,35 +42,42 @@ evaluateMap <- function(S, x) {
   forwardPass(S, x)
 }
 
-jacDiag <- function(S, x) {
+
+logJacDiag <- function(S, x) {
   d <- length(x)
-  diag <- numeric(d)
+  log_diag <- numeric(d)
   for (k in seq_len(d)) {
     if (S$type == 'marginal') {
-      diag[k] <- S$basisF[[k]]$deriv(x[k], S$coeffA[[k]])
+      f_prime <- S$basisF[[k]]$deriv(x[k], S$coeffA[[k]])
+      if (f_prime <= 0) {
+        stop('non-monotone f_k')
+      }
+      log_diag[k] <- log(f_prime + 1e-12)
     } else if (S$type == 'separable') {
-      diag[k] <- S$basisF[[k]]$deriv(x[k], S$coeffA[[k]])
+      f_prime <- S$basisF[[k]]$deriv(x[k], S$coeffA[[k]])
+      if (f_prime <= 0) {
+        stop('non-monotone f_k')
+      }
+      log_diag[k] <- log(f_prime + 1e-12)
     } else {
-      diag[k] <- exp(S$basisH[[k]](x[k], x[seq_len(k - 1)], S$coeffC[[k]]))
+      log_diag[k] <- S$basisH[[k]](x[k], x[seq_len(k - 1)], S$coeffC[[k]])
     }
   }
-  diag
+  log_diag
 }
 
-detJacobian <- function(diag) {
-  prod(diag)
-}
+logDetJacobian <- function(logDiag) {
+  sum(logDiag)
 
-logDetJacobian <- function(diag) {
-  sum(log(diag))
 }
 
 forwardKLLoss <- function(S, X) {
   total <- 0
   for (i in seq_len(nrow(X))) {
     z <- forwardPass(S, X[i, ])
-    diag <- jacDiag(S, X[i, ])
-    total <- total + 0.5 * sum(z^2) - logDetJacobian(diag)
+    log_diag <- logJacDiag(S, X[i, ])
+    total <- total + 0.5 * sum(z^2) - logDetJacobian(log_diag)
+
   }
   total / nrow(X)
 }
@@ -86,7 +93,11 @@ basisEvalKD <- function(basisSet, vec) {
 }
 
 monotoneIntegrator <- function(h, t0, t) {
-  integrate(function(s) exp(h(s)), lower = t0, upper = t)$value
+  integrand <- function(s) {
+    exp(pmin(h(s), 100))
+  }
+  stats::integrate(integrand, lower = t0, upper = t)$value
+
 }
 
 rootFind1D <- function(fun, target) {
@@ -144,18 +155,6 @@ lossFull <- function(S, X) {
   forwardKLLoss(S, X)
 }
 
-# --- 6 Generische Train-Routine ----------------------------------------------
-
-trainMap <- function(S, X, nIter, lr, batchSize) {
-  for (iter in seq_len(nIter)) {
-    batches <- batchIterator(X, batchSize)
-    for (B in batches) {
-      grad <- lapply(S$coeffA, function(a) rep(0, length(a)))
-      S$coeffA <- mapply(optimStep, S$coeffA, grad, MoreArgs = list(lr = lr), SIMPLIFY = FALSE)
-    }
-  }
-  S
-}
 
 # --- 7 Evaluations-Utilities --------------------------------------------------
 
@@ -164,14 +163,17 @@ negativeLogLikelihood <- function(S, Xtest) {
   for (i in seq_len(nrow(Xtest))) {
     x <- Xtest[i, ]
     z <- forwardPass(S, x)
-    diag <- jacDiag(S, x)
-    L <- L + 0.5 * sum(z^2) - logDetJacobian(diag)
+    log_diag <- logJacDiag(S, x)
+    L <- L + 0.5 * sum(z^2) - logDetJacobian(log_diag)
+
   }
   L
 }
 
-natsPerDim <- function(NLL, N) {
-  sum(NLL) / (length(NLL) * N)
+# Caller must supply N = #samples und d = #dimensions.
+natsPerDim <- function(totalNLL, N, d) {
+  totalNLL / (N * d)
+
 }
 
 stderr <- function(values) {
