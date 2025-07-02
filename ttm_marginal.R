@@ -18,10 +18,14 @@ loadCSV <- function(filepath) {
 
 ## Hilfsfunktionen ----------------------------------------------------------
 
-initializeCoeffs <- function(S, d) {
-  S$coeffA <- lapply(seq_len(d), function(k) 0)
-  S$coeffB <- vector("list", d)
-  S$coeffC <- vector("list", d)
+initializeCoeffs <- function(S) {
+  d <- length(S$order)
+  for (k in seq_len(d)) {
+    # Ableitung strictly positive ⇒ log-space init
+    S$coeffA[[k]] <- log(1)
+    S$coeffB[[k]] <- 0
+    S$coeffC[[k]] <- 0
+  }
   S
 }
 
@@ -38,9 +42,9 @@ computeRowwiseLosses <- function(S, X_set) {
 trainMarginalMap <- function(filepath) {
   X_raw <- loadCSV(filepath)
   std_res <- standardizeData(X_raw)
-  X_std  <- std_res$X
-  mu     <- std_res$mu
-  sigma  <- std_res$sigma
+  X_std  <- std_res[[1]]
+  mu     <- std_res[[2]]
+  sigma  <- std_res[[3]]
   N <- nrow(X_std)
   d <- ncol(X_std)
 
@@ -53,16 +57,12 @@ trainMarginalMap <- function(filepath) {
   X_val   <- X_std[val_idx, , drop = FALSE]
   X_test  <- X_std[test_idx, , drop = FALSE]
 
-  S <- MapStruct(type = "marginal",
-                 coeffA = NULL,
-                 coeffB = NULL,
-                 coeffC = NULL,
-                 basisF = vector("list", d),
-                 basisG = NULL,
-                 basisH = NULL)
-
-  S$order <- shuffleOrdering(d)
-  S <- initializeCoeffs(S, d)
+  S <- MapStruct(type = "marginal")
+  S <- setOrdering(S, shuffleOrdering(d))
+  S <- initializeCoeffs(S)
+  for (k in seq_len(d)) {
+    S$basisF[[k]] <- defaultBasis()
+  }
 
   lr <- lr0
   Tmax <- T_max
