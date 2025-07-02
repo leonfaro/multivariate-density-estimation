@@ -145,28 +145,22 @@ function logL_KS(model, X)
 ```
 
 ### fit_TRTF
-`fit_TRTF(S, config, grid, seed) : S \to M_{TRTF}`
-- **Description:** cross-validated conditional transformation forests.
-- **Pre:** grid expands to finite hyperparameter combinations.
-- **Post:** fitted forest with `best_cfg`, CV loss and test log-likelihood.
-- **Randomness:** `set.seed(seed)` affects forest construction and CV splits.
+`fit_TRTF(S, config, ntree, mtry, minsplit, minbucket, maxdepth, seed, cores) : S \to M_{TRTF}`
+- **Description:** one-shot fit of conditional transformation forest on train data, evaluation on test.
+- **Pre:** training and test matrices present in `S`.
+- **Post:** fitted forest with test log-likelihood.
+- **Randomness:** `set.seed(seed)` affects forest construction.
 - **Pseudocode:**
 ```
-function fit_TRTF(S, config, grid, seed)
+function fit_TRTF(S, config, ntree, mtry, minsplit, minbucket, maxdepth, seed, cores)
     set seed to seed
     X_tr <- S.X_tr
-    X_val <- S.X_val
-    X_te  <- S.X_te
-    best_val <- Inf
-    for each cfg in expand.grid(grid)
-        m <- mytrtf(X_tr, cfg)
-        val_loss <- -mean(predict(m, X_val, 'logdensity'))
-        if val_loss < best_val
-            best_cfg <- cfg
-    final <- mytrtf(X_tr, best_cfg)
-    final.logL_te <- logL_TRTF(final, X_te)
-    return final
+    X_te <- S.X_te
+    mod <- mytrtf(X_tr, ntree, mtry, minsplit, minbucket, maxdepth, seed, cores)
+    mod.logL_te <- logL_TRTF(mod, X_te, cores)
+    return mod
 ```
+
 
 ### logL_TRTF
 `logL_TRTF(model, X) : (M_{TRTF}, \mathbb R^{n\times d}) \to \mathbb R`
@@ -285,7 +279,7 @@ Each module drawing random numbers sets the RNG via `set.seed` with an integer s
 - **Model Objects**:
   - `M_TRUE`: list `theta` (per-dimension parameter vectors), `config`, `logL_te`.
   - `ks_model`: list `X_tr`, `h`, `config`, `logL_te`.
-  - `mytrtf`: list `ymod`, `forests`, `seed`, `varimp`, `config`, `best_cfg`, `logL_te`.
+  - `mytrtf`: list `ymod`, `forests`, `seed`, `varimp`, `config`, `logL_te`.
   - `ttm_model`: functions implementing triangular transport maps.
   - `logJacDiag(S,x)` → returns vector of log partial derivatives.
   - `logDetJacobian(logDiag)` → sum of log-diagonal entries.
