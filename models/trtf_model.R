@@ -74,40 +74,28 @@ logL_TRTF_dim <- function(model, X) {
   res
 }
 
-fit_TRTF <- function(X_tr, X_te, config,
+fit_TRTF <- function(S, config,
                      grid = list(ntree = 50,
-                                 mtry = floor(sqrt(ncol(X_tr) - 1)),
+                                 mtry = floor(sqrt(ncol(S$X_tr) - 1)),
                                  minsplit = 25, minbucket = 20, maxdepth = 4),
-                     folds = 2, seed = 42) {
-  stopifnot(is.matrix(X_tr), is.matrix(X_te))
+                     seed = 42) {
+  stopifnot(is.list(S))
+  X_tr <- S$X_tr
+  X_val <- S$X_val
+  X_te <- S$X_te
+  stopifnot(is.matrix(X_tr), is.matrix(X_val), is.matrix(X_te))
   set.seed(seed)
   grid_df <- expand.grid(grid, KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
-  idx <- sample(rep(seq_len(folds), length.out = nrow(X_tr)))
 
   best_val <- Inf
   best_cfg <- grid_df[1, ]
-  pb_total <- nrow(grid_df) * folds + 1
-  pb <- txtProgressBar(min = 0, max = pb_total, style = 3)
-  progress <- 0
-  on.exit(close(pb))
   for (i in seq_len(nrow(grid_df))) {
     cfg <- grid_df[i, ]
-    ctrl <- partykit::ctree_control(minsplit = cfg$minsplit,
-                                    minbucket = cfg$minbucket,
-                                    maxdepth = cfg$maxdepth)
-    val_fold <- numeric(folds)
-    for (f in seq_len(folds)) {
-      X_train <- X_tr[idx != f, , drop = FALSE]
-      X_valid <- X_tr[idx == f, , drop = FALSE]
-      m <- mytrtf(X_train, ntree = cfg$ntree, mtry = cfg$mtry,
-                   minsplit = cfg$minsplit, minbucket = cfg$minbucket,
-                   maxdepth = cfg$maxdepth, seed = seed + f)
-      val_fold[f] <- -mean(predict(m, X_valid, type = "logdensity",
-                                   cores = NC, trace = TRUE))
-      progress <- progress + 1
-      setTxtProgressBar(pb, progress)
-    }
-    val <- mean(val_fold)
+    m <- mytrtf(X_tr, ntree = cfg$ntree, mtry = cfg$mtry,
+                minsplit = cfg$minsplit, minbucket = cfg$minbucket,
+                maxdepth = cfg$maxdepth, seed = seed)
+    val <- -mean(predict(m, X_val, type = "logdensity",
+                         cores = NC, trace = TRUE))
     if (is.finite(val) && val < best_val) {
       best_val <- val
       best_cfg <- cfg
@@ -117,10 +105,8 @@ fit_TRTF <- function(X_tr, X_te, config,
   final <- mytrtf(X_tr, ntree = best_cfg$ntree, mtry = best_cfg$mtry,
                   minsplit = best_cfg$minsplit, minbucket = best_cfg$minbucket,
                   maxdepth = best_cfg$maxdepth, seed = seed)
-  progress <- progress + 1
-  setTxtProgressBar(pb, progress)
   final$config <- config
-  final$cv_logL <- best_val
+  final$val_logL <- best_val
   final$logL_te <- logL_TRTF(final, X_te)
   final$best_cfg <- best_cfg
   final

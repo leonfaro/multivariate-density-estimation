@@ -45,7 +45,7 @@ The overarching routine `main()` follows the composition
 $$\operatorname{mainPipeline} := f_9 \circ f_8 \circ \cdots \circ f_1,$$
 where
 1. $f_1 = \texttt{gen\_samples}$ – generate $X$ from configuration.
-2. $f_2 = \texttt{train\_test\_split}$ – obtain $(X_{\text{tr}}, X_{\text{te}})$.
+2. $f_2 = \texttt{split\_data}$ – obtain $(X_{\text{tr}}, X_{\text{val}}, X_{\text{te}})$.
 3. $f_3 = \texttt{fit\_TRUE}$ – fit independent parametric marginals.
    f_3b1 = fit_TTM_marginal
    f_3b2 = fit_TTM_separable
@@ -55,28 +55,9 @@ where
 6. $f_6 = \texttt{logL\_\*\_dim}$ – compute dimension-wise log-likelihoods.
 7. $f_7 = \texttt{add\_sum\_row}$ – append totals to tables.
 8. $f_8 = \texttt{format\_loglik\_table}$ – present final evaluation table.
-9. $f_9 = \texttt{plot\_scatter\_matrix}$ – display four log-density scatter plots.
 Optional EDA helper functions are defined in `04_evaluation.R`.
 
 ## 3. Module Specifications
-### setup_global
-`setup_global() : () \to G`
-- **Description:** provide global experiment settings such as sample size $N$, configuration list and RNG seed.
-- **Pre:** none.
-- **Post:** returns list $G=(n,\text{config},\text{seed},\text{split\_ratio},h_{\text{grid}},\text{model\_ids},p_{\max})$.
-- **Randomness:** none.
-- **Pseudocode:**
-```
-function setup_global(cfg)
-    n <- 50
-    seed <- 42
-    split_ratio <- 0.5
-    h_grid <- 1:p_max
-    model_ids <- {"TRUE"}
-    return (n, cfg, seed, split_ratio, h_grid, model_ids, p_max)
-```
-
-### gen_samples
 `gen_samples(G) : G \to X`
 - **Description:** sequentially draws $N=G.n$ samples from distributions specified in `G.config`.
 - **Pre:** each `config[[k]]$distr` matches an R sampling routine `r<distr>`.
@@ -94,34 +75,28 @@ function gen_samples(G)
     return X
 ```
 
-### train_test_split
-`train_test_split(X, r, seed) : (\mathbb R^{N\times d}, [0,1], \mathbb N) \to (X_{\text{tr}}, X_{\text{te}})`
-- **Description:** shuffle rows of $X$ reproducibly and split into training and test matrices.
-- **Pre:** $0<r<1$.
-- **Post:** $X_{\text{tr}}$ has $\lfloor rN\rfloor$ rows; $X_{\text{te}}$ contains the remainder.
-- **Randomness:** `set.seed(seed+1)` for permutation.
-- **Pseudocode:**
-```
-function train_test_split(X, r, seed)
-    set seed to seed+1
-    idx <- random permutation of 1..N
-    n_tr <- floor(r*N)
-    return (X[idx[1:n_tr],], X[idx[(n_tr+1):N],])
-```
-
-### fit_TRUE
 `fit_TRUE(X_tr, X_te, config) : (\mathbb R^{n_{tr}\times d}, \mathbb R^{n_{te}\times d}, config) \to M_{TRUE}`
+### split_data
+`split_data(X, seed) : (\mathbb R^{N\times d}, \mathbb N) \to (X_{\text{tr}}, X_{\text{val}}, X_{\text{te}})`
+- **Description:** shuffle once and split 80/10/10.
+- **Randomness:** `set.seed(seed)` for permutation.
+```
+function split_data(X, seed)
+    set seed to seed
+    idx <- random permutation of 1..N
+    n_tr  <- floor(0.8*N)
+    n_val <- floor(0.1*N)
+    return (X[idx[1:n_tr],], X[idx[n_tr+1:n_tr+n_val],], X[idx[(n_tr+n_val+1):N],])
+```
+### fit_TRUE
+`fit_TRUE(S, config) : S \to M_{TRUE}`
 - **Description:** independent maximum-likelihood estimation per dimension.
 - **Pre:** distributions in `config` supported by `neg_loglik_uni`.
-- **Post:** list with parameter estimates `theta` and test log-likelihood `logL_te`.
-- **Randomness:** none once data is given.
-- **Pseudocode:**
-```
-function fit_TRUE(X_tr, X_te, config)
+function fit_TRUE(S, config)
     for k in 1..d
-        init <- moment_based_start(X_tr[,k], config[k].distr)
+        init <- moment_based_start(S.X_tr[,k], config[k].distr)
         theta_k <- optimize neg_loglik_uni w.r.t. init
-    logL_te <- logL_TRUE((theta), X_te)
+    logL_te <- logL_TRUE((theta), S.X_te)
     return (theta, logL_te)
 ```
 
@@ -248,20 +223,6 @@ struct MapStruct:
     coeffC[k]      # γ-Vektor für h_k
     basisF[k], basisG[k], basisH[k]   # callable handles
 ```
-### evaluate_all
-`evaluate_all(X_te, model_list) : (\mathbb R^{n_{te}\times d}, list) \to \text{data.frame}`
-- **Description:** compute negative log-likelihoods for named models via dynamic dispatch.
-- **Pseudocode:**
-```
-function evaluate_all(X_te, model_list)
-    for each model with name id
-        loss <- logL_<id>(model, X_te)
-        store (id, loss)  # column totalNLL
-    sort by totalNLL
-    return table
-```
-
-### add_sum_row
 `add_sum_row(tab, label) : (data.frame, string) \to data.frame`
 - **Description:** append a row with columnwise sums for numeric columns.
 - **Pseudocode:**
@@ -321,7 +282,7 @@ Each module drawing random numbers sets the RNG via `set.seed` with an integer s
 
 ## 5. Complexity Notes
 - `gen_samples`: $\\Theta(Nd)$.
-- `train_test_split`: $\\Theta(N)$ for shuffling.
+- `split_data`: $\\Theta(N)$ for shuffling.
 - `fit_TRUE`: dominated by optimization per dimension; roughly $\\Theta(d n_{tr} I)$ with iteration count $I$.
 - `fit_KS`: kernel evaluations yield $\\Theta(n_{te} n_{tr} d)$ during prediction.
 - `fit_TRTF` complexity hängt von der Tiefe der Bäume ab und ist datengesteuert.

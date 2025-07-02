@@ -4,14 +4,12 @@ source("../../02_split.R")
 source("../../models/trtf_model.R")
 
 set.seed(1)
-G <- setup_global()
-G$n <- 60
-X <- gen_samples(G)
-S <- train_test_split(X, G$split_ratio, G$seed)
+X <- Generate_iid_from_config(60, config)
+S <- split_data(X, 42)
 
 
 test_that("fit_TRTF returns valid object", {
-  mod <- fit_TRTF(S$X_tr, S$X_te, G$config)
+  mod <- fit_TRTF(S, config)
   expect_type(mod, "list")
   expect_s3_class(mod, "mytrtf")
   expect_equal(length(mod$ymod), ncol(S$X_tr))
@@ -22,7 +20,7 @@ test_that("fit_TRTF returns valid object", {
 
 
 test_that("logL_TRTF computes finite value", {
-  mod <- fit_TRTF(S$X_tr, S$X_te, G$config)
+  mod <- fit_TRTF(S, config)
   val <- logL_TRTF(mod, S$X_te)
   expect_true(is.finite(val))
 })
