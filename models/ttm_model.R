@@ -60,6 +60,7 @@ logJacDiag <- function(S, x) {
 
 logDetJacobian <- function(logDiag) {
   sum(logDiag)
+
 }
 
 forwardKLLoss <- function(S, X) {
@@ -68,6 +69,7 @@ forwardKLLoss <- function(S, X) {
     z <- forwardPass(S, X[i, ])
     log_diag <- logJacDiag(S, X[i, ])
     total <- total + 0.5 * sum(z^2) - logDetJacobian(log_diag)
+
   }
   total / nrow(X)
 }
@@ -141,6 +143,7 @@ lossFull <- function(S, X) {
   forwardKLLoss(S, X)
 }
 
+
 # --- 7 Evaluations-Utilities --------------------------------------------------
 
 negativeLogLikelihood <- function(S, Xtest) {
@@ -150,12 +153,14 @@ negativeLogLikelihood <- function(S, Xtest) {
     z <- forwardPass(S, x)
     log_diag <- logJacDiag(S, x)
     L <- L + 0.5 * sum(z^2) - logDetJacobian(log_diag)
+
   }
   L
 }
 
 natsPerDim <- function(totalNLL, N, d) {
   totalNLL / (N * d)
+
 }
 
 stderr <- function(values) {
