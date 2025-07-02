@@ -15,7 +15,10 @@
 #' @param seed Zufallsstartwert
 #' @return Liste mit Elementen X_tr, h, config, logL_te
 #' @export
-fit_KS <- function(X_tr, X_te, config, seed = 42) {
+fit_KS <- function(S, config, seed = 42) {
+  stopifnot(is.list(S))
+  X_tr <- S$X_tr
+  X_te <- S$X_te
   stopifnot(is.matrix(X_tr), is.matrix(X_te))
   set.seed(seed)
   h <- apply(X_tr, 2, stats::bw.nrd0)
