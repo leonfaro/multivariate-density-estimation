@@ -1,6 +1,5 @@
 # TTM - Marginal Map Trainer
 # arbeitet komplett in Basis-R
-source("ttm_base.R")
 
 ## Reproduzierbarkeit -------------------------------------------------------
 set.seed(42)
@@ -11,12 +10,15 @@ T_max <- 100L
 P <- 10L
 decay <- 1.0
 
-# Datenladefunktion -------------------------------------------------------
-loadCSV <- function(filepath) {
-  as.matrix(read.csv(filepath))
-}
-
 ## Hilfsfunktionen ----------------------------------------------------------
+
+linearBasis <- function(S, idx) {
+  f <- function(x, theta) {
+    S$coeffB[[idx]] + exp(theta) * x
+  }
+  attr(f, "deriv") <- function(x, theta) rep(exp(theta), length(x))
+  f
+}
 
 initializeCoeffs <- function(S) {
   d <- length(S$order)
@@ -63,10 +65,69 @@ computeRowwiseLosses <- function(S, X_set) {
 
 ## Hauptfunktion ------------------------------------------------------------
 
-trainMarginalMap <- function(S, config) {
+trainMarginalMap <- function(S) {
+  stopifnot(is.list(S))
   X_tr  <- S$X_tr
   X_val <- S$X_val
   X_te  <- S$X_te
-  invisible(list(model = NULL, logL_te = NA_real_))
-}
 
+  X_all <- rbind(X_tr, X_val, X_te)
+  std_res <- standardizeData(X_all)
+  X_std <- std_res$X
+  n_tr <- nrow(X_tr)
+  n_val <- nrow(X_val)
+  X_train <- X_std[seq_len(n_tr), , drop = FALSE]
+  X_val   <- X_std[seq_len(n_val) + n_tr, , drop = FALSE]
+  X_test  <- X_std[(n_tr + n_val + 1):nrow(X_std), , drop = FALSE]
+
+  d <- ncol(X_train)
+  S_map <- MapStruct(type = "marginal")
+  S_map <- setOrdering(S_map, shuffleOrdering(d))
+  S_map <- initializeCoeffs(S_map)
+  S_map$basisF <- vector("list", d)
+  for (k in seq_len(d)) {
+    S_map$basisF[[k]] <- linearBasis(S_map, k)
+  }
+
+  best_val <- Inf
+  best_state <- S_map
+  best_epoch <- 0L
+  best_train <- Inf
+  patience <- 0L
+  lr <- lr0
+
+  for (epoch in seq_len(T_max)) {
+    S_map <- updateCoeffsMarginal(S_map, X_train, lr)
+    NLL_train <- mean(computeRowwiseLosses(S_map, X_train))
+    NLL_val <- mean(computeRowwiseLosses(S_map, X_val))
+
+    if (NLL_val < best_val - 1e-6) {
+      best_val <- NLL_val
+      best_state <- S_map
+      best_epoch <- epoch
+      best_train <- NLL_train
+      patience <- 0L
+    } else {
+      patience <- patience + 1L
+    }
+    if (patience > P) break
+    lr <- lr * decay
+    if (epoch %% 10 == 0) {
+      message(epoch, ": val NLL = ", round(NLL_val, 4))
+    }
+  }
+
+  S_map <- best_state
+  loss_test_vec <- computeRowwiseLosses(S_map, X_test)
+  NLL_test <- mean(loss_test_vec)
+  stderr_test <- stderr(loss_test_vec)
+
+  list(
+    S = S_map,
+    best_epoch = best_epoch,
+    NLL_train = best_train,
+    NLL_val = best_val,
+    NLL_test = NLL_test,
+    stderr_test = stderr_test
+  )
+}

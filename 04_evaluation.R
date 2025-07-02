@@ -86,6 +86,13 @@ calc_loglik_tables <- function(models, config, X_te) {
   }
   ll_trtf <- -predict(models$trtf, X_te, type = "logdensity_by_dim")
   ll_ks   <- -predict(models$ks,  X_te, type = "logdensity_by_dim")
+  if (!is.null(models$ttm)) {
+    ll_ttm_dim <- rep(models$ttm$NLL_test / K, K)
+    se_ttm     <- rep(models$ttm$stderr_test / K, K)
+  } else {
+    ll_ttm_dim <- rep(NA_real_, K)
+    se_ttm     <- rep(NA_real_, K)
+  }
 
   mean_true <- colMeans(ll_true)
   se_true   <- apply(ll_true, 2, stderr)
@@ -93,6 +100,7 @@ calc_loglik_tables <- function(models, config, X_te) {
   se_trtf   <- apply(ll_trtf, 2, stderr)
   mean_ks   <- colMeans(ll_ks)
   se_ks     <- apply(ll_ks,   2, stderr)
+  mean_ttm  <- ll_ttm_dim
 
   fmt <- function(m, se) sprintf("%.2f ± %.2f", round(m, 2), round(2 * se, 2))
 
@@ -102,7 +110,7 @@ calc_loglik_tables <- function(models, config, X_te) {
     true = fmt(mean_true, se_true),
     trtf = fmt(mean_trtf, se_trtf),
     ks   = fmt(mean_ks, se_ks),
-    ttm  = rep(NA_character_, K),
+    ttm  = fmt(mean_ttm, se_ttm),
     stringsAsFactors = FALSE
   )
 
@@ -112,7 +120,7 @@ calc_loglik_tables <- function(models, config, X_te) {
     true = fmt(sum(mean_true), sqrt(sum(se_true^2))),
     trtf = fmt(sum(mean_trtf), sqrt(sum(se_trtf^2))),
     ks   = fmt(sum(mean_ks),   sqrt(sum(se_ks^2))),
-    ttm  = NA_character_,
+    ttm  = fmt(sum(mean_ttm),  sqrt(sum(se_ttm^2))),
     stringsAsFactors = FALSE
   )
   rbind(tab, sum_row)

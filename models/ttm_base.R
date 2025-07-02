@@ -50,10 +50,9 @@ setOrdering <- function(S, ord) {
 }
 
 defaultBasis <- function() {
-  list(
-    value = function(x, theta) x,
-    deriv = function(x, theta) rep(1, length(x))
-  )
+  f <- function(x, theta) x
+  attr(f, "deriv") <- function(x, theta) rep(1, length(x))
+  f
 }
 
 # --- 3 Elementare Algebra-Funktionen ------------------------------------------
@@ -68,13 +67,13 @@ logJacDiag <- function(S, x) {
   log_diag <- numeric(d)
   for (k in seq_len(d)) {
     if (S$type == 'marginal') {
-      f_prime <- S$basisF[[k]]$deriv(x[k], S$coeffA[[k]])
+      f_prime <- attr(S$basisF[[k]], "deriv")(x[k], S$coeffA[[k]])
       if (f_prime <= 0) {
         stop('non-monotone f_k')
       }
       log_diag[k] <- log(f_prime + 1e-12)
     } else if (S$type == 'separable') {
-      f_prime <- S$basisF[[k]]$deriv(x[k], S$coeffA[[k]])
+      f_prime <- attr(S$basisF[[k]], "deriv")(x[k], S$coeffA[[k]])
       if (f_prime <= 0) {
         stop('non-monotone f_k')
       }

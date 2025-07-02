@@ -4,6 +4,8 @@ source("02_split.R")
 source("models/true_model.R")
 source("models/trtf_model.R")
 source("models/ks_model.R")
+source("models/ttm_base.R")
+source("models/ttm_marginal.R")
 source("04_evaluation.R")
 
 n <- 50
@@ -26,7 +28,8 @@ main <- function() {
   mods <- list(
     true = fit_TRUE(prep$S, config),
     trtf = fit_TRTF(prep$S, config),
-    ks   = fit_KS(prep$S, config)
+    ks   = fit_KS(prep$S, config),
+    ttm  = trainMarginalMap(prep$S)
   )
   tab <- calc_loglik_tables(mods, config, prep$S$X_te)
   print(tab)
