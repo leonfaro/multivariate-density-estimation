@@ -75,7 +75,6 @@ function gen_samples(G)
     return X
 ```
 
-`fit_TRUE(X_tr, X_te, config) : (\mathbb R^{n_{tr}\times d}, \mathbb R^{n_{te}\times d}, config) \to M_{TRUE}`
 ### split_data
 `split_data(X, seed) : (\mathbb R^{N\times d}, \mathbb N) \to (X_{\text{tr}}, X_{\text{val}}, X_{\text{te}})`
 - **Description:** shuffle once and split 80/10/10.
@@ -115,16 +114,19 @@ function logL_TRUE(M, X)
 ```
 
 ### fit_KS
-`fit_KS(X_tr, X_te, config, seed) : (...) \to M_{KS}`
+`fit_KS(S, config, seed) : S \to M_{KS}`
 - **Description:** kernel density estimate using Gaussian kernels with bandwidth `bw.nrd0`.
 - **Pre:** numeric matrices; seed scalar.
 - **Post:** returns training data, bandwidth vector and test log-likelihood.
 - **Randomness:** `set.seed(seed)` only influences bandwidth estimation.
 - **Pseudocode:**
 ```
-function fit_KS(X_tr, X_te, config, seed)
+function fit_KS(S, config, seed)
     set seed to seed
-    h <- bw.nrd0 applied columnwise on X_tr
+    X_tr <- S.X_tr
+    X_val <- S.X_val
+    X_te  <- S.X_te
+    h <- bw.nrd0 applied columnwise on rbind(X_tr, X_val)
     model <- (X_tr, h, config)
     model.logL_te <- logL_KS(model, X_te)
     return model
@@ -143,22 +145,23 @@ function logL_KS(model, X)
 ```
 
 ### fit_TRTF
-`fit_TRTF(X_tr, X_te, config, grid, folds, seed) : (...) \to M_{TRTF}`
+`fit_TRTF(S, config, grid, seed) : S \to M_{TRTF}`
 - **Description:** cross-validated conditional transformation forests.
 - **Pre:** grid expands to finite hyperparameter combinations.
 - **Post:** fitted forest with `best_cfg`, CV loss and test log-likelihood.
 - **Randomness:** `set.seed(seed)` affects forest construction and CV splits.
 - **Pseudocode:**
 ```
-function fit_TRTF(X_tr, X_te, config, grid, folds, seed)
+function fit_TRTF(S, config, grid, seed)
     set seed to seed
+    X_tr <- S.X_tr
+    X_val <- S.X_val
+    X_te  <- S.X_te
     best_val <- Inf
     for each cfg in expand.grid(grid)
-        split data into folds
-        for each fold
-            m <- mytrtf(training-fold, cfg)
-            val_loss <- -mean(predict(m, validation-fold, 'logdensity'))
-        if mean(val_loss) < best_val
+        m <- mytrtf(X_tr, cfg)
+        val_loss <- -mean(predict(m, X_val, 'logdensity'))
+        if val_loss < best_val
             best_cfg <- cfg
     final <- mytrtf(X_tr, best_cfg)
     final.logL_te <- logL_TRTF(final, X_te)
@@ -233,39 +236,23 @@ function add_sum_row(tab, label)
 ```
 
 ### calc_loglik_tables
-`calc_loglik_tables(models, config) : (list, list) \to data.frame`
-- **Description:** compute Gesamt-NLLs per dimension for all models.
+`calc_loglik_tables(models, X_te) : (list, matrix) \to data.frame`
+- **Description:** compute mean and standard error of negative log-likelihoods per dimension and return formatted table.
 - **Pseudocode:**
 ```
-function calc_loglik_tables(models, config)
+function calc_loglik_tables(models, X_te)
+    ll_true <- -predict_TRUE(models.true, X_te)
+    ll_trtf <- -predict(models.trtf, X_te)
+    ll_ks   <- -predict(models.ks,   X_te)
+    mean_true <- colMeans(ll_true)
+    se_true   <- apply(ll_true, 2, stderr)
+    ... (same for trtf, ks)
     tab <- data.frame(dim, distribution,
-                      logL_baseline, logL_trtf, logL_ks)
-    tab <- add_sum_row(tab)
-    return tab
-```
-
-### calc_loglik_sds
-`calc_loglik_sds(models, S, config) : (list, list, list) \to data.frame`
-- **Description:** standard deviations of the negative log-likelihoods across test observations.
-- **Pseudocode:**
-```
-function calc_loglik_sds(models, S, config)
-    sd_true <- sd(-log_density_true(S$X_te)) per dimension
-    sd_trtf <- sd over -predict(TRTF, S$X_te)
-    sd_ks   <- sd over -predict(KS, S$X_te)
-    tab <- data.frame(dim, distribution, sd_true, sd_trtf, sd_ks)
+                      true = sprintf("%.2f ± %.2f", mean_true, 2*se_true),
+                      trtf = sprintf("%.2f ± %.2f", mean_trtf,2*se_trtf),
+                      ks   = sprintf("%.2f ± %.2f", mean_ks,  2*se_ks),
+                      ttm  = NA)
     add_sum_row(tab)
-```
-
-### format_loglik_table
-`format_loglik_table(tab_mean, tab_sd) : (data.frame, data.frame) \to data.frame`
-- **Description:** combine mean and sd tables to strings of the form `"m ± s"`.
-- **Pseudocode:**
-```
-function format_loglik_table(tab_mean, tab_sd)
-    for each numeric column col
-        tab[col] <- sprintf("%.2f ± %.2f", round(tab_mean[col],2),
-                            round(2 * tab_sd[col],2))
     return tab
 ```
 

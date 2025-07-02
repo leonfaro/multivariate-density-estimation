@@ -14,35 +14,23 @@ config <- list(
   list(distr = "gamma", parm = function(d) list(shape = softplus(d$X3), scale = softplus(d$X2)))
 )
 
-run_normal <- function(prep, cfg) {
-  mods <- fit_models(prep$S, cfg)
-  tab_mean <- calc_loglik_tables(mods, cfg)
-  tab_sd   <- calc_loglik_sds(mods, prep$S, cfg)
-  tab_fmt  <- format_loglik_table(tab_mean, tab_sd)
-  print(tab_fmt)
-  hyp <- paste(names(mods$models$trtf$best_cfg),
-               mods$models$trtf$best_cfg,
-               sep = "=", collapse = ", ")
-  cat(sprintf("TRTF Predict normal: %.2f s [%s]\n",
-              mods$times["trtf"], hyp))
-  list(tab = tab_mean, mods = mods)
-}
-
-
-
 #' Starte die komplette Analyse
-#'
+#' 
 #' Es werden zwei Log-Likelihood-Tabellen ausgegeben: einmal für die
 #' normale Reihenfolge der Dimensionen und einmal für eine vorgegebene
 #' Permutation.
-#'
+#' 
 #' @export
 main <- function() {
-  prep <- prepare_data(n, config)
-
-  res_norm <- run_normal(prep, config)
-
-  invisible(list(normal = res_norm$tab))
+  prep <- prepare_data(n, config, seed = 42)
+  mods <- list(
+    true = fit_TRUE(prep$S, config),
+    trtf = fit_TRTF(prep$S, config),
+    ks   = fit_KS(prep$S, config)
+  )
+  tab <- calc_loglik_tables(mods, config, prep$S$X_te)
+  print(tab)
+  invisible(tab)
 }
 
 if (sys.nframe() == 0L) {

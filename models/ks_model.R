@@ -9,19 +9,19 @@
 
 #' Fit KS model with simple Gaussian kernels
 #'
-#' @param X_tr Trainingsmatrix
-#' @param X_te Testmatrix
+#' @param S Datenliste mit `X_tr`, `X_val`, `X_te`
 #' @param config Liste der Verteilungsdefinitionen
 #' @param seed Zufallsstartwert
 #' @return Liste mit Elementen X_tr, h, config, logL_te
 #' @export
 fit_KS <- function(S, config, seed = 42) {
   stopifnot(is.list(S))
-  X_tr <- S$X_tr
-  X_te <- S$X_te
-  stopifnot(is.matrix(X_tr), is.matrix(X_te))
+  X_tr  <- S$X_tr
+  X_val <- S$X_val
+  X_te  <- S$X_te
+  stopifnot(is.matrix(X_tr), is.matrix(X_val), is.matrix(X_te))
   set.seed(seed)
-  h <- apply(X_tr, 2, stats::bw.nrd0)
+  h <- apply(rbind(X_tr, X_val), 2, stats::bw.nrd0)
   model <- list(X_tr = X_tr, h = h, config = config, seed = seed)
   class(model) <- "ks_model"
   model$logL_te <- logL_KS(model, X_te)

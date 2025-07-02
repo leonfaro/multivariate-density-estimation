@@ -6,19 +6,14 @@ source("../../models/true_model.R")
 
 set.seed(7)
 prep <- prepare_data(30, config)
-mods <- fit_models(prep$S, config)
+mods <- list(
+  true = fit_TRUE(prep$S, config),
+  trtf = fit_TRTF(prep$S, config),
+  ks   = fit_KS(prep$S, config)
+)
+tab <- calc_loglik_tables(mods, config, prep$S$X_te)
 
-tab_mean <- calc_loglik_tables(mods, config)
-tab_sd   <- calc_loglik_sds(mods, prep$S, config)
-tab_fmt  <- format_loglik_table(tab_mean, tab_sd)
-
-test_that("calc_loglik_sds works", {
-  expect_true(is.data.frame(tab_sd))
-  expect_equal(nrow(tab_sd), length(config) + 1)
-  expect_true(all(is.finite(tab_sd$logL_trtf)))
-})
-
-test_that("format_loglik_table adds strings", {
-  expect_true(is.character(tab_fmt$logL_baseline))
-  expect_match(tab_fmt$logL_trtf[1], "±")
+test_that("calc_loglik_tables returns strings with plusminus", {
+  expect_true(is.data.frame(tab))
+  expect_true(all(grepl("±", tab$trtf)))
 })
