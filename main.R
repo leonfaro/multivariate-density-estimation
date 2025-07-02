@@ -7,6 +7,8 @@ source("models/ks_model.R")
 source("models/ttm_base.R")
 source("models/ttm_marginal.R")
 source("04_evaluation.R")
+source("replicate_code.R")
+replicate_code_scripts("main.R", "replicated_code.txt")
 
 n <- 50
 config <- list(
