@@ -92,6 +92,7 @@ trainMarginalMap <- function(filepath) {
   best_val <- Inf
   best_state <- S
   best_epoch <- 0L
+  best_train <- Inf
   patience <- 0L
   lr <- lr0
 
@@ -104,6 +105,7 @@ trainMarginalMap <- function(filepath) {
       best_val <- NLL_val
       best_state <- S
       best_epoch <- epoch
+      best_train <- NLL_train
       patience <- 0L
     } else {
       patience <- patience + 1L
@@ -123,7 +125,7 @@ trainMarginalMap <- function(filepath) {
   list(
     S = S,
     best_epoch = best_epoch,
-    NLL_train = NLL_train,
+    NLL_train = best_train,
     NLL_val = best_val,
     NLL_test = NLL_test,
     stderr_test = stderr_test
