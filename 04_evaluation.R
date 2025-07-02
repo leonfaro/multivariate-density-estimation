@@ -21,6 +21,14 @@ add_sum_row <- function(tab, label = "k") {
   rbind(tab, as.data.frame(sum_row, stringsAsFactors = FALSE))
 }
 
+stderr <- function(values) {
+  stats::sd(values) / sqrt(length(values))
+}
+
+nats_per_dim <- function(loss, d) {
+  loss / d
+}
+
 #' Daten erzeugen und aufteilen
 #'
 #' @param n Stichprobengr\u00f6\u00dfe
@@ -67,16 +75,47 @@ fit_models <- function(S, config) {
 #' @param config Konfiguration
 #' @return Datenrahmen mit Summenzeile
 #' @export
-calc_loglik_tables <- function(models, config) {
+calc_loglik_tables <- function(models, config, X_te) {
+  K <- length(config)
+
+  ll_true <- matrix(NA_real_, nrow = nrow(X_te), ncol = K)
+  for (k in seq_len(K)) {
+    ll_vec <- .log_density_vec(X_te[, k], config[[k]]$distr,
+                               models$true$theta[[k]])
+    ll_true[, k] <- -ll_vec
+  }
+  ll_trtf <- -predict(models$trtf, X_te, type = "logdensity_by_dim")
+  ll_ks   <- -predict(models$ks,  X_te, type = "logdensity_by_dim")
+
+  mean_true <- colMeans(ll_true)
+  se_true   <- apply(ll_true, 2, stderr)
+  mean_trtf <- colMeans(ll_trtf)
+  se_trtf   <- apply(ll_trtf, 2, stderr)
+  mean_ks   <- colMeans(ll_ks)
+  se_ks     <- apply(ll_ks,   2, stderr)
+
+  fmt <- function(m, se) sprintf("%.2f ± %.2f", round(m, 2), round(2 * se, 2))
+
   tab <- data.frame(
-    dim = as.character(seq_along(config)),
+    dim = as.character(seq_len(K)),
     distribution = sapply(config, `[[`, "distr"),
-    logL_baseline = models$ll$true,
-    logL_trtf = models$ll$trtf,
-    logL_ks = models$ll$ks,
+    true = fmt(mean_true, se_true),
+    trtf = fmt(mean_trtf, se_trtf),
+    ks   = fmt(mean_ks, se_ks),
+    ttm  = rep(NA_character_, K),
     stringsAsFactors = FALSE
   )
-  add_sum_row(tab)
+
+  sum_row <- data.frame(
+    dim = "k",
+    distribution = "SUM",
+    true = fmt(sum(mean_true), sqrt(sum(se_true^2))),
+    trtf = fmt(sum(mean_trtf), sqrt(sum(se_trtf^2))),
+    ks   = fmt(sum(mean_ks),   sqrt(sum(se_ks^2))),
+    ttm  = NA_character_,
+    stringsAsFactors = FALSE
+  )
+  rbind(tab, sum_row)
 }
 
 #' Standardabweichungen der Log-Likelihoods
@@ -86,52 +125,3 @@ calc_loglik_tables <- function(models, config) {
 #' @param config Konfiguration
 #' @return Datenrahmen analog zu `calc_loglik_tables`
 #' @export
-calc_loglik_sds <- function(models, S, config) {
-  K <- length(config)
-  sd_true <- numeric(K)
-  for (k in seq_len(K)) {
-    ll_vec <- .log_density_vec(S$X_te[, k], config[[k]]$distr,
-                               models$models$true$theta[[k]])
-    sd_true[k] <- sd(-ll_vec)
-  }
-  ll_trtf <- -predict(models$models$trtf, S$X_te,
-                      type = "logdensity_by_dim")
-  ll_ks   <- -predict(models$models$ks,  S$X_te,
-                      type = "logdensity_by_dim")
-  sd_trtf <- apply(ll_trtf, 2, sd)
-  sd_ks   <- apply(ll_ks,   2, sd)
-
-  tab <- data.frame(
-    dim = as.character(seq_len(K)),
-    distribution = sapply(config, `[[`, "distr"),
-    logL_baseline = sd_true,
-    logL_trtf = sd_trtf,
-    logL_ks = sd_ks,
-    stringsAsFactors = FALSE
-  )
-  sum_row <- list(
-    dim = "k",
-    distribution = "SUM",
-    logL_baseline = sqrt(sum(sd_true^2)),
-    logL_trtf = sqrt(sum(sd_trtf^2)),
-    logL_ks = sqrt(sum(sd_ks^2))
-  )
-  rbind(tab, as.data.frame(sum_row, stringsAsFactors = FALSE))
-}
-
-#' Formatierte Log-Likelihood-Tabelle
-#'
-#' @param tab_mean Mittelwerte
-#' @param tab_sd Standardabweichungen
-#' @return Datenrahmen mit Zeichenketten
-#' @export
-format_loglik_table <- function(tab_mean, tab_sd) {
-  tab <- tab_mean
-  cols <- c("logL_baseline", "logL_trtf", "logL_ks")
-  for (col in cols) {
-    tab[[col]] <- sprintf("%.2f ± %.2f",
-                          round(tab_mean[[col]], 2),
-                          round(2 * tab_sd[[col]], 2))
-  }
-  tab
-}

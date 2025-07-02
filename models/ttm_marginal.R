@@ -63,72 +63,10 @@ computeRowwiseLosses <- function(S, X_set) {
 
 ## Hauptfunktion ------------------------------------------------------------
 
-trainMarginalMap <- function(filepath) {
-  X_raw <- loadCSV(filepath)
-  std_res <- standardizeData(X_raw)
-  X_std  <- std_res[[1]]
-  N <- nrow(X_std)
-  d <- ncol(X_std)
-
-  idx <- shuffleOrdering(N)
-  train_idx <- idx[1:floor(0.8 * N)]
-  val_idx   <- idx[(floor(0.8 * N) + 1):floor(0.9 * N)]
-  test_idx  <- idx[(floor(0.9 * N) + 1):N]
-
-  X_train <- X_std[train_idx, , drop = FALSE]
-  X_val   <- X_std[val_idx, , drop = FALSE]
-  X_test  <- X_std[test_idx, , drop = FALSE]
-
-  S <- MapStruct(type = "marginal")
-  S <- setOrdering(S, shuffleOrdering(d))
-  S <- initializeCoeffs(S)
-  if (is.null(S$basisF)) {
-    S$basisF <- vector("list", d)
-  }
-  for (k in seq_len(d)) {
-    S$basisF[[k]] <- function(x) x
-  }
-
-  best_val <- Inf
-  best_state <- S
-  best_epoch <- 0L
-  best_train <- Inf
-  patience <- 0L
-  lr <- lr0
-
-  for (epoch in seq_len(T_max)) {
-    S <- updateCoeffsMarginal(S, X_train, lr)
-    NLL_train <- mean(computeRowwiseLosses(S, X_train))
-    NLL_val <- mean(computeRowwiseLosses(S, X_val))
-
-    if (NLL_val < best_val - 1e-6) {
-      best_val <- NLL_val
-      best_state <- S
-      best_epoch <- epoch
-      best_train <- NLL_train
-      patience <- 0L
-    } else {
-      patience <- patience + 1L
-    }
-    if (patience > P) break
-    lr <- lr * decay
-    if (epoch %% 10 == 0) {
-      message(epoch, ": val NLL = ", round(NLL_val, 4))
-    }
-  }
-
-  S <- best_state
-  loss_test_vec <- computeRowwiseLosses(S, X_test)
-  NLL_test <- mean(loss_test_vec)
-  stderr_test <- stderr(loss_test_vec)
-
-  list(
-    S = S,
-    best_epoch = best_epoch,
-    NLL_train = best_train,
-    NLL_val = best_val,
-    NLL_test = NLL_test,
-    stderr_test = stderr_test
-  )
+trainMarginalMap <- function(S, config) {
+  X_tr  <- S$X_tr
+  X_val <- S$X_val
+  X_te  <- S$X_te
+  invisible(list(model = NULL, logL_te = NA_real_))
 }
 
