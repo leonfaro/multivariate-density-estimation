@@ -67,8 +67,6 @@ trainMarginalMap <- function(filepath) {
   X_raw <- loadCSV(filepath)
   std_res <- standardizeData(X_raw)
   X_std  <- std_res[[1]]
-  mu     <- std_res[[2]]
-  sigma  <- std_res[[3]]
   N <- nrow(X_std)
   d <- ncol(X_std)
 
@@ -91,18 +89,44 @@ trainMarginalMap <- function(filepath) {
     S$basisF[[k]] <- function(x) x
   }
 
+  best_val <- Inf
+  best_state <- S
+  best_epoch <- 0L
+  patience <- 0L
   lr <- lr0
-  Tmax <- T_max
-  Patience <- P
-  lr_decay <- decay
 
-  list(S = S,
-       X_train = X_train,
-       X_val = X_val,
-       X_test = X_test,
-       lr = lr,
-       Tmax = Tmax,
-       P = Patience,
-       decay = lr_decay)
+  for (epoch in seq_len(T_max)) {
+    S <- updateCoeffsMarginal(S, X_train, lr)
+    NLL_train <- mean(computeRowwiseLosses(S, X_train))
+    NLL_val <- mean(computeRowwiseLosses(S, X_val))
+
+    if (NLL_val < best_val - 1e-6) {
+      best_val <- NLL_val
+      best_state <- S
+      best_epoch <- epoch
+      patience <- 0L
+    } else {
+      patience <- patience + 1L
+    }
+    if (patience > P) break
+    lr <- lr * decay
+    if (epoch %% 10 == 0) {
+      message(epoch, ": val NLL = ", round(NLL_val, 4))
+    }
+  }
+
+  S <- best_state
+  loss_test_vec <- computeRowwiseLosses(S, X_test)
+  NLL_test <- mean(loss_test_vec)
+  stderr_test <- stderr(loss_test_vec)
+
+  list(
+    S = S,
+    best_epoch = best_epoch,
+    NLL_train = NLL_train,
+    NLL_val = best_val,
+    NLL_test = NLL_test,
+    stderr_test = stderr_test
+  )
 }
 
