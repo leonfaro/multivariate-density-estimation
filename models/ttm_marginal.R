@@ -1,6 +1,6 @@
 # TTM - Marginal Map Trainer
 # arbeitet komplett in Basis-R
-source("models/ttm_base.R")
+source("ttm_base.R")
 
 ## Reproduzierbarkeit -------------------------------------------------------
 set.seed(42)
