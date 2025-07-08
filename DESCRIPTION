@@ -1,0 +1,12 @@
+Package: multivariateDensityEstimation
+Type: Package
+Title: Multivariate Conditional Density Estimation
+Version: 0.0.1
+Authors@R: c(person("Research", "Contributor", email = "research@example.com", role = c("aut", "cre")))
+Description: Experimental codebase for multivariate conditional density estimation.
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+Imports:
+    tensorflow (>= 2.10),
+    tfprobability (>= 0.18)
