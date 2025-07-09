@@ -1,37 +1,40 @@
-#' Masked Autoregressive Flow – 5 Flows
 fit_MAF <- function(S, config,
                     n_hidden = 100,
                     n_flows  = 5,
                     lr       = 1e-3,
                     n_epoch  = 200) {
-
-  library(tensorflow); library(tfprobability)
-
+  
+  library(tensorflow)
+  library(tfprobability)
+  library(tfdatasets)
+  
   X_tr <- S$X_tr
-  d    <- ncol(X_tr); n_batch <- 128
-
-  base_dist <- tfd_multivariate_normal_diag(
-                 loc = rep(0, d), scale_diag = rep(1, d))
-
+  d    <- ncol(X_tr)
+  n_batch <- 128
+  
+  base_dist <- tfp$distributions$MultivariateNormalDiag(
+    loc = tf$constant(rep(0, d), dtype = "float32"),
+    scale_diag = tf$constant(rep(1, d), dtype = "float32"))
+  
   maf_layer <- function()
     tfb_masked_autoregressive_flow(
       shift_and_log_scale_fn =
         tfb_masked_autoregressive_default_template(
           hidden_layers = list(n_hidden, n_hidden),
           activation = tf$nn$tanh))
-
+  
   bijectors <- unlist(
     lapply(seq_len(n_flows),
            \(.) list(maf_layer(), tfb_permute(rev(seq_len(d))-1))),
     recursive = FALSE)
-
+  
   flow_bij <- tfb_chain(rev(bijectors))
   dist     <- tfd_transformed_distribution(base_dist, flow_bij)
-
-  opt <- tf$keras$optimizers$Adam(lr)
+  
+  opt <- tf$keras$optimizers$legacy$Adam(lr)
   ds  <- tensor_slices_dataset(X_tr) %>% dataset_shuffle(1000) %>%
-         dataset_batch(n_batch)
-
+    dataset_batch(n_batch)
+  
   for(epoch in seq_len(n_epoch)) {
     itr <- as_iterator(ds)
     until_out_of_range({
@@ -44,7 +47,7 @@ fit_MAF <- function(S, config,
         purrr::transpose(list(grads, dist$trainable_variables)))
     })
   }
-
+  
   structure(list(dist = dist), class = "maf_model")
 }
 
