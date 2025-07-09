@@ -281,7 +281,7 @@ Each module drawing random numbers sets the RNG via `set.seed` with an integer s
   - `M_TRUE`: list `theta` (per-dimension parameter vectors), `config`, `logL_te`.
   - `ks_model`: list `X_tr`, `h`, `config`, `logL_te`.
   - `mytrtf`: list `ymod`, `forests`, `seed`, `varimp`, `config`, `logL_te`.
-  - `MAF_model`: placeholder structure for masked autoregressive flow.
+  - `maf_model`: fitted masked autoregressive flow from `fit_MAF`.
   - `ttm_model`: functions implementing triangular transport maps.
   - `logJacDiag(S,x)` → returns vector of log partial derivatives.
   - `logDetJacobian(logDiag)` → sum of log-diagonal entries.
