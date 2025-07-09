@@ -8,7 +8,6 @@ source("models/ttm_base.R")
 source("models/ttm_marginal.R")
 source("04_evaluation.R")
 source("replicate_code.R")
-replicate_code_scripts("main.R", "replicated_code.txt")
 
 n <- 50
 config <- list(
@@ -67,5 +66,6 @@ main <- function() {
 
 if (sys.nframe() == 0L) {
   main()
+  replicate_code_scripts("main.R", "replicated_code.txt", env = globalenv())
 }
 
