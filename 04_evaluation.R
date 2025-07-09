@@ -120,13 +120,14 @@ calc_loglik_tables <- function(models, config, X_te) {
     stringsAsFactors = FALSE
   )
 
+  se_sum_ttm <- if (is.null(models$ttm)) NA_real_ else models$ttm$stderr_test
   sum_row <- data.frame(
     dim = "k",
     distribution = "SUM",
     true = fmt(sum(mean_true), se_sum_true),
     trtf = fmt(sum(mean_trtf), se_sum_trtf),
     ks   = fmt(sum(mean_ks),   se_sum_ks),
-    ttm  = fmt(sum(mean_ttm),  models$ttm$stderr_test),
+    ttm  = fmt(sum(mean_ttm),  se_sum_ttm),
     stringsAsFactors = FALSE
   )
   rbind(tab, sum_row)
