@@ -51,10 +51,11 @@ where
    f_3b2 = fit_TTM_separable
    f_3b3 = fit_TTM_cross  # train triangular transport maps via respective trainers
 4. $f_4 = \texttt{fit\_TRTF}$ – fit transformation forests.
-5. $f_5 = \texttt{fit\_KS}$ – fit kernel smoother model.
-6. $f_6 = \texttt{logL\_\*\_dim}$ – compute dimension-wise log-likelihoods.
-7. $f_7 = \texttt{add\_sum\_row}$ – append totals to tables.
-8. $f_8 = \texttt{format\_loglik\_table}$ – present final evaluation table.
+5. $f_5 = \texttt{fit\_MAF}$ – train a masked autoregressive flow.
+6. $f_6 = \texttt{fit\_KS}$ – fit kernel smoother model.
+7. $f_7 = \texttt{logL\_\*\_dim}$ – compute dimension-wise log-likelihoods.
+8. $f_8 = \texttt{add\_sum\_row}$ – append totals to tables.
+9. $f_9 = \texttt{format\_loglik\_table}$ – present final evaluation table.
 Optional EDA helper functions are defined in `04_evaluation.R`.
 
 ## 3. Module Specifications
@@ -174,6 +175,38 @@ function logL_TRTF(model, X)
     return -sum(ll)
 ```
 
+### fit_MAF
+`fit_MAF(S, config, n_hidden, n_flows, lr, n_epoch) : S \to M_{MAF}`
+- **Description:** trains a masked autoregressive flow with `n_flows` chained bijectors.
+- **Pre:** TensorFlow and TensorFlow Probability available.
+- **Post:** returns a list with trained distribution `dist`.
+- **Randomness:** `tensorflow` seed inherited from the R session.
+- **Pseudocode:**
+```
+function fit_MAF(S, config, n_hidden, n_flows, lr, n_epoch)
+    X <- S.X_tr
+    base <- MVN_diag(0, 1, dim(X))
+    flow <- chain of n_flows { masked_autoregressive(n_hidden), permute }
+    dist <- transformed_distribution(base, flow)
+    opt <- Adam(lr)
+    for epoch in 1..n_epoch
+        for batch x in dataset(X)
+            grad <- ∇_θ -mean(dist.log_prob(x))
+            opt$apply(grad)
+    return (dist)
+```
+
+### logL_MAF
+`logL_MAF(model, X) : (M_{MAF}, \mathbb R^{n\times d}) \to \mathbb R`
+- **Description:** evaluates total NLL using `model$dist$log_prob`.
+- **Pre:** trained `model` from `fit_MAF`.
+- **Post:** finite scalar.
+- **Pseudocode:**
+```
+function logL_MAF(model, X)
+    return -sum(model.dist.log_prob(X))
+```
+
 ### standardize_data
 `standardize_data(X) : \mathbb R^{N\times d} \to (\tilde X, \mu, \sigma)`
 - **Description:** zentriert und skaliert jede Spalte von `X`.
@@ -280,11 +313,13 @@ Each module drawing random numbers sets the RNG via `set.seed` with an integer s
   - `M_TRUE`: list `theta` (per-dimension parameter vectors), `config`, `logL_te`.
   - `ks_model`: list `X_tr`, `h`, `config`, `logL_te`.
   - `mytrtf`: list `ymod`, `forests`, `seed`, `varimp`, `config`, `logL_te`.
+  - `maf_model`: fitted masked autoregressive flow from `fit_MAF`.
   - `ttm_model`: functions implementing triangular transport maps.
   - `logJacDiag(S,x)` → returns vector of log partial derivatives.
   - `logDetJacobian(logDiag)` → sum of log-diagonal entries.
   - `forwardKLLoss(S,X)` → mean forward-KL objective.
   - `negativeLogLikelihood(S,X)` → total NLL of dataset.
   - `natsPerDim(L,N,d)=L/(N·d)` → normalized NLL per dimension.
+  - `results_table`: matrix of mean NLL per dimension for each model.
 
 
