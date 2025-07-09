@@ -6,7 +6,6 @@ source("models/trtf_model.R")
 source("models/ks_model.R")
 source("models/ttm_base.R")
 source("models/ttm_marginal.R")
-source("models/MAF_5.R")
 source("04_evaluation.R")
 source("replicate_code.R")
 replicate_code_scripts("main.R", "replicated_code.txt")
@@ -35,8 +34,7 @@ main <- function() {
   mods <- list(
     true = fit_TRUE(prep$S, config),
     trtf = fit_TRTF(prep$S, config),
-    ks   = fit_KS(prep$S, config),
-    maf  = fit_MAF(prep$S, config)
+    ks   = fit_KS(prep$S, config)
   )
   X_te <- prep$S$X_te
   res <- list()
@@ -58,9 +56,6 @@ main <- function() {
   res[["ks"]] <- list(mean = colMeans(ll_ks),
                       se = apply(ll_ks, 2, sd)/sqrt(nrow(ll_ks)))
 
-  ll_maf <- -predict(mods$maf, X_te, "logdensity_by_dim")
-  res[["maf"]] <- list(mean = colMeans(ll_maf),
-                       se = apply(ll_maf, 2, sd)/sqrt(nrow(ll_maf)))
 
   results_table <<- t(sapply(res, `[[`, "mean"))
   colnames(results_table) <<- paste0("dim", seq_len(length(config)))
