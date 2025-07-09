@@ -96,10 +96,16 @@ calc_loglik_tables <- function(models, config, X_te) {
 
   mean_true <- colMeans(ll_true)
   se_true   <- apply(ll_true, 2, stderr)
+  total_nll_true <- rowSums(ll_true)
+  se_sum_true <- stats::sd(total_nll_true) / sqrt(length(total_nll_true))
   mean_trtf <- colMeans(ll_trtf)
   se_trtf   <- apply(ll_trtf, 2, stderr)
+  total_nll_trtf <- rowSums(ll_trtf)
+  se_sum_trtf <- stats::sd(total_nll_trtf) / sqrt(length(total_nll_trtf))
   mean_ks   <- colMeans(ll_ks)
   se_ks     <- apply(ll_ks,   2, stderr)
+  total_nll_ks <- rowSums(ll_ks)
+  se_sum_ks <- stats::sd(total_nll_ks) / sqrt(length(total_nll_ks))
   mean_ttm  <- ll_ttm_dim
 
   fmt <- function(m, se) sprintf("%.2f ± %.2f", round(m, 2), round(2 * se, 2))
@@ -117,10 +123,10 @@ calc_loglik_tables <- function(models, config, X_te) {
   sum_row <- data.frame(
     dim = "k",
     distribution = "SUM",
-    true = fmt(sum(mean_true), sqrt(sum(se_true^2))),
-    trtf = fmt(sum(mean_trtf), sqrt(sum(se_trtf^2))),
-    ks   = fmt(sum(mean_ks),   sqrt(sum(se_ks^2))),
-    ttm  = fmt(sum(mean_ttm),  sqrt(sum(se_ttm^2))),
+    true = fmt(sum(mean_true), se_sum_true),
+    trtf = fmt(sum(mean_trtf), se_sum_trtf),
+    ks   = fmt(sum(mean_ks),   se_sum_ks),
+    ttm  = fmt(sum(mean_ttm),  models$ttm$stderr_test),
     stringsAsFactors = FALSE
   )
   rbind(tab, sum_row)
