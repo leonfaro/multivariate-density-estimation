@@ -1,4 +1,4 @@
-
+library(dplyr)
 library(parallel)
 if (!exists("NC")) NC <- detectCores()
 options(mc.cores = NC)
