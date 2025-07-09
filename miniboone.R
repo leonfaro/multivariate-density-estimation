@@ -1,8 +1,4 @@
 ###############################################################################
-# MiniBooNE-Signal (positive events) – Pre-processing exakt wie im MAF-Paper  #
-# Papamakarios, Murray & Pavlakou (2017, Appendix D.2)                        #
-#                                                                            #
-# Schritte:                                                                   #
 #   1. Herunterladen & Einlesen                                              #
 #   2. Nur positive Ereignisse (electron-neutrinos) behalten                 #
 #   3. 11 Platzhalter-Zeilen (-1000/-999 in allen 50 Spalten) entfernen       #
