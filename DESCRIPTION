@@ -1,0 +1,11 @@
+Package: multivariateDensityEstimation
+Type: Package
+Title: Multivariate Conditional Density Estimation
+Version: 0.0.0.9000
+Authors@R: person("A", "Student", email = "student@example.com", role = c("aut", "cre"))
+Description: Scripts and functions for multivariate density estimation.
+License: GPL-3
+Encoding: UTF-8
+Imports:
+    tensorflow (>= 2.10),
+    tfprobability (>= 0.18)

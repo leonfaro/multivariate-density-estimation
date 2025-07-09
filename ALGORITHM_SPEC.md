@@ -51,10 +51,11 @@ where
    f_3b2 = fit_TTM_separable
    f_3b3 = fit_TTM_cross  # train triangular transport maps via respective trainers
 4. $f_4 = \texttt{fit\_TRTF}$ – fit transformation forests.
-5. $f_5 = \texttt{fit\_KS}$ – fit kernel smoother model.
-6. $f_6 = \texttt{logL\_\*\_dim}$ – compute dimension-wise log-likelihoods.
-7. $f_7 = \texttt{add\_sum\_row}$ – append totals to tables.
-8. $f_8 = \texttt{format\_loglik\_table}$ – present final evaluation table.
+5. $f_5 = \texttt{fit\_MAF}$ – train a masked autoregressive flow.
+6. $f_6 = \texttt{fit\_KS}$ – fit kernel smoother model.
+7. $f_7 = \texttt{logL\_\*\_dim}$ – compute dimension-wise log-likelihoods.
+8. $f_8 = \texttt{add\_sum\_row}$ – append totals to tables.
+9. $f_9 = \texttt{format\_loglik\_table}$ – present final evaluation table.
 Optional EDA helper functions are defined in `04_evaluation.R`.
 
 ## 3. Module Specifications
@@ -280,6 +281,7 @@ Each module drawing random numbers sets the RNG via `set.seed` with an integer s
   - `M_TRUE`: list `theta` (per-dimension parameter vectors), `config`, `logL_te`.
   - `ks_model`: list `X_tr`, `h`, `config`, `logL_te`.
   - `mytrtf`: list `ymod`, `forests`, `seed`, `varimp`, `config`, `logL_te`.
+  - `MAF_model`: placeholder structure for masked autoregressive flow.
   - `ttm_model`: functions implementing triangular transport maps.
   - `logJacDiag(S,x)` → returns vector of log partial derivatives.
   - `logDetJacobian(logDiag)` → sum of log-diagonal entries.
