@@ -288,5 +288,6 @@ Each module drawing random numbers sets the RNG via `set.seed` with an integer s
   - `forwardKLLoss(S,X)` → mean forward-KL objective.
   - `negativeLogLikelihood(S,X)` → total NLL of dataset.
   - `natsPerDim(L,N,d)=L/(N·d)` → normalized NLL per dimension.
+  - `results_table`: matrix of mean NLL per dimension for each model.
 
 
