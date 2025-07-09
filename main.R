@@ -6,9 +6,10 @@ source("models/trtf_model.R")
 source("models/ks_model.R")
 source("models/ttm_base.R")
 source("models/ttm_marginal.R")
+source("models/MAF_5.R")
 source("04_evaluation.R")
-source("replicate_code.R")
-replicate_code_scripts("main.R", "replicated_code.txt")
+# source("replicate_code.R")
+# replicate_code_scripts("main.R", "replicated_code.txt")
 
 n <- 50
 config <- list(
@@ -31,11 +32,34 @@ main <- function() {
     true = fit_TRUE(prep$S, config),
     trtf = fit_TRTF(prep$S, config),
     ks   = fit_KS(prep$S, config),
-    ttm  = trainMarginalMap(prep$S)
+    ttm  = trainMarginalMap(prep$S),
+    maf  = fit_MAF(prep$S, config)
   )
-  tab <- calc_loglik_tables(mods, config, prep$S$X_te)
-  print(tab)
-  invisible(tab)
+  X_te <- prep$S$X_te
+  res <- list()
+  ll_true <- matrix(NA_real_, nrow = nrow(X_te), ncol = length(config))
+  for (k in seq_len(length(config))) {
+    ll_vec <- .log_density_vec(X_te[, k], config[[k]]$distr,
+                               mods$true$theta[[k]])
+    ll_true[, k] <- -ll_vec
+  }
+  ll_trtf <- -predict(mods$trtf, X_te, "logdensity_by_dim")
+  ll_ks   <- -predict(mods$ks,  X_te, "logdensity_by_dim")
+  ll_maf  <- -predict(mods$maf, X_te, "logdensity_by_dim")
+
+  res[["true"]] <- list(mean = colMeans(ll_true),
+                        se   = apply(ll_true, 2, sd) / sqrt(nrow(ll_true)))
+  res[["trtf"]] <- list(mean = colMeans(ll_trtf),
+                        se   = apply(ll_trtf, 2, sd) / sqrt(nrow(ll_trtf)))
+  res[["ks"]]   <- list(mean = colMeans(ll_ks),
+                        se   = apply(ll_ks,   2, sd) / sqrt(nrow(ll_ks)))
+  res[["maf"]]  <- list(mean = colMeans(ll_maf),
+                        se   = apply(ll_maf,  2, sd) / sqrt(nrow(ll_maf)))
+
+  results_table <- do.call(rbind, lapply(res, `[[`, "mean"))
+  rownames(results_table) <- names(res)
+  print(results_table)
+  invisible(results_table)
 }
 
 if (sys.nframe() == 0L) {
