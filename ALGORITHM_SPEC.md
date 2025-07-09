@@ -175,6 +175,38 @@ function logL_TRTF(model, X)
     return -sum(ll)
 ```
 
+### fit_MAF
+`fit_MAF(S, config, n_hidden, n_flows, lr, n_epoch) : S \to M_{MAF}`
+- **Description:** trains a masked autoregressive flow with `n_flows` chained bijectors.
+- **Pre:** TensorFlow and TensorFlow Probability available.
+- **Post:** returns a list with trained distribution `dist`.
+- **Randomness:** `tensorflow` seed inherited from the R session.
+- **Pseudocode:**
+```
+function fit_MAF(S, config, n_hidden, n_flows, lr, n_epoch)
+    X <- S.X_tr
+    base <- MVN_diag(0, 1, dim(X))
+    flow <- chain of n_flows { masked_autoregressive(n_hidden), permute }
+    dist <- transformed_distribution(base, flow)
+    opt <- Adam(lr)
+    for epoch in 1..n_epoch
+        for batch x in dataset(X)
+            grad <- ∇_θ -mean(dist.log_prob(x))
+            opt$apply(grad)
+    return (dist)
+```
+
+### logL_MAF
+`logL_MAF(model, X) : (M_{MAF}, \mathbb R^{n\times d}) \to \mathbb R`
+- **Description:** evaluates total NLL using `model$dist$log_prob`.
+- **Pre:** trained `model` from `fit_MAF`.
+- **Post:** finite scalar.
+- **Pseudocode:**
+```
+function logL_MAF(model, X)
+    return -sum(model.dist.log_prob(X))
+```
+
 ### standardize_data
 `standardize_data(X) : \mathbb R^{N\times d} \to (\tilde X, \mu, \sigma)`
 - **Description:** zentriert und skaliert jede Spalte von `X`.
