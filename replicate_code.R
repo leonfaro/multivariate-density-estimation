@@ -1,6 +1,6 @@
 extract_sources <- function(main_file = "main.R") {
   lines <- readLines(main_file, warn = FALSE)
-  pattern <- "source\(\"([^"]+)\"\)"
+  pattern <- 'source\\("([^\\"]+)"\\)'
   matches <- regmatches(lines, gregexpr(pattern, lines, perl = TRUE))
   src_files <- unlist(lapply(matches, function(x) if (length(x) > 0) gsub(pattern, "\\1", x)))
   unique(src_files)
