@@ -1,0 +1,806 @@
+### Begin 00_globals.R ###
+pkgs <- c("trtf", "dplyr", "tibble", "tidyr")
+for (p in pkgs) {
+if (!requireNamespace(p, quietly = TRUE))
+install.packages(p, repos = "https://cloud.r-project.org")
+library(p, character.only = TRUE)
+}
+if (!reticulate::py_module_available("tensorflow_probability")) {
+tensorflow::install_tensorflow(
+version              = "2.15.0",
+extra_packages       = "tensorflow-probability==0.22.0",
+pip_ignore_installed = TRUE
+)
+}
+library(parallel)
+if (!exists("NC")) NC <- detectCores()
+options(mc.cores = NC)
+softplus <- function(x) log1p(exp(x))
+### End 00_globals.R ###
+
+### Begin 01_data_generation.R ###
+Generate_iid_from_config <- function(N, cfg, return_params = FALSE) {
+stopifnot(is.numeric(N), N > 0, is.list(cfg))
+K <- length(cfg)
+X <- matrix(NA_real_, nrow = N, ncol = K)
+if (return_params) {
+param_hist <- vector("list", K)
+for (kk in seq_len(K))
+param_hist[[kk]] <- vector("list", N)
+}
+for (i in seq_len(N)) {
+for (k in seq_len(K)) {
+c_k <- cfg[[k]]
+if (is.null(c_k$parm)) {
+args <- list()
+} else {
+if (k == 1) {
+prev <- data.frame()
+} else {
+prev <- as.data.frame(as.list(X[i, seq_len(k - 1)]))
+names(prev) <- paste0("X", seq_len(k - 1))
+}
+args <- c_k$parm(prev)
+}
+fun <- get(paste0("r", c_k$distr), mode = "function")
+if (c_k$distr == "gamma" &&
+all(c("shape1", "shape2") %in% names(args))) {
+args <- list(shape = args$shape1, scale = args$shape2)
+}
+args <- lapply(args, function(p) {
+if (!is.finite(p) || p <= 0) 1e-3 else p
+})
+if (return_params) param_hist[[k]][[i]] <- args
+X[i, k] <- do.call(fun, c(list(n = 1L), args))
+}
+}
+colnames(X) <- paste0("X", seq_len(K))
+if (return_params) {
+param_df <- lapply(param_hist, function(lst) {
+vals <- lapply(lst, function(x) if (length(x) == 0) NULL else as.data.frame(x))
+vals <- Filter(Negate(is.null), vals)
+if (length(vals) == 0) return(NULL)
+df <- do.call(rbind, vals)
+rownames(df) <- NULL
+df
+})
+list(X = X, params = param_df)
+} else {
+X
+}
+}
+gen_samples <- function(G, return_params = FALSE) {
+Generate_iid_from_config(G$n, G$config, return_params = return_params)
+}
+### End 01_data_generation.R ###
+
+### Begin 02_split.R ###
+SplitStruct <- function(X_tr, X_val, X_te) {
+list(X_tr = X_tr, X_val = X_val, X_te = X_te)
+}
+split_data <- function(X, seed) {
+stopifnot(is.matrix(X))
+N <- nrow(X)
+set.seed(seed)
+idx <- sample.int(N)
+n_tr  <- floor(0.8 * N)
+n_val <- floor(0.1 * N)
+idx_tr  <- idx[seq_len(n_tr)]
+idx_val <- idx[seq_len(n_val) + n_tr]
+idx_te  <- idx[(n_tr + n_val + 1):N]
+SplitStruct(
+X[idx_tr , , drop = FALSE],
+X[idx_val, , drop = FALSE],
+X[idx_te , , drop = FALSE]
+)
+}
+### End 02_split.R ###
+
+### Begin models/true_model.R ###
+neg_loglik_uni <- function(par, x, distr) {
+if (distr == "norm") {
+mu <- par[1]; sd <- par[2]
+if (sd <= 0) return(Inf)
+-sum(dnorm(x, mean = mu, sd = sd, log = TRUE))
+} else if (distr == "exp") {
+rate <- par[1]
+if (rate <= 0) return(Inf)
+x <- pmax(x, 1e-6)
+-sum(dexp(x, rate = rate, log = TRUE))
+} else if (distr == "beta") {
+a <- par[1]; b <- par[2]
+if (a <= 0 || b <= 0) return(Inf)
+x <- pmin(pmax(x, 1e-6), 1 - 1e-6)
+-sum(dbeta(x, shape1 = a, shape2 = b, log = TRUE))
+} else if (distr == "gamma") {
+shape <- par[1]; scale <- par[2]
+if (shape <= 0 || scale <= 0) return(Inf)
+x <- pmax(x, 1e-6)
+-sum(dgamma(x, shape = shape, scale = scale, log = TRUE))
+} else {
+stop("Unsupported distribution")
+}
+}
+.log_density_vec <- function(x, distr, par) {
+if (distr == "norm") {
+dnorm(x, mean = par[1], sd = par[2], log = TRUE)
+} else if (distr == "exp") {
+x <- pmax(x, 1e-6)
+dexp(x, rate = par[1], log = TRUE)
+} else if (distr == "beta") {
+x <- pmin(pmax(x, 1e-6), 1 - 1e-6)
+dbeta(x, shape1 = par[1], shape2 = par[2], log = TRUE)
+} else if (distr == "gamma") {
+x <- pmax(x, 1e-6)
+dgamma(x, shape = par[1], scale = par[2], log = TRUE)
+} else {
+stop("Unsupported distribution")
+}
+}
+.start_par <- function(x, distr) {
+if (distr == "norm") {
+c(mean(x), sd(x))
+} else if (distr == "exp") {
+c(1 / mean(x))
+} else if (distr == "beta") {
+m <- mean(x); v <- var(x)
+common <- m * (1 - m) / v - 1
+a <- m * common; b <- (1 - m) * common
+if (!is.finite(a) || a <= 0) a <- 1
+if (!is.finite(b) || b <= 0) b <- 1
+c(a, b)
+} else if (distr == "gamma") {
+m <- mean(x); v <- var(x)
+shape <- m^2 / v; scale <- v / m
+if (!is.finite(shape) || shape <= 0) shape <- 1
+if (!is.finite(scale) || scale <= 0) scale <- 1
+c(shape, scale)
+} else {
+stop("Unsupported distribution")
+}
+}
+fit_TRUE <- function(S, config, cores = NC) {
+stopifnot(is.list(S))
+X_tr  <- S$X_tr
+X_val <- S$X_val
+X_te  <- S$X_te
+stopifnot(is.matrix(X_tr), is.matrix(X_te))
+K <- length(config)
+theta_list <- parallel::mclapply(seq_len(K), function(k) {
+distr_k <- config[[k]]$distr
+x_k <- X_tr[, k]
+init <- .start_par(x_k, distr_k)
+opt <- optim(
+par = init,
+fn = neg_loglik_uni,
+x = x_k,
+distr = distr_k,
+method = "L-BFGS-B",
+lower = rep(1e-6, length(init))
+)
+opt$par
+}, mc.cores = cores)
+model <- list(theta = theta_list, config = config)
+logL_te <- logL_TRUE(model, X_te)
+model$logL_te <- logL_te
+model
+}
+logL_TRUE <- function(M_TRUE, X, cores = NC) {
+stopifnot(is.matrix(X))
+theta_list <- M_TRUE$theta
+config <- M_TRUE$config
+K <- length(theta_list)
+ll_list <- parallel::mclapply(seq_len(K), function(k) {
+distr_k <- config[[k]]$distr
+.log_density_vec(X[, k], distr_k, theta_list[[k]])
+}, mc.cores = cores)
+ll <- do.call(cbind, ll_list)
+val <- -mean(rowSums(ll))
+if (!is.finite(val)) stop("log-likelihood not finite")
+val
+}
+logL_TRUE_dim <- function(M_TRUE, X, cores = NC) {
+stopifnot(is.matrix(X))
+theta_list <- M_TRUE$theta
+config <- M_TRUE$config
+K <- length(theta_list)
+res <- parallel::mclapply(seq_len(K), function(k) {
+distr_k <- config[[k]]$distr
+ll_k <- .log_density_vec(X[, k], distr_k, theta_list[[k]])
+val <- -mean(ll_k)
+if (!is.finite(val)) stop("log-likelihood not finite")
+val
+}, mc.cores = cores)
+unlist(res)
+}
+### End models/true_model.R ###
+
+### Begin models/trtf_model.R ###
+mytrtf <- function(data, ntree = 50, mtry = 22,
+minsplit = 40, minbucket = 10, maxdepth = 6,
+seed = 42, cores = NC) {
+stopifnot(is.matrix(data))
+set.seed(seed)
+K <- ncol(data)
+df <- as.data.frame(data)
+names(df) <- paste0("X", seq_len(K))
+ymod <- lapply(names(df), function(y) {
+BoxCox(as.formula(paste(y, "~ 1")), data = df)
+})
+forests <- vector("list", K - 1L)
+ctrl <- partykit::ctree_control(minsplit = minsplit,
+minbucket = minbucket,
+maxdepth = maxdepth)
+for (k in 2:K) {
+rhs <- paste(names(df)[1:(k - 1)], collapse = "+")
+fm <- as.formula(paste(names(df)[k], "~", rhs))
+forests[[k - 1L]] <- traforest(ymod[[k]], formula = fm, data = df,
+trace = TRUE, ntree = ntree,
+min_update = 50, update = FALSE,
+mltargs = list(), mtry = mtry,
+cores = cores, control = ctrl)
+}
+res <- list(ymod = ymod, forests = forests, seed = seed,
+varimp = lapply(forests, varimp))
+class(res) <- "mytrtf"
+res
+}
+predict.mytrtf <- function(object, newdata,
+type = c("logdensity", "logdensity_by_dim"),
+cores = NC, trace = TRUE) {
+type <- match.arg(type)
+stopifnot(inherits(object, "mytrtf"), is.matrix(newdata))
+K <- length(object$ymod)
+df_new <- as.data.frame(newdata)
+names(df_new) <- paste0("X", seq_len(K))
+ld1 <- predict(object$ymod[[1]], newdata = df_new, type = "logdensity")
+ld_rest <- lapply(seq_along(object$forests), function(j) {
+fr <- object$forests[[j]]
+q <- df_new[, variable.names(fr$model)[1]]
+pr <- predict(fr, newdata = df_new, type = "logdensity", q = q,
+cores = cores, trace = trace)
+diag(do.call(cbind, pr))
+})
+ll <- cbind(ld1, do.call(cbind, ld_rest))
+if (type == "logdensity_by_dim") return(ll)
+rowSums(ll)
+}
+logL_TRTF <- function(model, X, cores = NC) {
+val <- -mean(predict(model, X, type = "logdensity",
+cores = cores, trace = TRUE))
+if (!is.finite(val)) stop("log-likelihood not finite")
+val
+}
+logL_TRTF_dim <- function(model, X, cores = NC) {
+ll <- predict(model, X, type = "logdensity_by_dim",
+cores = cores, trace = TRUE)
+res <- -colMeans(ll)
+if (!all(is.finite(res))) stop("log-likelihood not finite")
+res
+}
+fit_TRTF <- function(S, config,
+ntree = 100,
+mtry = floor(sqrt(ncol(S$X_tr) - 1)),
+minsplit = 25,
+minbucket = 20,
+maxdepth = 4,
+seed = 42,
+cores = NC) {
+stopifnot(is.list(S))
+X_tr <- S$X_tr
+X_te <- S$X_te
+stopifnot(is.matrix(X_tr), is.matrix(X_te))
+set.seed(seed)
+mod <- mytrtf(X_tr,
+ntree = ntree, mtry = mtry,
+minsplit = minsplit, minbucket = minbucket,
+maxdepth = maxdepth, seed = seed,
+cores = cores)
+mod$config  <- config
+mod$logL_te <- logL_TRTF(mod, S$X_te, cores = cores)
+mod
+}
+### End models/trtf_model.R ###
+
+### Begin models/ks_model.R ###
+.log_sum_exp <- function(x) {
+m <- max(x)
+m + log(sum(exp(x - m)))
+}
+fit_KS <- function(S, config, seed = 42) {
+stopifnot(is.list(S))
+X_tr  <- S$X_tr
+X_val <- S$X_val
+X_te  <- S$X_te
+stopifnot(is.matrix(X_tr), is.matrix(X_val), is.matrix(X_te))
+set.seed(seed)
+h <- apply(rbind(X_tr, X_val), 2, stats::bw.nrd0)
+model <- list(X_tr = X_tr, h = h, config = config, seed = seed)
+class(model) <- "ks_model"
+model$logL_te <- logL_KS(model, X_te)
+model
+}
+predict.ks_model <- function(object, newdata,
+type = c("logdensity", "logdensity_by_dim"),
+cores = NC) {
+type <- match.arg(type)
+X_tr <- object$X_tr
+h <- object$h
+stopifnot(is.matrix(newdata))
+K <- ncol(X_tr)
+n <- nrow(newdata)
+ll_list <- parallel::mclapply(seq_len(n), function(i) {
+x <- newdata[i, ]
+logkern <- vapply(seq_len(K), function(r) {
+dnorm((x[r] - X_tr[, r]) / h[r], log = TRUE) - log(h[r])
+}, numeric(nrow(X_tr)))
+cumsums <- t(apply(logkern, 1, cumsum))
+log_g <- apply(cumsums, 2, function(v) .log_sum_exp(v) - log(nrow(X_tr)))
+ll_i <- numeric(K)
+ll_i[1] <- log_g[1]
+if (K > 1) {
+ll_i[2:K] <- diff(log_g)
+}
+ll_i
+}, mc.cores = cores)
+ll <- do.call(rbind, ll_list)
+if (type == "logdensity_by_dim") return(ll)
+rowSums(ll)
+}
+logL_KS <- function(model, X, cores = NC) {
+val <- -mean(predict(model, X, type = "logdensity", cores = cores))
+if (!is.finite(val)) stop("log-likelihood not finite")
+val
+}
+logL_KS_dim <- function(model, X, cores = NC) {
+ll <- predict(model, X, type = "logdensity_by_dim", cores = cores)
+res <- -colMeans(ll)
+if (!all(is.finite(res))) stop("log-likelihood not finite")
+res
+}
+### End models/ks_model.R ###
+
+### Begin models/ttm_base.R ###
+standardizeData <- function(X) {
+mu <- colMeans(X)
+sigma <- apply(X, 2, sd) + .Machine$double.eps
+X_tilde <- sweep(X, 2, mu, '-')
+X_tilde <- sweep(X_tilde, 2, sigma, '/')
+list(X = X_tilde, mu = mu, sigma = sigma)
+}
+sampleReference <- function(N, d) {
+matrix(rnorm(N * d), nrow = N, ncol = d)
+}
+shuffleOrdering <- function(K, seed = NULL) {
+if (!is.null(seed)) set.seed(seed)
+sample(seq_len(K))
+}
+MapStruct <- function(type,
+coeffA = NULL,
+coeffB = NULL,
+coeffC = NULL,
+basisF = NULL,
+basisG = NULL,
+basisH = NULL,
+order = NULL) {
+structure(
+list(
+type = type,
+coeffA = coeffA,
+coeffB = coeffB,
+coeffC = coeffC,
+basisF = basisF,
+basisG = basisG,
+basisH = basisH,
+order = order
+),
+class = "MapStruct"
+)
+}
+setOrdering <- function(S, ord) {
+S$order <- ord
+S
+}
+defaultBasis <- function() {
+f <- function(x, theta) x
+attr(f, "deriv") <- function(x, theta) rep(1, length(x))
+f
+}
+evaluateMap <- function(S, x) {
+forwardPass(S, x)
+}
+logJacDiag <- function(S, x) {
+d <- length(x)
+log_diag <- numeric(d)
+for (k in seq_len(d)) {
+if (S$type == 'marginal') {
+f_prime <- attr(S$basisF[[k]], "deriv")(x[k], S$coeffA[[k]])
+if (f_prime <= 0) {
+stop('non-monotone f_k')
+}
+log_diag[k] <- log(f_prime + 1e-12)
+} else if (S$type == 'separable') {
+f_prime <- attr(S$basisF[[k]], "deriv")(x[k], S$coeffA[[k]])
+if (f_prime <= 0) {
+stop('non-monotone f_k')
+}
+log_diag[k] <- log(f_prime + 1e-12)
+} else {
+log_diag[k] <- S$basisH[[k]](x[k], x[seq_len(k - 1)], S$coeffC[[k]])
+}
+}
+log_diag
+}
+logDetJacobian <- function(logDiag) {
+sum(logDiag)
+}
+forwardKLLoss <- function(S, X) {
+total <- 0
+for (i in seq_len(nrow(X))) {
+z <- forwardPass(S, X[i, ])
+log_diag <- logJacDiag(S, X[i, ])
+total <- total + 0.5 * sum(z^2) - logDetJacobian(log_diag)
+}
+total / nrow(X)
+}
+basisEval1D <- function(basisSet, x) {
+basisSet(x)
+}
+basisEvalKD <- function(basisSet, vec) {
+do.call(basisSet, as.list(vec))
+}
+monotoneIntegrator <- function(h, t0, t) {
+integrand <- function(s) {
+exp(pmin(h(s), 100))
+}
+stats::integrate(integrand, lower = t0, upper = t)$value
+}
+rootFind1D <- function(fun, target) {
+uniroot(function(t) fun(t) - target, interval = c(-10, 10))$root
+}
+optimStep <- function(params, grad, lr) {
+params - lr * grad
+}
+batchIterator <- function(X, B) {
+N <- nrow(X)
+idx <- split(sample(seq_len(N)), ceiling(seq_along(seq_len(N)) / B))
+lapply(idx, function(i) X[i, , drop = FALSE])
+}
+forwardPass <- function(S, x) {
+d <- length(x)
+z <- numeric(d)
+for (k in seq_len(d)) {
+if (S$type == 'marginal') {
+z[k] <- S$basisF[[k]](x[k], S$coeffA[[k]])
+} else if (S$type == 'separable') {
+z[k] <- S$basisG[[k]](x[seq_len(k - 1)], S$coeffB[[k]]) +
+S$basisF[[k]](x[k], S$coeffA[[k]])
+} else {
+z[k] <- S$basisG[[k]](x[seq_len(k - 1)], S$coeffB[[k]]) +
+monotoneIntegrator(
+function(s) S$basisH[[k]](s, x[seq_len(k - 1)], S$coeffC[[k]]),
+0,
+x[k]
+)
+}
+}
+z
+}
+inversePass <- function(S, z, tol = 1e-8) {
+d <- length(z)
+x <- numeric(d)
+for (k in seq_len(d)) {
+fun <- function(t) {
+temp <- x
+temp[k] <- t
+forwardPass(S, temp)[k]
+}
+x[k] <- rootFind1D(fun, z[k])
+}
+x
+}
+lossFull <- function(S, X) {
+forwardKLLoss(S, X)
+}
+negativeLogLikelihood <- function(S, Xtest) {
+L <- 0
+for (i in seq_len(nrow(Xtest))) {
+x <- Xtest[i, ]
+z <- forwardPass(S, x)
+log_diag <- logJacDiag(S, x)
+L <- L + 0.5 * sum(z^2) - logDetJacobian(log_diag)
+}
+L
+}
+natsPerDim <- function(totalNLL, N, d) {
+totalNLL / (N * d)
+}
+stderr <- function(values) {
+stats::sd(values) / sqrt(length(values))
+}
+### End models/ttm_base.R ###
+
+### Begin models/ttm_marginal.R ###
+set.seed(42)
+lr0 <- 0.01
+T_max <- 100L
+P <- 10L
+decay <- 1.0
+linearBasis <- function(S, idx) {
+f <- function(x, theta) {
+S$coeffB[[idx]] + exp(theta) * x
+}
+attr(f, "deriv") <- function(x, theta) rep(exp(theta), length(x))
+f
+}
+initializeCoeffs <- function(S) {
+d <- length(S$order)
+S$coeffA <- vector("list", d)
+S$coeffB <- vector("list", d)
+S$coeffC <- vector("list", d)
+for (k in seq_len(d)) {
+S$coeffA[[k]] <- log(1.0)
+S$coeffB[[k]] <- 0
+S$coeffC[[k]] <- 0
+}
+S
+}
+updateCoeffsMarginal <- function(S, X_batch, lr) {
+d <- length(S$order)
+for (j in seq_len(d)) {
+k <- S$order[j]
+xk <- X_batch[, k]
+u <- rank(xk, ties.method = "average") / (length(xk) + 1)
+z_star <- qnorm(u)
+covxz <- mean((xk - mean(xk)) * (z_star - mean(z_star)))
+varx <- var(xk) + 1e-12
+b_star <- max(0, covxz / varx)
+a_star <- mean(z_star) - b_star * mean(xk)
+S$coeffA[[k]] <- log(b_star + 1e-12)
+S$coeffB[[k]] <- a_star
+S$coeffC[[k]] <- 0
+}
+S
+}
+computeRowwiseLosses <- function(S, X_set) {
+losses <- numeric(nrow(X_set))
+for (i in seq_len(nrow(X_set))) {
+z <- forwardPass(S, X_set[i, ])
+ell <- logJacDiag(S, X_set[i, ])
+losses[i] <- 0.5 * sum(z^2) - sum(ell)
+}
+losses
+}
+trainMarginalMap <- function(S) {
+stopifnot(is.list(S))
+X_tr  <- S$X_tr
+X_val <- S$X_val
+X_te  <- S$X_te
+X_all <- rbind(X_tr, X_val, X_te)
+std_res <- standardizeData(X_all)
+X_std <- std_res$X
+n_tr <- nrow(X_tr)
+n_val <- nrow(X_val)
+X_train <- X_std[seq_len(n_tr), , drop = FALSE]
+X_val   <- X_std[seq_len(n_val) + n_tr, , drop = FALSE]
+X_test  <- X_std[(n_tr + n_val + 1):nrow(X_std), , drop = FALSE]
+d <- ncol(X_train)
+S_map <- MapStruct(type = "marginal")
+S_map <- setOrdering(S_map, shuffleOrdering(d))
+S_map <- initializeCoeffs(S_map)
+S_map$basisF <- vector("list", d)
+for (k in seq_len(d)) {
+S_map$basisF[[k]] <- linearBasis(S_map, k)
+}
+best_val <- Inf
+best_state <- S_map
+best_epoch <- 0L
+best_train <- Inf
+patience <- 0L
+lr <- lr0
+for (epoch in seq_len(T_max)) {
+S_map <- updateCoeffsMarginal(S_map, X_train, lr)
+NLL_train <- mean(computeRowwiseLosses(S_map, X_train))
+NLL_val <- mean(computeRowwiseLosses(S_map, X_val))
+if (NLL_val < best_val - 1e-6) {
+best_val <- NLL_val
+best_state <- S_map
+best_epoch <- epoch
+best_train <- NLL_train
+patience <- 0L
+} else {
+patience <- patience + 1L
+}
+if (patience > P) break
+lr <- lr * decay
+if (epoch %% 10 == 0) {
+message(epoch, ": val NLL = ", round(NLL_val, 4))
+}
+}
+S_map <- best_state
+loss_test_vec <- computeRowwiseLosses(S_map, X_test)
+NLL_test <- mean(loss_test_vec)
+stderr_test <- stderr(loss_test_vec)
+list(
+S = S_map,
+best_epoch = best_epoch,
+NLL_train = best_train,
+NLL_val = best_val,
+NLL_test = NLL_test,
+stderr_test = stderr_test
+)
+}
+### End models/ttm_marginal.R ###
+
+### Begin models/MAF_5.R ###
+fit_MAF <- function(S, config,
+n_hidden = 100,
+n_flows  = 5,
+lr       = 1e-3,
+n_epoch  = 200) {
+library(tensorflow)
+library(tfprobability)
+library(tfdatasets)
+X_tr <- S$X_tr
+d    <- ncol(X_tr)
+n_batch <- 128
+base_dist <- tfp$distributions$MultivariateNormalDiag(
+loc = tf$constant(rep(0, d), dtype = "float32"),
+scale_diag = tf$constant(rep(1, d), dtype = "float32"))
+maf_layer <- function()
+tfb_masked_autoregressive_flow(
+shift_and_log_scale_fn =
+tfb_masked_autoregressive_default_template(
+hidden_layers = list(n_hidden, n_hidden),
+activation = tf$nn$tanh))
+bijectors <- unlist(
+lapply(seq_len(n_flows),
+\(.) list(maf_layer(), tfb_permute(rev(seq_len(d))-1))),
+recursive = FALSE)
+flow_bij <- tfb_chain(rev(bijectors))
+dist     <- tfd_transformed_distribution(base_dist, flow_bij)
+opt <- tf$keras$optimizers$legacy$Adam(lr)
+ds  <- tensor_slices_dataset(X_tr) %>% dataset_shuffle(1000) %>%
+dataset_batch(n_batch)
+for(epoch in seq_len(n_epoch)) {
+itr <- as_iterator(ds)
+until_out_of_range({
+x <- iter_next(itr)
+with(tf$GradientTape() %as% tape, {
+loss <- -tf$reduce_mean(dist$log_prob(x))
+})
+grads <- tape$gradient(loss, dist$trainable_variables)
+opt$apply_gradients(
+purrr::transpose(list(grads, dist$trainable_variables)))
+})
+}
+structure(list(dist = dist), class = "maf_model")
+}
+predict.maf_model <- function(object, newdata,
+type = c("logdensity",
+"logdensity_by_dim")) {
+type <- match.arg(type)
+lp   <- object$dist$log_prob(newdata) %>% as.numeric()
+if (type == "logdensity") return(lp)
+K <- ncol(newdata)
+matrix(rep(lp, each = K)/K, ncol = K, byrow = TRUE)
+}
+### End models/MAF_5.R ###
+
+### Begin 04_evaluation.R ###
+add_sum_row <- function(tab, label = "k") {
+stopifnot(is.data.frame(tab))
+sum_row <- setNames(vector("list", ncol(tab)), names(tab))
+for (nm in names(tab)) {
+if (nm == "dim") {
+sum_row[[nm]] <- label
+} else if (is.numeric(tab[[nm]])) {
+sum_row[[nm]] <- sum(tab[[nm]])
+} else {
+sum_row[[nm]] <- NA
+}
+}
+rbind(tab, as.data.frame(sum_row, stringsAsFactors = FALSE))
+}
+stderr <- function(values) {
+stats::sd(values) / sqrt(length(values))
+}
+nats_per_dim <- function(loss, d) {
+loss / d
+}
+prepare_data <- function(n, config, seed = 42) {
+X <- Generate_iid_from_config(n, config)
+S <- split_data(X, seed)
+list(X = X, S = S)
+}
+fit_models <- function(S, config) {
+M_TRUE <- fit_TRUE(S, config)
+t_true <- system.time({
+ll_true <- logL_TRUE_dim(M_TRUE, S$X_te)
+})[["elapsed"]]
+M_TRTF <- fit_TRTF(S, config)
+t_trtf <- system.time({
+ll_trtf <- logL_TRTF_dim(M_TRTF, S$X_te)
+})[["elapsed"]]
+M_KS <- fit_KS(S, config)
+t_ks <- system.time({
+ll_ks <- logL_KS_dim(M_KS, S$X_te)
+})[["elapsed"]]
+list(models = list(true = M_TRUE, trtf = M_TRTF, ks = M_KS),
+ll = list(true = ll_true, trtf = ll_trtf, ks = ll_ks),
+times = c(true = t_true, trtf = t_trtf, ks = t_ks))
+}
+calc_loglik_tables <- function(models, config, X_te) {
+K <- length(config)
+ll_true <- matrix(NA_real_, nrow = nrow(X_te), ncol = K)
+for (k in seq_len(K)) {
+ll_vec <- .log_density_vec(X_te[, k], config[[k]]$distr,
+models$true$theta[[k]])
+ll_true[, k] <- -ll_vec
+}
+ll_trtf <- -predict(models$trtf, X_te, type = "logdensity_by_dim")
+ll_ks   <- -predict(models$ks,  X_te, type = "logdensity_by_dim")
+if (!is.null(models$ttm)) {
+ll_ttm_dim <- rep(models$ttm$NLL_test / K, K)
+se_ttm     <- rep(models$ttm$stderr_test / K, K)
+} else {
+ll_ttm_dim <- rep(NA_real_, K)
+se_ttm     <- rep(NA_real_, K)
+}
+mean_true <- colMeans(ll_true)
+se_true   <- apply(ll_true, 2, stderr)
+mean_trtf <- colMeans(ll_trtf)
+se_trtf   <- apply(ll_trtf, 2, stderr)
+mean_ks   <- colMeans(ll_ks)
+se_ks     <- apply(ll_ks,   2, stderr)
+mean_ttm  <- ll_ttm_dim
+fmt <- function(m, se) sprintf("%.2f ± %.2f", round(m, 2), round(2 * se, 2))
+tab <- data.frame(
+dim = as.character(seq_len(K)),
+distribution = sapply(config, `[[`, "distr"),
+true = fmt(mean_true, se_true),
+trtf = fmt(mean_trtf, se_trtf),
+ks   = fmt(mean_ks, se_ks),
+ttm  = fmt(mean_ttm, se_ttm),
+stringsAsFactors = FALSE
+)
+sum_row <- data.frame(
+dim = "k",
+distribution = "SUM",
+true = fmt(sum(mean_true), sqrt(sum(se_true^2))),
+trtf = fmt(sum(mean_trtf), sqrt(sum(se_trtf^2))),
+ks   = fmt(sum(mean_ks),   sqrt(sum(se_ks^2))),
+ttm  = fmt(sum(mean_ttm),  sqrt(sum(se_ttm^2))),
+stringsAsFactors = FALSE
+)
+rbind(tab, sum_row)
+}
+### End 04_evaluation.R ###
+
+### Begin replicate_code.R ###
+extract_sources <- function(main_file = "main.R") {
+lines <- readLines(main_file, warn = FALSE)
+pattern <- 'source\\("([^\\"]+)"\\)'
+matches <- regmatches(lines, gregexpr(pattern, lines, perl = TRUE))
+src_files <- unlist(lapply(matches, function(x) if (length(x) > 0) gsub(pattern, "\\1", x)))
+unique(src_files)
+}
+replicate_code_scripts <- function(main_file = "main.R", outfile = "replicated_code.txt") {
+src_files <- extract_sources(main_file)
+output_lines <- character()
+for (f in src_files) {
+if (file.exists(f)) {
+lines <- readLines(f, warn = FALSE)
+lines <- sub("
+lines <- trimws(lines)
+lines <- lines[nchar(lines) > 0]
+output_lines <- c(output_lines, paste0("
+}
+}
+writeLines(output_lines, outfile)
+}
+if (sys.nframe() == 0L) {
+replicate_code_scripts()
+}
+### End replicate_code.R ###
+
