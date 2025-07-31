@@ -32,8 +32,7 @@ main <- function() {
   prep <- prepare_data(n, config, seed = 42)
   mods <- list(
     true = fit_TRUE(prep$S, config),
-    trtf = fit_TRTF(prep$S, config),
-    ks   = fit_KS(prep$S, config)
+    trtf = fit_TRTF(prep$S, config)
   )
   X_te <- prep$S$X_te
   res <- list()
@@ -50,10 +49,6 @@ main <- function() {
   ll_trtf <- -predict(mods$trtf, X_te, type = "logdensity_by_dim")
   res[["trtf"]] <- list(mean = colMeans(ll_trtf),
                          se = apply(ll_trtf, 2, sd)/sqrt(nrow(ll_trtf)))
-
-  ll_ks <- -predict(mods$ks, X_te, type = "logdensity_by_dim")
-  res[["ks"]] <- list(mean = colMeans(ll_ks),
-                      se = apply(ll_ks, 2, sd)/sqrt(nrow(ll_ks)))
 
 
   results_table <<- t(sapply(res, `[[`, "mean"))

@@ -58,15 +58,9 @@ fit_models <- function(S, config) {
   t_trtf <- system.time({
     ll_trtf <- logL_TRTF_dim(M_TRTF, S$X_te)
   })[["elapsed"]]
-
-  M_KS <- fit_KS(S, config)
-  t_ks <- system.time({
-    ll_ks <- logL_KS_dim(M_KS, S$X_te)
-  })[["elapsed"]]
-
-  list(models = list(true = M_TRUE, trtf = M_TRTF, ks = M_KS),
-       ll = list(true = ll_true, trtf = ll_trtf, ks = ll_ks),
-       times = c(true = t_true, trtf = t_trtf, ks = t_ks))
+  list(models = list(true = M_TRUE, trtf = M_TRTF),
+       ll = list(true = ll_true, trtf = ll_trtf),
+       times = c(true = t_true, trtf = t_trtf))
 }
 
 #' Log-Likelihood-Tabellen erzeugen
@@ -85,7 +79,6 @@ calc_loglik_tables <- function(models, config, X_te) {
     ll_true[, k] <- -ll_vec
   }
   ll_trtf <- -predict(models$trtf, X_te, type = "logdensity_by_dim")
-  ll_ks   <- -predict(models$ks,  X_te, type = "logdensity_by_dim")
   if (!is.null(models$ttm)) {
     ll_ttm_dim <- rep(models$ttm$NLL_test / K, K)
     se_ttm     <- rep(models$ttm$stderr_test / K, K)
@@ -102,10 +95,6 @@ calc_loglik_tables <- function(models, config, X_te) {
   se_trtf   <- apply(ll_trtf, 2, stderr)
   total_nll_trtf <- rowSums(ll_trtf)
   se_sum_trtf <- stats::sd(total_nll_trtf) / sqrt(length(total_nll_trtf))
-  mean_ks   <- colMeans(ll_ks)
-  se_ks     <- apply(ll_ks,   2, stderr)
-  total_nll_ks <- rowSums(ll_ks)
-  se_sum_ks <- stats::sd(total_nll_ks) / sqrt(length(total_nll_ks))
   mean_ttm  <- ll_ttm_dim
 
   fmt <- function(m, se) sprintf("%.2f ± %.2f", round(m, 2), round(2 * se, 2))
@@ -115,7 +104,6 @@ calc_loglik_tables <- function(models, config, X_te) {
     distribution = sapply(config, `[[`, "distr"),
     true = fmt(mean_true, se_true),
     trtf = fmt(mean_trtf, se_trtf),
-    ks   = fmt(mean_ks, se_ks),
     ttm  = fmt(mean_ttm, se_ttm),
     stringsAsFactors = FALSE
   )
@@ -126,7 +114,6 @@ calc_loglik_tables <- function(models, config, X_te) {
     distribution = "SUM",
     true = fmt(sum(mean_true), se_sum_true),
     trtf = fmt(sum(mean_trtf), se_sum_trtf),
-    ks   = fmt(sum(mean_ks),   se_sum_ks),
     ttm  = fmt(sum(mean_ttm),  se_sum_ttm),
     stringsAsFactors = FALSE
   )
