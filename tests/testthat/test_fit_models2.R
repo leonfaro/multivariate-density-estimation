@@ -1,7 +1,6 @@
 source("helper_config.R")
 source("../../04_evaluation.R")
 source("../../models/trtf_model.R")
-source("../../models/ks_model.R")
 source("../../models/true_model.R")
 
 set.seed(2)

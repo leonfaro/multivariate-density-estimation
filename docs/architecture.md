@@ -2,8 +2,7 @@
 
 Das folgende Mermaid-Diagramm veranschaulicht die Interaktion der Skripte
 `01_data_generation.R`, `02_split.R`, `04_evaluation.R` und `main.R` sowie der
-vier Modellimplementierungen **TRTF**, **TrueModel** und
-**KS-Modell**. Alle Berechnungen der Log-Likelihood finden konsequent im
+beiden Modellimplementierungen **TRTF** und **TrueModel**. Alle Berechnungen der Log-Likelihood finden konsequent im
 Log-Raum statt, wie in `README.md` beschrieben. Parameter, die strikt positiv
 sein m\u00fcssen, werden \u00fcber `softplus()` transformiert.
 
@@ -32,12 +31,6 @@ graph TD
         D1 --> D4["logL_TRTF(X_te)"]
     end
 
-    subgraph KSModel["models/ks_model.R"]
-        E1["fit_KS(X_tr, X_te, config)"] --> E2["bw.nrd0 pro Spalte"]
-        E1 --> E3["logL_KS(X_te)"]
-    end
-
-
     subgraph Script04["04_evaluation.R"]
         G1["evaluate_all(X_te, model_list)"] -->|"ruft logL_<id> auf"| G2["Tabelle"]
     end
@@ -48,7 +41,6 @@ graph TD
         H1 -->|"ruft"| B1
         H1 -->|"fit"| C1
         H1 -->|"fit"| D1
-        H1 -->|"fit"| E1
         H1 -->|"evaluiert"| G1
         G2 --> H2["Ausgabe / Plots"]
     end
@@ -56,7 +48,6 @@ graph TD
     A4 --> B1
     B2 --> C1
     B2 --> D1
-    B2 --> E1
     B3 --> G1
 ```
 ```
