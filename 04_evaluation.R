@@ -1,4 +1,10 @@
 # Utilities for model evaluation
+root_path <- getwd()
+if (basename(root_path) == "testthat") {
+  root_path <- dirname(dirname(root_path))
+}
+source(file.path(root_path, "models/ttm_marginal.R"))
+source(file.path(root_path, "models/ks_model.R"))
 
 #' Summen-Zeile an Tabelle anh\u00e4ngen
 #'
@@ -21,13 +27,7 @@ add_sum_row <- function(tab, label = "k") {
   rbind(tab, as.data.frame(sum_row, stringsAsFactors = FALSE))
 }
 
-stderr <- function(values) {
-  stats::sd(values) / sqrt(length(values))
-}
 
-nats_per_dim <- function(loss, d) {
-  loss / d
-}
 
 #' Daten erzeugen und aufteilen
 #'
@@ -87,11 +87,15 @@ calc_loglik_tables <- function(models, config, X_te) {
   ll_trtf <- -predict(models$trtf, X_te, type = "logdensity_by_dim")
   ll_ks   <- -predict(models$ks,  X_te, type = "logdensity_by_dim")
   if (!is.null(models$ttm)) {
-    ll_ttm_dim <- rep(models$ttm$NLL_test / K, K)
-    se_ttm     <- rep(models$ttm$stderr_test / K, K)
+    ll_ttm <- -predict(models$ttm$S, X_te, type = "logdensity_by_dim")
+    mean_ttm <- colMeans(ll_ttm)
+    se_ttm   <- apply(ll_ttm, 2, stderr)
+    total_nll_ttm <- rowSums(ll_ttm)
+    se_sum_ttm <- stats::sd(total_nll_ttm) / sqrt(length(total_nll_ttm))
   } else {
-    ll_ttm_dim <- rep(NA_real_, K)
-    se_ttm     <- rep(NA_real_, K)
+    mean_ttm <- rep(NA_real_, K)
+    se_ttm   <- rep(NA_real_, K)
+    se_sum_ttm <- NA_real_
   }
 
   mean_true <- colMeans(ll_true)
@@ -106,8 +110,6 @@ calc_loglik_tables <- function(models, config, X_te) {
   se_ks     <- apply(ll_ks,   2, stderr)
   total_nll_ks <- rowSums(ll_ks)
   se_sum_ks <- stats::sd(total_nll_ks) / sqrt(length(total_nll_ks))
-  mean_ttm  <- ll_ttm_dim
-
   fmt <- function(m, se) sprintf("%.2f ± %.2f", round(m, 2), round(2 * se, 2))
 
   tab <- data.frame(
@@ -120,7 +122,6 @@ calc_loglik_tables <- function(models, config, X_te) {
     stringsAsFactors = FALSE
   )
 
-  se_sum_ttm <- if (is.null(models$ttm)) NA_real_ else models$ttm$stderr_test
   sum_row <- data.frame(
     dim = "k",
     distribution = "SUM",

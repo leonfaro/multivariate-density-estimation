@@ -15,29 +15,17 @@
 
 All densities are evaluated in log-space. Strictly positive parameters are transformed via `softplus`.
 ```
-########  TTM CORE (shared)  ########
-standardizeData(X)
-sampleReference(N,d)
-shuffleOrdering(d)
-
-struct MapStruct:
-    type ∈ {marginal,separable,cross}
-    coeffA[k], coeffB[k], coeffC[k]
-    basisF[k] : {value, deriv>0}
-    basisG[k], basisH[k]   # basisH_k(t, x_{1:k-1}, θ)
-
+########  TTM CORE (marginal)  ########
+trainMarginalMap(X_or_path)
+predict.ttm_marginal(S, X, type)
 forwardPass(S,x)
 logJacDiag(S,x)
-logDetJacobian(ℓ)=Σℓ
 forwardKLLoss(S,X)
-
-monotoneIntegrator(h,t0,t)=∫exp(min(h(s),100))ds
-rootFind1D(fun,target)    # interval [-10,10]
 inversePass(S,z)
-
 negativeLogLikelihood(S,X)
-natsPerDim(L,N,d)=L/(N·d)
-#####################################
+natsPerDim(L,N,K)
+stderr(v)
+######################################
 ```
 
 ## 2. Top-Level Pipeline
