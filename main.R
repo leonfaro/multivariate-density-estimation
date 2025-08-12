@@ -35,8 +35,7 @@ main <- function() {
     ks   = fit_KS(prep$S, config),
     ttm  = trainMarginalMap(prep$S)
   )
-  X_te <- prep$S$X_te
-  tab <- calc_loglik_tables(mods, config, X_te)
+  tab <- calc_loglik_tables(mods, config, prep$S$X_te)
   print(tab)
   results_table <<- tab
   invisible(tab)
