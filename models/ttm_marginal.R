@@ -48,9 +48,10 @@ trainMarginalMap <- function(X_or_path) {
     coeffB <- numeric(K)
     for (k in seq_len(K)) {
       xk <- X_tr_std[, k]
-      u <- rank(xk, ties.method = "average") / (length(xk) + 1)
-      lower <- 1 / (length(xk) + 1)
-      upper <- length(xk) / (length(xk) + 1)
+      N <- length(xk)
+      u <- rank(xk, ties.method = "average") / (N + 1)
+      lower <- 1 / (N + 1)
+      upper <- N / (N + 1)
       u <- pmin(pmax(u, lower), upper)
       z_star <- qnorm(u)
       covxz <- mean((xk - mean(xk)) * (z_star - mean(z_star)))
