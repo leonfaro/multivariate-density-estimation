@@ -131,7 +131,14 @@ calc_loglik_tables <- function(models, config, X_te) {
     ttm  = fmt(sum(mean_ttm),  se_sum_ttm),
     stringsAsFactors = FALSE
   )
-  rbind(tab, sum_row)
+  tab <- rbind(tab, sum_row)
+
+  # rename columns for display (do this as the last step before returning)
+  nm <- names(tab)
+  nm[nm == "trtf"] <- "Random Forest"
+  nm[nm == "ttm"]  <- "Marginal Map"
+  names(tab) <- nm
+  tab
 }
 
 #' Standardabweichungen der Log-Likelihoods
