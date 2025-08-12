@@ -11,28 +11,6 @@
   list(X = X_tilde, mu = mu, sigma = sigma)
 }
 
-.shuffleOrdering <- function(K, seed = NULL) {
-  if (!is.null(seed)) set.seed(seed)
-  sample(seq_len(K))
-}
-
-.updateCoeffsMarginal <- function(S, X_batch) {
-  d <- length(S$order)
-  for (j in seq_len(d)) {
-    k <- S$order[j]
-    xk <- X_batch[, k]
-    u <- rank(xk, ties.method = "average") / (length(xk) + 1)
-    z_star <- qnorm(u)
-    covxz <- mean((xk - mean(xk)) * (z_star - mean(z_star)))
-    varx <- var(xk) + 1e-12
-    b_star <- max(0, covxz / varx)
-    a_star <- mean(z_star) - b_star * mean(xk)
-    S$coeffA[k] <- log(b_star + 1e-12)
-    S$coeffB[k] <- a_star
-  }
-  S
-}
-
 .computeRowwiseLosses <- function(S, X_set) {
   b <- exp(S$coeffA)
   a <- S$coeffB
@@ -56,71 +34,56 @@ trainMarginalMap <- function(X_or_path) {
   X_val <- S_in$X_val
   X_te  <- S_in$X_te
 
-  X_all <- rbind(X_tr, X_val, X_te)
-  std <- .standardizeData(X_all)
-  X_std <- std$X
-  n_tr <- nrow(X_tr)
-  n_val <- nrow(X_val)
-  X_train <- X_std[seq_len(n_tr), , drop = FALSE]
-  X_val_std <- X_std[seq_len(n_val) + n_tr, , drop = FALSE]
-  X_test <- X_std[(n_tr + n_val + 1):nrow(X_std), , drop = FALSE]
-
-  K <- ncol(X_train)
-  order <- .shuffleOrdering(K)
-  S_map <- list(
-    mu = std$mu,
-    sigma = std$sigma,
-    coeffA = rep(0, K),
-    coeffB = rep(0, K),
-    coeffC = rep(0, K),
-    order = order
-  )
-  class(S_map) <- "ttm_marginal"
-
-  best_val <- Inf
-  best_state <- S_map
-  best_epoch <- 0L
-  best_train <- Inf
-  patience <- 0L
-  T_max <- 100L
-  P <- 10L
-
   time_train <- system.time({
-    for (epoch in seq_len(T_max)) {
-      S_map <- .updateCoeffsMarginal(S_map, X_train)
-      NLL_train <- mean(.computeRowwiseLosses(S_map, X_train))
-      NLL_val <- mean(.computeRowwiseLosses(S_map, X_val_std))
-
-      if (NLL_val < best_val - 1e-6) {
-        best_val <- NLL_val
-        best_state <- S_map
-        best_epoch <- epoch
-        best_train <- NLL_train
-        patience <- 0L
-      } else {
-        patience <- patience + 1L
-      }
-      if (patience > P) break
+    std <- .standardizeData(X_tr)
+    X_tr_std <- std$X
+    mu <- std$mu
+    sigma <- std$sigma
+    X_val_std <- sweep(sweep(X_val, 2, mu, "-"), 2, sigma, "/")
+    X_te_std  <- sweep(sweep(X_te,  2, mu, "-"), 2, sigma, "/")
+    K <- ncol(X_tr_std)
+    coeffA <- numeric(K)
+    coeffB <- numeric(K)
+    for (k in seq_len(K)) {
+      xk <- X_tr_std[, k]
+      u <- rank(xk, ties.method = "average") / (length(xk) + 1)
+      lower <- 1 / (length(xk) + 1)
+      upper <- length(xk) / (length(xk) + 1)
+      u <- pmin(pmax(u, lower), upper)
+      z_star <- qnorm(u)
+      covxz <- mean((xk - mean(xk)) * (z_star - mean(z_star)))
+      varx <- var(xk) + 1e-12
+      b_k <- max(0, covxz / varx)
+      a_k <- mean(z_star) - b_k * mean(xk)
+      coeffA[k] <- log(b_k + 1e-12)
+      coeffB[k] <- a_k
     }
+    coeffC <- rep(0, K)
+    S_map <- list(
+      mu = mu,
+      sigma = sigma,
+      coeffA = coeffA,
+      coeffB = coeffB,
+      coeffC = coeffC,
+      order = seq_len(K)
+    )
+    class(S_map) <- "ttm_marginal"
+    loss_train_vec <- .computeRowwiseLosses(S_map, X_tr_std)
+    loss_val_vec <- .computeRowwiseLosses(S_map, X_val_std)
   })[["elapsed"]]
 
-  S_map <- best_state
-
-  time_pred <- system.time({
-    loss_test_vec <- .computeRowwiseLosses(S_map, X_test)
+  loss_test_time <- system.time({
+    loss_test_vec <- .computeRowwiseLosses(S_map, X_te_std)
   })[["elapsed"]]
-
-  NLL_test <- mean(loss_test_vec)
-  stderr_test <- stderr(loss_test_vec)
 
   list(
     S = S_map,
-    NLL_train = best_train,
-    NLL_val = best_val,
-    NLL_test = NLL_test,
-    stderr_test = stderr_test,
+    NLL_train = mean(loss_train_vec),
+    NLL_val = mean(loss_val_vec),
+    NLL_test = mean(loss_test_vec),
+    stderr_test = stderr(loss_test_vec),
     time_train = time_train,
-    time_pred = time_pred
+    time_pred = loss_test_time
   )
 }
 
@@ -179,4 +142,3 @@ natsPerDim <- function(NLL, N, K) {
 stderr <- function(v) {
   stats::sd(v) / sqrt(length(v))
 }
-
