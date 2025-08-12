@@ -31,7 +31,7 @@ main <- function() {
   prep <- prepare_data(n, config, seed = 42)
   mods <- list(
     true = fit_TRUE(prep$S, config),
-    trtf = fit_TRTF(prep$S, config),
+    trtf = fit_TRTF(prep$S, config, seed = 42),
     ks   = fit_KS(prep$S, config),
     ttm  = trainMarginalMap(prep$S)
   )

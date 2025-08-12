@@ -82,20 +82,20 @@ logL_TRTF_dim <- function(model, X, cores = NC) {
   res
 }
 
-fit_TRTF <- function(S, config, cores = NC) {
+fit_TRTF <- function(S, config, seed = NULL, cores = NC) {
   stopifnot(is.list(S))
   X_tr <- S$X_tr
   X_te <- S$X_te
   stopifnot(is.matrix(X_tr), is.matrix(X_te))
-  
-  set.seed(p$seed)
-  
+
+  if (!is.null(seed)) set.seed(seed)
+
   mod <- mytrtf(data = X_tr,
                 ntree = nrow(X_tr),
                 minsplit = p$minsplit,
                 minbucket = p$minbucket,
                 maxdepth = p$maxdepth,
-                seed = p$seed,
+                seed = seed,
                 cores = cores)
   
   mod$config  <- config
