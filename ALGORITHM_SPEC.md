@@ -133,18 +133,19 @@ function logL_KS(model, X)
 ```
 
 ### fit_TRTF
-`fit_TRTF(S, config, ntree, mtry, minsplit, minbucket, maxdepth, seed, cores) : S \to M_{TRTF}`
+`fit_TRTF(S, config, seed, cores) : S \to M_{TRTF}`
 - **Description:** one-shot fit of conditional transformation forest on train data, evaluation on test.
 - **Pre:** training and test matrices present in `S`.
 - **Post:** fitted forest with test log-likelihood.
-- **Randomness:** `set.seed(seed)` affects forest construction.
+- **Randomness:** optional `set.seed(seed)` affects forest construction.
 - **Pseudocode:**
 ```
-function fit_TRTF(S, config, ntree, mtry, minsplit, minbucket, maxdepth, seed, cores)
-    set seed to seed
+function fit_TRTF(S, config, seed, cores)
+    if seed is not NULL:
+        set seed to seed
     X_tr <- S.X_tr
     X_te <- S.X_te
-    mod <- mytrtf(X_tr, ntree, mtry, minsplit, minbucket, maxdepth, seed, cores)
+    mod <- mytrtf(X_tr, ntree = nrow(X_tr), minsplit, minbucket, maxdepth, seed, cores)
     mod.logL_te <- logL_TRTF(mod, X_te, cores)
     return mod
 ```
