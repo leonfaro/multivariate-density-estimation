@@ -138,6 +138,7 @@ calc_loglik_tables <- function(models, config, X_te) {
   nm[nm == "trtf"] <- "Random Forest"
   nm[nm == "ttm"]  <- "Marginal Map"
   names(tab) <- nm
+  message("Ergebnis (NLL in nats; lower is better)")
   tab
 }
 
