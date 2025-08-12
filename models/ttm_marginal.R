@@ -1,133 +1,152 @@
-# TTM - Marginal Map Trainer
-# arbeitet komplett in Basis-R
+# Triangular Transport Map - Marginal Module
+# Basis-R Implementierung
 
-## Reproduzierbarkeit -------------------------------------------------------
-set.seed(42)
+# interne Hilfsfunktionen --------------------------------------------------
 
-# Globale Hyperparameter ---------------------------------------------------
-lr0 <- 0.01
-T_max <- 100L
-P <- 10L
-decay <- 1.0
-
-## Hilfsfunktionen ----------------------------------------------------------
-
-linearBasis <- function(S, idx) {
-  f <- function(x, theta) {
-    S$coeffB[[idx]] + exp(theta) * x
-  }
-  attr(f, "deriv") <- function(x, theta) rep(exp(theta), length(x))
-  f
+.standardizeData <- function(X) {
+  mu <- colMeans(X)
+  sigma <- apply(X, 2, sd) + .Machine$double.eps
+  X_tilde <- sweep(X, 2, mu, "-")
+  X_tilde <- sweep(X_tilde, 2, sigma, "/")
+  list(X = X_tilde, mu = mu, sigma = sigma)
 }
 
-initializeCoeffs <- function(S) {
-  d <- length(S$order)
-  S$coeffA <- vector("list", d)
-  S$coeffB <- vector("list", d)
-  S$coeffC <- vector("list", d)
-  for (k in seq_len(d)) {
-    # log(1.0) = 0   ⇒ f' = exp(0) = 1 > 0
-    S$coeffA[[k]] <- log(1.0)
-    S$coeffB[[k]] <- 0
-    S$coeffC[[k]] <- 0
-  }
-  S
+.forward_matrix <- function(S, X) {
+  Xs <- .standardize(S, X)
+  b <- exp(S$coeffA)
+  Z <- sweep(Xs, 2, b, "*")
+  sweep(Z, 2, S$coeffB, "+")
 }
 
-updateCoeffsMarginal <- function(S, X_batch, lr) {
-  d <- length(S$order)
-  for (j in seq_len(d)) {
-    k <- S$order[j]
-    xk <- X_batch[, k]
-    u <- rank(xk, ties.method = "average") / (length(xk) + 1)
-    z_star <- qnorm(u)
-    covxz <- mean((xk - mean(xk)) * (z_star - mean(z_star)))
-    varx <- var(xk) + 1e-12
-    b_star <- max(0, covxz / varx)
-    a_star <- mean(z_star) - b_star * mean(xk)
-
-    S$coeffA[[k]] <- log(b_star + 1e-12)
-    S$coeffB[[k]] <- a_star
-    S$coeffC[[k]] <- 0
-  }
-  S
+.logjac_const <- function(S) {
+  b <- exp(S$coeffA)
+  log(b) - log(S$sigma)
 }
 
-computeRowwiseLosses <- function(S, X_set) {
-  losses <- numeric(nrow(X_set))
-  for (i in seq_len(nrow(X_set))) {
-    z <- forwardPass(S, X_set[i, ])
-    ell <- logJacDiag(S, X_set[i, ])
-    losses[i] <- 0.5 * sum(z^2) - sum(ell)
-  }
-  losses
+.standardize <- function(S, X) {
+  X <- sweep(X, 2, S$mu, "-")
+  sweep(X, 2, S$sigma, "/")
 }
 
-## Hauptfunktion ------------------------------------------------------------
+# exportierte Funktionen ----------------------------------------------------
 
-trainMarginalMap <- function(S) {
-  stopifnot(is.list(S))
-  X_tr  <- S$X_tr
-  X_val <- S$X_val
-  X_te  <- S$X_te
+trainMarginalMap <- function(X_or_path) {
+  set.seed(42)
+  S_in <- if (is.character(X_or_path)) readRDS(X_or_path) else X_or_path
+  stopifnot(is.list(S_in))
+  X_tr <- S_in$X_tr
+  X_val <- S_in$X_val
+  X_te  <- S_in$X_te
 
-  X_all <- rbind(X_tr, X_val, X_te)
-  std_res <- standardizeData(X_all)
-  X_std <- std_res$X
-  n_tr <- nrow(X_tr)
-  n_val <- nrow(X_val)
-  X_train <- X_std[seq_len(n_tr), , drop = FALSE]
-  X_val   <- X_std[seq_len(n_val) + n_tr, , drop = FALSE]
-  X_test  <- X_std[(n_tr + n_val + 1):nrow(X_std), , drop = FALSE]
-
-  d <- ncol(X_train)
-  S_map <- MapStruct(type = "marginal")
-  S_map <- setOrdering(S_map, shuffleOrdering(d))
-  S_map <- initializeCoeffs(S_map)
-  S_map$basisF <- vector("list", d)
-  for (k in seq_len(d)) {
-    S_map$basisF[[k]] <- linearBasis(S_map, k)
-  }
-
-  best_val <- Inf
-  best_state <- S_map
-  best_epoch <- 0L
-  best_train <- Inf
-  patience <- 0L
-  lr <- lr0
-
-  for (epoch in seq_len(T_max)) {
-    S_map <- updateCoeffsMarginal(S_map, X_train, lr)
-    NLL_train <- mean(computeRowwiseLosses(S_map, X_train))
-    NLL_val <- mean(computeRowwiseLosses(S_map, X_val))
-
-    if (NLL_val < best_val - 1e-6) {
-      best_val <- NLL_val
-      best_state <- S_map
-      best_epoch <- epoch
-      best_train <- NLL_train
-      patience <- 0L
-    } else {
-      patience <- patience + 1L
+  time_train <- system.time({
+    std <- .standardizeData(X_tr)
+    X_tr_std <- std$X
+    mu <- std$mu
+    sigma <- std$sigma
+    K <- ncol(X_tr_std)
+    coeffA <- numeric(K)
+    coeffB <- numeric(K)
+    for (k in seq_len(K)) {
+      xk <- X_tr_std[, k]
+      u <- rank(xk, ties.method = "average") / (length(xk) + 1)
+      lower <- 1 / (length(xk) + 1)
+      upper <- length(xk) / (length(xk) + 1)
+      u <- pmin(pmax(u, lower), upper)
+      z_star <- qnorm(u)
+      covxz <- mean((xk - mean(xk)) * (z_star - mean(z_star)))
+      varx <- var(xk) + 1e-12
+      b_k <- max(0, covxz / varx)
+      a_k <- mean(z_star) - b_k * mean(xk)
+      coeffA[k] <- log(b_k + 1e-12)
+      coeffB[k] <- a_k
     }
-    if (patience > P) break
-    lr <- lr * decay
-    if (epoch %% 10 == 0) {
-      message(epoch, ": val NLL = ", round(NLL_val, 4))
-    }
-  }
-
-  S_map <- best_state
-  loss_test_vec <- computeRowwiseLosses(S_map, X_test)
-  NLL_test <- mean(loss_test_vec)
-  stderr_test <- stderr(loss_test_vec)
+    coeffC <- rep(0, K)
+    S_map <- list(
+      mu = mu,
+      sigma = sigma,
+      coeffA = coeffA,
+      coeffB = coeffB,
+      coeffC = coeffC,
+      order = seq_len(K)
+    )
+    class(S_map) <- "ttm_marginal"
+  })[["elapsed"]]
+  time_pred <- system.time({
+    predict(S_map, X_te, "logdensity_by_dim")
+  })[["elapsed"]]
 
   list(
     S = S_map,
-    best_epoch = best_epoch,
-    NLL_train = best_train,
-    NLL_val = best_val,
-    NLL_test = NLL_test,
-    stderr_test = stderr_test
+    NLL_train = NLL_set(S_map, X_tr),
+    NLL_val = NLL_set(S_map, X_val),
+    NLL_test = NLL_set(S_map, X_te),
+    stderr_test = SE_set(S_map, X_te),
+    time_train = time_train,
+    time_pred = time_pred
   )
+}
+
+predict.ttm_marginal <- function(object, newdata,
+                                 type = c("logdensity_by_dim", "logdensity")) {
+  type <- tryCatch(match.arg(type), error = function(e) stop("unknown type"))
+  Z <- .forward_matrix(object, newdata)
+  LJ <- .logjac_const(object)
+  C <- -0.5 * log(2 * pi)
+  LD <- (-0.5) * (Z^2) + C +
+    matrix(LJ, nrow = nrow(Z), ncol = length(LJ), byrow = TRUE)
+  if (type == "logdensity_by_dim") {
+    LD
+  } else {
+    rowSums(LD)
+  }
+}
+
+NLL_set <- function(S, X) {
+  mean(-rowSums(predict(S, X, "logdensity_by_dim")))
+}
+
+SE_set <- function(S, X) {
+  v <- rowSums(-predict(S, X, "logdensity_by_dim"))
+  stats::sd(v) / sqrt(length(v))
+}
+
+forwardPass <- function(S, x) {
+  x_std <- .standardize(S, matrix(x, nrow = 1))
+  b <- exp(S$coeffA)
+  a <- S$coeffB
+  as.numeric(a + b * x_std)
+}
+
+logJacDiag <- function(S, x) {
+  LJ <- .logjac_const(S)
+  rep(LJ, length.out = length(x))
+}
+
+forwardKLLoss <- function(S, X) {
+  Z <- .forward_matrix(S, X)
+  LJ <- .logjac_const(S)
+  mean(0.5 * rowSums(Z^2) - sum(LJ))
+}
+
+inversePass <- function(S, z) {
+  b <- exp(S$coeffA)
+  a <- S$coeffB
+  x_std <- (z - a) / b
+  x <- sweep(x_std, 2, S$sigma, "*")
+  x <- sweep(x, 2, S$mu, "+")
+  as.numeric(x)
+}
+
+negativeLogLikelihood <- function(S, X) {
+  Z <- .forward_matrix(S, X)
+  LJ <- .logjac_const(S)
+  sum(0.5 * rowSums(Z^2) - sum(LJ))
+}
+
+natsPerDim <- function(NLL, N, K) {
+  NLL / (N * K)
+}
+
+stderr <- function(v) {
+  stats::sd(v) / sqrt(length(v))
 }
