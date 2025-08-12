@@ -3,8 +3,8 @@ results/*
 output.txt
 output_counts.txt
 checks.log
-.Rproj.user
-.DS_Store
 .Rproj.user/
+.Rhistory
+.RData
 .DS_Store
 quick_test.pdf
