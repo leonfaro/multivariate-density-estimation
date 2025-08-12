@@ -11,12 +11,16 @@
   list(X = X_tilde, mu = mu, sigma = sigma)
 }
 
-.computeRowwiseLosses <- function(S, X_set) {
+.forward_matrix <- function(S, X) {
+  Xs <- .standardize(S, X)
   b <- exp(S$coeffA)
-  a <- S$coeffB
-  z <- sweep(X_set, 2, b, "*") +
-    matrix(a, nrow = nrow(X_set), ncol = length(a), byrow = TRUE)
-  0.5 * rowSums(z^2) - sum(S$coeffA)
+  Z <- sweep(Xs, 2, b, "*")
+  sweep(Z, 2, S$coeffB, "+")
+}
+
+.logjac_const <- function(S) {
+  b <- exp(S$coeffA)
+  log(b) - log(S$sigma)
 }
 
 .standardize <- function(S, X) {
@@ -39,8 +43,6 @@ trainMarginalMap <- function(X_or_path) {
     X_tr_std <- std$X
     mu <- std$mu
     sigma <- std$sigma
-    X_val_std <- sweep(sweep(X_val, 2, mu, "-"), 2, sigma, "/")
-    X_te_std  <- sweep(sweep(X_te,  2, mu, "-"), 2, sigma, "/")
     K <- ncol(X_tr_std)
     coeffA <- numeric(K)
     coeffB <- numeric(K)
@@ -68,41 +70,44 @@ trainMarginalMap <- function(X_or_path) {
       order = seq_len(K)
     )
     class(S_map) <- "ttm_marginal"
-    loss_train_vec <- .computeRowwiseLosses(S_map, X_tr_std)
-    loss_val_vec <- .computeRowwiseLosses(S_map, X_val_std)
   })[["elapsed"]]
-
-  loss_test_time <- system.time({
-    loss_test_vec <- .computeRowwiseLosses(S_map, X_te_std)
+  time_pred <- system.time({
+    predict(S_map, X_te, "logdensity_by_dim")
   })[["elapsed"]]
 
   list(
     S = S_map,
-    NLL_train = mean(loss_train_vec),
-    NLL_val = mean(loss_val_vec),
-    NLL_test = mean(loss_test_vec),
-    stderr_test = stderr(loss_test_vec),
+    NLL_train = NLL_set(S_map, X_tr),
+    NLL_val = NLL_set(S_map, X_val),
+    NLL_test = NLL_set(S_map, X_te),
+    stderr_test = SE_set(S_map, X_te),
     time_train = time_train,
-    time_pred = loss_test_time
+    time_pred = time_pred
   )
 }
 
 predict.ttm_marginal <- function(object, newdata,
                                  type = c("logdensity_by_dim", "logdensity")) {
-  type <- match.arg(type)
-  X_std <- .standardize(object, newdata)
-  b <- exp(object$coeffA)
-  a <- object$coeffB
-  z <- sweep(X_std, 2, b, "*") +
-    matrix(a, nrow = nrow(X_std), ncol = length(a), byrow = TRUE)
-  log_diag <- matrix(object$coeffA,
-                     nrow = nrow(X_std), ncol = length(a), byrow = TRUE)
-  log_dens_dim <- -0.5 * z^2 + log_diag
+  type <- tryCatch(match.arg(type), error = function(e) stop("unknown type"))
+  Z <- .forward_matrix(object, newdata)
+  LJ <- .logjac_const(object)
+  C <- -0.5 * log(2 * pi)
+  LD <- (-0.5) * (Z^2) + C +
+    matrix(LJ, nrow = nrow(Z), ncol = length(LJ), byrow = TRUE)
   if (type == "logdensity_by_dim") {
-    log_dens_dim
+    LD
   } else {
-    rowSums(log_dens_dim)
+    rowSums(LD)
   }
+}
+
+NLL_set <- function(S, X) {
+  mean(-rowSums(predict(S, X, "logdensity_by_dim")))
+}
+
+SE_set <- function(S, X) {
+  v <- rowSums(-predict(S, X, "logdensity_by_dim"))
+  stats::sd(v) / sqrt(length(v))
 }
 
 forwardPass <- function(S, x) {
@@ -113,12 +118,14 @@ forwardPass <- function(S, x) {
 }
 
 logJacDiag <- function(S, x) {
-  rep(S$coeffA, length.out = length(x))
+  LJ <- .logjac_const(S)
+  rep(LJ, length.out = length(x))
 }
 
 forwardKLLoss <- function(S, X) {
-  X_std <- .standardize(S, X)
-  mean(.computeRowwiseLosses(S, X_std))
+  Z <- .forward_matrix(S, X)
+  LJ <- .logjac_const(S)
+  mean(0.5 * rowSums(Z^2) - sum(LJ))
 }
 
 inversePass <- function(S, z) {
@@ -131,8 +138,9 @@ inversePass <- function(S, z) {
 }
 
 negativeLogLikelihood <- function(S, X) {
-  X_std <- .standardize(S, X)
-  sum(.computeRowwiseLosses(S, X_std))
+  Z <- .forward_matrix(S, X)
+  LJ <- .logjac_const(S)
+  sum(0.5 * rowSums(Z^2) - sum(LJ))
 }
 
 natsPerDim <- function(NLL, N, K) {
