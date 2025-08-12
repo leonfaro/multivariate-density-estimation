@@ -32,34 +32,13 @@ main <- function() {
   mods <- list(
     true = fit_TRUE(prep$S, config),
     trtf = fit_TRTF(prep$S, config),
-    ks   = fit_KS(prep$S, config)
+    ks   = fit_KS(prep$S, config),
+    ttm  = trainMarginalMap(prep$S)
   )
   X_te <- prep$S$X_te
-  res <- list()
-
-  ll_true <- matrix(NA_real_, nrow = nrow(X_te), ncol = length(config))
-  for (k in seq_along(config)) {
-    ll_vec <- .log_density_vec(X_te[, k], config[[k]]$distr,
-                               mods$true$theta[[k]])
-    ll_true[, k] <- -ll_vec
-  }
-  res[["true"]] <- list(mean = colMeans(ll_true),
-                         se = apply(ll_true, 2, sd)/sqrt(nrow(ll_true)))
-
-  ll_trtf <- -predict(mods$trtf, X_te, type = "logdensity_by_dim")
-  res[["trtf"]] <- list(mean = colMeans(ll_trtf),
-                         se = apply(ll_trtf, 2, sd)/sqrt(nrow(ll_trtf)))
-
-  ll_ks <- -predict(mods$ks, X_te, type = "logdensity_by_dim")
-  res[["ks"]] <- list(mean = colMeans(ll_ks),
-                      se = apply(ll_ks, 2, sd)/sqrt(nrow(ll_ks)))
-
-
-  results_table <<- t(sapply(res, `[[`, "mean"))
-  colnames(results_table) <<- paste0("dim", seq_len(length(config)))
-
   tab <- calc_loglik_tables(mods, config, X_te)
   print(tab)
+  results_table <<- tab
   invisible(tab)
 }
 
