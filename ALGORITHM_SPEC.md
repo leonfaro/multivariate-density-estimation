@@ -15,29 +15,17 @@
 
 All densities are evaluated in log-space. Strictly positive parameters are transformed via `softplus`.
 ```
-########  TTM CORE (shared)  ########
-standardizeData(X)
-sampleReference(N,d)
-shuffleOrdering(d)
-
-struct MapStruct:
-    type ∈ {marginal,separable,cross}
-    coeffA[k], coeffB[k], coeffC[k]
-    basisF[k] : {value, deriv>0}
-    basisG[k], basisH[k]   # basisH_k(t, x_{1:k-1}, θ)
-
+########  TTM CORE (marginal)  ########
+trainMarginalMap(X_or_path)
+predict.ttm_marginal(S, X, type)
 forwardPass(S,x)
 logJacDiag(S,x)
-logDetJacobian(ℓ)=Σℓ
 forwardKLLoss(S,X)
-
-monotoneIntegrator(h,t0,t)=∫exp(min(h(s),100))ds
-rootFind1D(fun,target)    # interval [-10,10]
 inversePass(S,z)
-
 negativeLogLikelihood(S,X)
-natsPerDim(L,N,d)=L/(N·d)
-#####################################
+natsPerDim(L,N,K)
+stderr(v)
+######################################
 ```
 
 ## 2. Top-Level Pipeline
@@ -196,16 +184,31 @@ function sample_reference(N, d, seed)
     return matrix of rnorm(N*d) reshaped (N,d)
 ```
 
-### shuffle_ordering
-`shuffle_ordering(d, seed) : (\mathbb N, \mathbb N) \to \pi`
-- **Description:** optionale Permutation der Spaltenindizes.
+
+
+### fit_TTM_marginal
+`fit_TTM_marginal(S) : S \to M_{TTM}`
+- **Description:** Closed-form marginal map using only training data for standardization.
+- **Pre:** `S` contains `X_tr`, `X_val`, `X_te`.
+- **Post:** returns parameters `(\mu, \sigma, coeffA, coeffB, coeffC=0_d)` and validation metrics.
 - **Pseudocode:**
 ```
-function shuffle_ordering(d, seed)
-    set seed to seed
-    return random permutation of 1..d
+function fit_TTM_marginal(S)
+    std <- standardize_data(S.X_tr)
+    X_tr <- std.X
+    \mu <- std.mu; \sigma <- std.sigma
+    X_val <- (S.X_val-\mu)/\sigma
+    X_te  <- (S.X_te-\mu)/\sigma
+    for k in 1..d
+        u <- rank_avg(X_tr[,k])/(n_tr+1)
+        u <- clamp(u, [1/(n_tr+1), n_tr/(n_tr+1)])
+        z <- qnorm(u)
+        b_k <- max(0, cov(X_tr[,k], z)/(var(X_tr[,k])+1e-12))
+        a_k <- mean(z) - b_k*mean(X_tr[,k])
+        coeffA_k <- log(b_k+1e-12)
+        coeffB_k <- a_k
+    return (\mu, \sigma, coeffA, coeffB, 0_d)
 ```
-
 
 ### MapStruct
 `MapStruct(type, coeffA, coeffB, coeffC, basisF, basisG, basisH)`
