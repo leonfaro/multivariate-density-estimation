@@ -12,6 +12,7 @@ This repository is a research notebook rather than a software project. All scrip
 - Read `Theory.md` before running any scripts.
 - Strictly adhear to notations outlined in `Theory.md`.
 - Adjust `ALGORITHM_SPEC.md` after every task if necessary, so that `ALGORITHM_SPEC.md` always reflects the current state of the codebase.
+- If a task modifies code that `main.R` uses, run `main.R` and update `replicated_code.txt` so it mirrors the current execution.
 - Always analyzing outputs for numerical numerical validation.
 - You must always stay within the algorithmic workflow of `Theory.md`. If that is not possible, tell where there might be conflicts.
 - Keep Code as simple as possible. Goal is a Proof-of-Concept.

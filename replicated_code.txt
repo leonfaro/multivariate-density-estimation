@@ -1,11 +1,8 @@
 ### Begin 00_globals.R ###
-pkgs <- c("trtf", "dplyr", "tibble", "tidyr")
-for (p in pkgs) {
-if (!requireNamespace(p, quietly = TRUE))
-install.packages(p, repos = "https://cloud.r-project.org")
-library(p, character.only = TRUE)
-}
+library(dplyr)
 library(parallel)
+library(tram)
+library(trtf)
 if (!exists("NC")) NC <- detectCores()
 options(mc.cores = NC)
 softplus <- function(x) log1p(exp(x))
@@ -209,9 +206,13 @@ unlist(res)
 ### End models/true_model.R ###
 
 ### Begin models/trtf_model.R ###
-mytrtf <- function(data, ntree = 50, mtry = 22,
-minsplit = 40, minbucket = 10, maxdepth = 6,
-seed = 42, cores = NC) {
+p <- list(
+minsplit = 40,
+minbucket = 5,
+maxdepth = 2,
+seed = 42
+)
+mytrtf <- function(data, ntree, minsplit, minbucket, maxdepth, seed, cores = NC) {
 stopifnot(is.matrix(data))
 set.seed(seed)
 K <- ncol(data)
@@ -227,10 +228,10 @@ maxdepth = maxdepth)
 for (k in 2:K) {
 rhs <- paste(names(df)[1:(k - 1)], collapse = "+")
 fm <- as.formula(paste(names(df)[k], "~", rhs))
+current_mtry <- max(1, floor((k - 1) / 2))
 forests[[k - 1L]] <- traforest(ymod[[k]], formula = fm, data = df,
 trace = TRUE, ntree = ntree,
-min_update = 50, update = FALSE,
-mltargs = list(), mtry = mtry,
+mltargs = list(), mtry = current_mtry,
 cores = cores, control = ctrl)
 }
 res <- list(ymod = ymod, forests = forests, seed = seed,
@@ -271,26 +272,23 @@ res <- -colMeans(ll)
 if (!all(is.finite(res))) stop("log-likelihood not finite")
 res
 }
-fit_TRTF <- function(S, config,
-ntree = 100,
-mtry = floor(sqrt(ncol(S$X_tr) - 1)),
-minsplit = 25,
-minbucket = 20,
-maxdepth = 4,
-seed = 42,
-cores = NC) {
+fit_TRTF <- function(S, config, seed = NULL, cores = NC) {
 stopifnot(is.list(S))
 X_tr <- S$X_tr
 X_te <- S$X_te
 stopifnot(is.matrix(X_tr), is.matrix(X_te))
-set.seed(seed)
-mod <- mytrtf(X_tr,
-ntree = ntree, mtry = mtry,
-minsplit = minsplit, minbucket = minbucket,
-maxdepth = maxdepth, seed = seed,
+if (!is.null(seed)) set.seed(seed)
+mod <- mytrtf(data = X_tr,
+ntree = nrow(X_tr),
+minsplit = p$minsplit,
+minbucket = p$minbucket,
+maxdepth = p$maxdepth,
+seed = seed,
 cores = cores)
 mod$config  <- config
-mod$logL_te <- logL_TRTF(mod, S$X_te, cores = cores)
+logL_te_dim <- logL_TRTF_dim(mod, S$X_te, cores = cores)
+mod$logL_te_dim <- logL_te_dim
+mod$logL_te <- sum(logL_te_dim)
 mod
 }
 ### End models/trtf_model.R ###
@@ -353,279 +351,146 @@ res
 }
 ### End models/ks_model.R ###
 
-### Begin models/ttm_base.R ###
-standardizeData <- function(X) {
+### Begin models/ttm_marginal.R ###
+.standardizeData <- function(X) {
 mu <- colMeans(X)
 sigma <- apply(X, 2, sd) + .Machine$double.eps
-X_tilde <- sweep(X, 2, mu, '-')
-X_tilde <- sweep(X_tilde, 2, sigma, '/')
+X_tilde <- sweep(X, 2, mu, "-")
+X_tilde <- sweep(X_tilde, 2, sigma, "/")
 list(X = X_tilde, mu = mu, sigma = sigma)
 }
-sampleReference <- function(N, d) {
-matrix(rnorm(N * d), nrow = N, ncol = d)
+.forward_matrix <- function(S, X) {
+Xs <- .standardize(S, X)
+b <- exp(S$coeffA)
+Z <- sweep(Xs, 2, b, "*")
+sweep(Z, 2, S$coeffB, "+")
 }
-shuffleOrdering <- function(K, seed = NULL) {
-if (!is.null(seed)) set.seed(seed)
-sample(seq_len(K))
+.logjac_const <- function(S) {
+b <- exp(S$coeffA)
+log(b) - log(S$sigma)
 }
-MapStruct <- function(type,
-coeffA = NULL,
-coeffB = NULL,
-coeffC = NULL,
-basisF = NULL,
-basisG = NULL,
-basisH = NULL,
-order = NULL) {
-structure(
-list(
-type = type,
-coeffA = coeffA,
-coeffB = coeffB,
-coeffC = coeffC,
-basisF = basisF,
-basisG = basisG,
-basisH = basisH,
-order = order
-),
-class = "MapStruct"
-)
+.standardize <- function(S, X) {
+X <- sweep(X, 2, S$mu, "-")
+sweep(X, 2, S$sigma, "/")
 }
-setOrdering <- function(S, ord) {
-S$order <- ord
-S
-}
-defaultBasis <- function() {
-f <- function(x, theta) x
-attr(f, "deriv") <- function(x, theta) rep(1, length(x))
-f
-}
-evaluateMap <- function(S, x) {
-forwardPass(S, x)
-}
-logJacDiag <- function(S, x) {
-d <- length(x)
-log_diag <- numeric(d)
-for (k in seq_len(d)) {
-if (S$type == 'marginal') {
-f_prime <- attr(S$basisF[[k]], "deriv")(x[k], S$coeffA[[k]])
-if (f_prime <= 0) {
-stop('non-monotone f_k')
-}
-log_diag[k] <- log(f_prime + 1e-12)
-} else if (S$type == 'separable') {
-f_prime <- attr(S$basisF[[k]], "deriv")(x[k], S$coeffA[[k]])
-if (f_prime <= 0) {
-stop('non-monotone f_k')
-}
-log_diag[k] <- log(f_prime + 1e-12)
-} else {
-log_diag[k] <- S$basisH[[k]](x[k], x[seq_len(k - 1)], S$coeffC[[k]])
-}
-}
-log_diag
-}
-logDetJacobian <- function(logDiag) {
-sum(logDiag)
-}
-forwardKLLoss <- function(S, X) {
-total <- 0
-for (i in seq_len(nrow(X))) {
-z <- forwardPass(S, X[i, ])
-log_diag <- logJacDiag(S, X[i, ])
-total <- total + 0.5 * sum(z^2) - logDetJacobian(log_diag)
-}
-total / nrow(X)
-}
-basisEval1D <- function(basisSet, x) {
-basisSet(x)
-}
-basisEvalKD <- function(basisSet, vec) {
-do.call(basisSet, as.list(vec))
-}
-monotoneIntegrator <- function(h, t0, t) {
-integrand <- function(s) {
-exp(pmin(h(s), 100))
-}
-stats::integrate(integrand, lower = t0, upper = t)$value
-}
-rootFind1D <- function(fun, target) {
-uniroot(function(t) fun(t) - target, interval = c(-10, 10))$root
-}
-optimStep <- function(params, grad, lr) {
-params - lr * grad
-}
-batchIterator <- function(X, B) {
-N <- nrow(X)
-idx <- split(sample(seq_len(N)), ceiling(seq_along(seq_len(N)) / B))
-lapply(idx, function(i) X[i, , drop = FALSE])
-}
-forwardPass <- function(S, x) {
-d <- length(x)
-z <- numeric(d)
-for (k in seq_len(d)) {
-if (S$type == 'marginal') {
-z[k] <- S$basisF[[k]](x[k], S$coeffA[[k]])
-} else if (S$type == 'separable') {
-z[k] <- S$basisG[[k]](x[seq_len(k - 1)], S$coeffB[[k]]) +
-S$basisF[[k]](x[k], S$coeffA[[k]])
-} else {
-z[k] <- S$basisG[[k]](x[seq_len(k - 1)], S$coeffB[[k]]) +
-monotoneIntegrator(
-function(s) S$basisH[[k]](s, x[seq_len(k - 1)], S$coeffC[[k]]),
-0,
-x[k]
-)
-}
-}
-z
-}
-inversePass <- function(S, z, tol = 1e-8) {
-d <- length(z)
-x <- numeric(d)
-for (k in seq_len(d)) {
-fun <- function(t) {
-temp <- x
-temp[k] <- t
-forwardPass(S, temp)[k]
-}
-x[k] <- rootFind1D(fun, z[k])
-}
-x
-}
-lossFull <- function(S, X) {
-forwardKLLoss(S, X)
-}
-negativeLogLikelihood <- function(S, Xtest) {
-L <- 0
-for (i in seq_len(nrow(Xtest))) {
-x <- Xtest[i, ]
-z <- forwardPass(S, x)
-log_diag <- logJacDiag(S, x)
-L <- L + 0.5 * sum(z^2) - logDetJacobian(log_diag)
-}
-L
-}
-natsPerDim <- function(totalNLL, N, d) {
-totalNLL / (N * d)
-}
-stderr <- function(values) {
-stats::sd(values) / sqrt(length(values))
-}
-### End models/ttm_base.R ###
-
-### Begin models/ttm_marginal.R ###
+trainMarginalMap <- function(X_or_path) {
 set.seed(42)
-lr0 <- 0.01
-T_max <- 100L
-P <- 10L
-decay <- 1.0
-linearBasis <- function(S, idx) {
-f <- function(x, theta) {
-S$coeffB[[idx]] + exp(theta) * x
-}
-attr(f, "deriv") <- function(x, theta) rep(exp(theta), length(x))
-f
-}
-initializeCoeffs <- function(S) {
-d <- length(S$order)
-S$coeffA <- vector("list", d)
-S$coeffB <- vector("list", d)
-S$coeffC <- vector("list", d)
-for (k in seq_len(d)) {
-S$coeffA[[k]] <- log(1.0)
-S$coeffB[[k]] <- 0
-S$coeffC[[k]] <- 0
-}
-S
-}
-updateCoeffsMarginal <- function(S, X_batch, lr) {
-d <- length(S$order)
-for (j in seq_len(d)) {
-k <- S$order[j]
-xk <- X_batch[, k]
-u <- rank(xk, ties.method = "average") / (length(xk) + 1)
+S_in <- if (is.character(X_or_path)) readRDS(X_or_path) else X_or_path
+stopifnot(is.list(S_in))
+X_tr <- S_in$X_tr
+X_val <- S_in$X_val
+X_te  <- S_in$X_te
+time_train <- system.time({
+std <- .standardizeData(X_tr)
+X_tr_std <- std$X
+mu <- std$mu
+sigma <- std$sigma
+K <- ncol(X_tr_std)
+coeffA <- numeric(K)
+coeffB <- numeric(K)
+for (k in seq_len(K)) {
+xk <- X_tr_std[, k]
+N <- length(xk)
+u <- rank(xk, ties.method = "average") / (N + 1)
+lower <- 1 / (N + 1)
+upper <- N / (N + 1)
+u <- pmin(pmax(u, lower), upper)
 z_star <- qnorm(u)
 covxz <- mean((xk - mean(xk)) * (z_star - mean(z_star)))
 varx <- var(xk) + 1e-12
-b_star <- max(0, covxz / varx)
-a_star <- mean(z_star) - b_star * mean(xk)
-S$coeffA[[k]] <- log(b_star + 1e-12)
-S$coeffB[[k]] <- a_star
-S$coeffC[[k]] <- 0
+b_k <- max(0, covxz / varx)
+a_k <- mean(z_star) - b_k * mean(xk)
+coeffA[k] <- log(b_k + 1e-12)
+coeffB[k] <- a_k
 }
-S
-}
-computeRowwiseLosses <- function(S, X_set) {
-losses <- numeric(nrow(X_set))
-for (i in seq_len(nrow(X_set))) {
-z <- forwardPass(S, X_set[i, ])
-ell <- logJacDiag(S, X_set[i, ])
-losses[i] <- 0.5 * sum(z^2) - sum(ell)
-}
-losses
-}
-trainMarginalMap <- function(S) {
-stopifnot(is.list(S))
-X_tr  <- S$X_tr
-X_val <- S$X_val
-X_te  <- S$X_te
-X_all <- rbind(X_tr, X_val, X_te)
-std_res <- standardizeData(X_all)
-X_std <- std_res$X
-n_tr <- nrow(X_tr)
-n_val <- nrow(X_val)
-X_train <- X_std[seq_len(n_tr), , drop = FALSE]
-X_val   <- X_std[seq_len(n_val) + n_tr, , drop = FALSE]
-X_test  <- X_std[(n_tr + n_val + 1):nrow(X_std), , drop = FALSE]
-d <- ncol(X_train)
-S_map <- MapStruct(type = "marginal")
-S_map <- setOrdering(S_map, shuffleOrdering(d))
-S_map <- initializeCoeffs(S_map)
-S_map$basisF <- vector("list", d)
-for (k in seq_len(d)) {
-S_map$basisF[[k]] <- linearBasis(S_map, k)
-}
-best_val <- Inf
-best_state <- S_map
-best_epoch <- 0L
-best_train <- Inf
-patience <- 0L
-lr <- lr0
-for (epoch in seq_len(T_max)) {
-S_map <- updateCoeffsMarginal(S_map, X_train, lr)
-NLL_train <- mean(computeRowwiseLosses(S_map, X_train))
-NLL_val <- mean(computeRowwiseLosses(S_map, X_val))
-if (NLL_val < best_val - 1e-6) {
-best_val <- NLL_val
-best_state <- S_map
-best_epoch <- epoch
-best_train <- NLL_train
-patience <- 0L
-} else {
-patience <- patience + 1L
-}
-if (patience > P) break
-lr <- lr * decay
-if (epoch %% 10 == 0) {
-message(epoch, ": val NLL = ", round(NLL_val, 4))
-}
-}
-S_map <- best_state
-loss_test_vec <- computeRowwiseLosses(S_map, X_test)
-NLL_test <- mean(loss_test_vec)
-stderr_test <- stderr(loss_test_vec)
+coeffC <- rep(0, K)
+S_map <- list(
+mu = mu,
+sigma = sigma,
+coeffA = coeffA,
+coeffB = coeffB,
+coeffC = coeffC,
+order = seq_len(K)
+)
+class(S_map) <- "ttm_marginal"
+})[["elapsed"]]
+time_pred <- system.time({
+predict(S_map, X_te, "logdensity_by_dim")
+})[["elapsed"]]
 list(
 S = S_map,
-best_epoch = best_epoch,
-NLL_train = best_train,
-NLL_val = best_val,
-NLL_test = NLL_test,
-stderr_test = stderr_test
+NLL_train = NLL_set(S_map, X_tr),
+NLL_val = NLL_set(S_map, X_val),
+NLL_test = NLL_set(S_map, X_te),
+stderr_test = SE_set(S_map, X_te),
+time_train = time_train,
+time_pred = time_pred
 )
+}
+predict.ttm_marginal <- function(object, newdata,
+type = c("logdensity_by_dim", "logdensity")) {
+type <- tryCatch(match.arg(type), error = function(e) stop("unknown type"))
+Z <- .forward_matrix(object, newdata)
+LJ <- .logjac_const(object)
+C <- -0.5 * log(2 * pi)
+LD <- (-0.5) * (Z^2) + C +
+matrix(LJ, nrow = nrow(Z), ncol = length(LJ), byrow = TRUE)
+if (type == "logdensity_by_dim") {
+LD
+} else {
+rowSums(LD)
+}
+}
+NLL_set <- function(S, X) {
+mean(-rowSums(predict(S, X, "logdensity_by_dim")))
+}
+SE_set <- function(S, X) {
+v <- rowSums(-predict(S, X, "logdensity_by_dim"))
+stats::sd(v) / sqrt(length(v))
+}
+forwardPass <- function(S, x) {
+x_std <- .standardize(S, matrix(x, nrow = 1))
+b <- exp(S$coeffA)
+a <- S$coeffB
+as.numeric(a + b * x_std)
+}
+logJacDiag <- function(S, x) {
+LJ <- .logjac_const(S)
+rep(LJ, length.out = length(x))
+}
+forwardKLLoss <- function(S, X) {
+Z <- .forward_matrix(S, X)
+LJ <- .logjac_const(S)
+mean(0.5 * rowSums(Z^2) - sum(LJ))
+}
+inversePass <- function(S, z) {
+b <- exp(S$coeffA)
+a <- S$coeffB
+x_std <- (z - a) / b
+x <- sweep(x_std, 2, S$sigma, "*")
+x <- sweep(x, 2, S$mu, "+")
+as.numeric(x)
+}
+negativeLogLikelihood <- function(S, X) {
+Z <- .forward_matrix(S, X)
+LJ <- .logjac_const(S)
+sum(0.5 * rowSums(Z^2) - sum(LJ))
+}
+natsPerDim <- function(NLL, N, K) {
+NLL / (N * K)
+}
+stderr <- function(v) {
+stats::sd(v) / sqrt(length(v))
 }
 ### End models/ttm_marginal.R ###
 
 ### Begin 04_evaluation.R ###
+root_path <- getwd()
+if (basename(root_path) == "testthat") {
+root_path <- dirname(dirname(root_path))
+}
+source(file.path(root_path, "models/ttm_marginal.R"))
+source(file.path(root_path, "models/ks_model.R"))
 add_sum_row <- function(tab, label = "k") {
 stopifnot(is.data.frame(tab))
 sum_row <- setNames(vector("list", ncol(tab)), names(tab))
@@ -639,12 +504,6 @@ sum_row[[nm]] <- NA
 }
 }
 rbind(tab, as.data.frame(sum_row, stringsAsFactors = FALSE))
-}
-stderr <- function(values) {
-stats::sd(values) / sqrt(length(values))
-}
-nats_per_dim <- function(loss, d) {
-loss / d
 }
 prepare_data <- function(n, config, seed = 42) {
 X <- Generate_iid_from_config(n, config)
@@ -679,19 +538,28 @@ ll_true[, k] <- -ll_vec
 ll_trtf <- -predict(models$trtf, X_te, type = "logdensity_by_dim")
 ll_ks   <- -predict(models$ks,  X_te, type = "logdensity_by_dim")
 if (!is.null(models$ttm)) {
-ll_ttm_dim <- rep(models$ttm$NLL_test / K, K)
-se_ttm     <- rep(models$ttm$stderr_test / K, K)
+ll_ttm <- -predict(models$ttm$S, X_te, type = "logdensity_by_dim")
+mean_ttm <- colMeans(ll_ttm)
+se_ttm   <- apply(ll_ttm, 2, stderr)
+total_nll_ttm <- rowSums(ll_ttm)
+se_sum_ttm <- stats::sd(total_nll_ttm) / sqrt(length(total_nll_ttm))
 } else {
-ll_ttm_dim <- rep(NA_real_, K)
-se_ttm     <- rep(NA_real_, K)
+mean_ttm <- rep(NA_real_, K)
+se_ttm   <- rep(NA_real_, K)
+se_sum_ttm <- NA_real_
 }
 mean_true <- colMeans(ll_true)
 se_true   <- apply(ll_true, 2, stderr)
+total_nll_true <- rowSums(ll_true)
+se_sum_true <- stats::sd(total_nll_true) / sqrt(length(total_nll_true))
 mean_trtf <- colMeans(ll_trtf)
 se_trtf   <- apply(ll_trtf, 2, stderr)
+total_nll_trtf <- rowSums(ll_trtf)
+se_sum_trtf <- stats::sd(total_nll_trtf) / sqrt(length(total_nll_trtf))
 mean_ks   <- colMeans(ll_ks)
 se_ks     <- apply(ll_ks,   2, stderr)
-mean_ttm  <- ll_ttm_dim
+total_nll_ks <- rowSums(ll_ks)
+se_sum_ks <- stats::sd(total_nll_ks) / sqrt(length(total_nll_ks))
 fmt <- function(m, se) sprintf("%.2f ± %.2f", round(m, 2), round(2 * se, 2))
 tab <- data.frame(
 dim = as.character(seq_len(K)),
@@ -705,13 +573,19 @@ stringsAsFactors = FALSE
 sum_row <- data.frame(
 dim = "k",
 distribution = "SUM",
-true = fmt(sum(mean_true), sqrt(sum(se_true^2))),
-trtf = fmt(sum(mean_trtf), sqrt(sum(se_trtf^2))),
-ks   = fmt(sum(mean_ks),   sqrt(sum(se_ks^2))),
-ttm  = fmt(sum(mean_ttm),  sqrt(sum(se_ttm^2))),
+true = fmt(sum(mean_true), se_sum_true),
+trtf = fmt(sum(mean_trtf), se_sum_trtf),
+ks   = fmt(sum(mean_ks),   se_sum_ks),
+ttm  = fmt(sum(mean_ttm),  se_sum_ttm),
 stringsAsFactors = FALSE
 )
-rbind(tab, sum_row)
+tab <- rbind(tab, sum_row)
+nm <- names(tab)
+nm[nm == "trtf"] <- "Random Forest"
+nm[nm == "ttm"]  <- "Marginal Map"
+names(tab) <- nm
+message("Ergebnis (NLL in nats; lower is better)")
+tab
 }
 ### End 04_evaluation.R ###
 
@@ -723,7 +597,9 @@ matches <- regmatches(lines, gregexpr(pattern, lines, perl = TRUE))
 src_files <- unlist(lapply(matches, function(x) if (length(x) > 0) gsub(pattern, "\\1", x)))
 unique(src_files)
 }
-replicate_code_scripts <- function(main_file = "main.R", outfile = "replicated_code.txt") {
+replicate_code_scripts <- function(main_file = "main.R",
+outfile = "replicated_code.txt",
+env = parent.frame()) {
 src_files <- extract_sources(main_file)
 output_lines <- character()
 for (f in src_files) {
@@ -732,8 +608,31 @@ lines <- readLines(f, warn = FALSE)
 lines <- sub("
 lines <- trimws(lines)
 lines <- lines[nchar(lines) > 0]
-output_lines <- c(output_lines, paste0("
+output_lines <- c(output_lines,
+paste0("
+lines,
+paste0("
+"")
 }
+}
+if (file.exists(main_file)) {
+lines <- readLines(main_file, warn = FALSE)
+lines <- sub("
+lines <- trimws(lines)
+lines <- lines[nchar(lines) > 0]
+output_lines <- c(output_lines,
+paste0("
+lines,
+paste0("
+"")
+}
+if (exists("results_table", envir = env)) {
+tab <- get("results_table", envir = env)
+tab_lines <- capture.output(print(tab))
+output_lines <- c(output_lines,
+"
+tab_lines,
+"")
 }
 writeLines(output_lines, outfile)
 }
@@ -741,4 +640,52 @@ if (sys.nframe() == 0L) {
 replicate_code_scripts()
 }
 ### End replicate_code.R ###
+
+### Begin main.R ###
+source("00_globals.R")
+source("01_data_generation.R")
+source("02_split.R")
+source("models/true_model.R")
+source("models/trtf_model.R")
+source("models/ks_model.R")
+source("models/ttm_marginal.R")
+source("04_evaluation.R")
+source("replicate_code.R")
+n <- 50
+config <- list(
+list(distr = "norm", parm = NULL),
+list(distr = "exp",  parm = function(d) list(rate = softplus(d$X1))),
+list(distr = "beta",
+parm = function(d) list(shape1 = softplus(d$X2),
+shape2 = softplus(d$X1))),
+list(distr = "gamma",
+parm = function(d) list(shape = softplus(d$X3),
+scale = softplus(d$X2)))
+)
+main <- function() {
+prep <- prepare_data(n, config, seed = 42)
+mods <- list(
+true = fit_TRUE(prep$S, config),
+trtf = fit_TRTF(prep$S, config, seed = 42),
+ks   = fit_KS(prep$S, config),
+ttm  = trainMarginalMap(prep$S)
+)
+tab <- calc_loglik_tables(mods, config, prep$S$X_te)
+print(tab)
+results_table <<- tab
+invisible(tab)
+}
+if (sys.nframe() == 0L) {
+main()
+replicate_code_scripts("main.R", "replicated_code.txt", env = globalenv())
+}
+### End main.R ###
+
+### Final results table ###
+  dim distribution         true Random Forest           ks Marginal Map
+1   1         norm  1.14 ± 0.15   1.15 ± 0.25  1.16 ± 0.22  1.22 ± 0.12
+2   2          exp  1.61 ± 0.63   1.75 ± 0.79  1.51 ± 0.35  2.36 ± 0.06
+3   3         beta -0.14 ± 0.60  -0.26 ± 0.48 -0.39 ± 0.85 -0.05 ± 0.10
+4   4        gamma  1.65 ± 0.83   1.66 ± 0.83  1.47 ± 0.73  2.57 ± 0.04
+5   k          SUM  4.26 ± 1.19   4.31 ± 1.59  3.75 ± 1.65  6.10 ± 0.21
 
