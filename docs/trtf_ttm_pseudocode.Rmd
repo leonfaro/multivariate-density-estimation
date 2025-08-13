@@ -1,0 +1,78 @@
+---
+title: "TRTF and TTM Pseudocode"
+author: "Research Team"
+date: "2025-08-13"
+output: html_document
+---
+
+## Notation & Setup
+
+Let $\pi(x)$ denote the target log density and $\eta(z)$ the base log density. The triangular transport map $S: \mathbb{R}^K \to \mathbb{R}^K$ has components $S_k(x_1,\ldots,x_k)$ for $k=1,\ldots,K$. Here $N$ is the number of observations and $K$ the dimension of $x$. The change of variables states, in words, that the log density of $x$ under $\pi$ equals the log density of $S(x)$ under $\eta$ plus the log determinant of the Jacobian, which reduces to a sum of log partial derivatives because $S$ is triangular. The pipeline main() -> TRUE/TRTF/KS/TTM marginal governs all experiments. Model artifacts are TRTF and the Marginal Map (diagonal). All log densities are measured in nats, and sums over dimensions yield the joint log density.
+
+## TRTF Pseudocode
+### fit\_TRTF($S$, seed)
+
+1. Set the global `seed`.
+2. Let $X$ be the $N\times K$ sample matrix.
+3. Define `ymod` by fitting a marginal BoxCox model for $X_1$.
+4. For $k=2,\ldots,K$:
+   - Fit a transformation forest for $X_k$ with predictors $(X_1,\ldots,X_{k-1})$.
+   - Store the fitted forest, variable importance and configuration.
+5. Output an object containing `ymod`, the list of forests, `seed` and the configuration.
+
+### predict(TRTF, $X$, type)
+
+1. Compute $ld1$, the log density of the first dimension via `ymod`.
+2. For $j=1,\ldots,K-1$:
+   - Compute conditional log densities for column $j+1$ using forest $j$ with predictors $(X_1,\ldots,X_j)$.
+   - Take the diagonal of the resulting prediction matrix.
+3. Form $ll = \text{cbind}(ld1, \text{conditional contributions})$.
+4. Ensure $ll$ contains no NA or $\infty$ entries.
+5. If `type == 'logdensity_by_dim'` return $ll$ (an $N\times K$ matrix).
+6. Else return $\text{rowSums}(ll)$, labelled `'logdensity'`.
+7. Summing over $K$ dimensions yields the joint log density.
+8. Damit gilt: `logdensity_by_dim` ist $N\times K$ und $\text{rowSums}(ll) =`'logdensity'`.
+
+## Marginal Map Pseudocode
+
+### Training
+
+1. Take the training sample matrix $X_{\text{tr}}$ of size $N_{\text{tr}}\times K$.
+2. Compute standardization parameters $\mu_k = \operatorname{mean}(x_{k})$ and $\sigma_k = \operatorname{sd}(x_{k})$ for each dimension; **these are train-only and stored for later use**.
+3. For $k=1,\ldots,K$:
+   - $u \leftarrow \operatorname{rank}(x_k, \text{ties.avg})/(N_{\text{tr}}+1)$ and clip $u$ to $[1/(N_{\text{tr}}+1), N_{\text{tr}}/(N_{\text{tr}}+1)]$.
+   - $z^\star \leftarrow \Phi^{-1}(u)$ where $\Phi^{-1}$ is the standard normal quantile.
+   - $b_k \leftarrow \max(0, \operatorname{cov}(x_k, z^\star)/\operatorname{var}(x_k))$.
+   - $a_k \leftarrow \operatorname{mean}(z^\star) - b_k\,\operatorname{mean}(x_k)$.
+   - Store coefficients $\text{coeffA}_k = \log(b_k+\varepsilon)$, $\text{coeffB}_k = a_k$, $\text{coeffC}_k = 0$ along with $\mu_k,\sigma_k$.
+
+### Prediction
+
+1. Standardize new data: $X_{\text{std}} = (X-\mu)/\sigma$ using the **training** $\mu,\sigma$.
+2. Compute $z = a + b\, X_{\text{std}}$ elementwise.
+3. For each $i,k$, 
+   $\text{logdensity\_by\_dim}[i,k] = -0.5\,z_{i,k}^2 -0.5\log(2\pi) + \log b_k - \log \sigma_k$.
+4. The term $\log b_k - \log \sigma_k$ is the Jacobian constant; it explicitly contains the contribution $-\log(\sigma_k)$ from the train-only standardization.
+5. Ensure no NA or $\infty$ appear in $\text{logdensity\_by\_dim}$.
+6. If `type == 'logdensity_by_dim'` return this $N\times K$ matrix; else return $\operatorname{rowSums}(\text{logdensity\_by\_dim})$ labelled `'logdensity'`.
+7. Somit gilt: `logdensity_by_dim` ist $N\times K$ und `rowSums` = `'logdensity'`.
+
+### Forward-KL Objective
+
+$J(S) = \operatorname{mean}_i\left(0.5\sum_k z_{i,k}^2\right) - \sum_k(\log b_k - \log \sigma_k)$.
+
+## Acceptance & Reproducibility
+
+The following checklist must hold for accepting results and ensuring reproducibility:
+
+1. **Shape (TRTF):** `predict(mytrtf, X, 'logdensity_by_dim')` returns an $N\times K$ matrix; $\operatorname{rowSums}$ yields `'logdensity'`.
+2. **Shape (Marginal Map):** `predict(trainMarginalMap, X, 'logdensity_by_dim')` returns an $N\times K$ matrix; $\operatorname{rowSums}$ yields `'logdensity'`.
+3. **Constants:** Each dimension contributes $-0.5\log(2\pi)$; the Jacobian of `trainMarginalMap` contains $-\log(\sigma_k)$.
+4. **Standardisierung:** $\mu,\sigma$ are estimated on training data only and applied unchanged to validation and test sets.
+5. **Seed-Policy:** A single global seed is used; `mytrtf` and `trainMarginalMap` call `set.seed` with this value.
+6. **Stabilität:** Ranks use `ties.average`; $u$ is clipped to $[1/(N_{\text{tr}}+1), N_{\text{tr}}/(N_{\text{tr}}+1)]$.
+7. **Numerik:** `predict(...,'logdensity_by_dim')` outputs contain neither NA nor $\infty$.
+8. **Summenregel:** Summing over $K$ dimensions of `logdensity_by_dim` reproduces the joint log density.
+9. **Repro:** Two runs with the same seed yield identical negative log-likelihood tables (nats).
+10. **Dokument:** `docs/trtf_ttm_pseudocode.Rmd` consists solely of text and LaTeX without R code chunks.
+
