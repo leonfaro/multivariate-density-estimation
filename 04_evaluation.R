@@ -4,6 +4,7 @@ if (basename(root_path) == "testthat") {
   root_path <- dirname(dirname(root_path))
 }
 source(file.path(root_path, "models/ttm_marginal.R"))
+source(file.path(root_path, "models/ttm_separable.R"))
 source(file.path(root_path, "models/ks_model.R"))
 
 #' Summen-Zeile an Tabelle anh\u00e4ngen
