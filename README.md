@@ -1,36 +1,29 @@
-# Parametric Baseline Extension
-Read `Theory.md` and 'roadmap.md' before starting any task. Adjust ALGORITHM_SPEC.md after every task if necessary.
-This repository implements simple experiments for multivariate conditional density estimation.
-All notation follows `Theory.md` and the instructions in `AGENTS.md`.
+# Multivariate Density Estimation via Triangular Transport Maps
+All densities are evaluated in log-space and strictly positive parameters use softplus transforms, as detailed in [ALGORITHM_SPEC.md](ALGORITHM_SPEC.md).
 
-## Background
+* * *
 
-For a random vector $x = (x_1,\ldots,x_K)$ with density $\pi(x)$ we study a
-lower--triangular transport $S$ such that $z = S(x)$ has independent standard
-normal components.  Densities relate via
+## Folder Structure
+- [data/](data/) — Raw and generated datasets for experiments.
+- [docs/](docs/) — Thesis material and supplementary explanations.
+- [models/](models/) — Estimation models and supporting code.
+- [results/](results/) — Output tables and trained objects.
+- [tests/](tests/) — Test suite using testthat.
 
-$$\pi(x) = \eta(S(x)) |\det \nabla_x S(x)|,$$
-where $\eta$ denotes the standard Gaussian.
+* * *
 
-Optimization uses `optim` with the BFGS method on the negative log-likelihood.
-All densities and likelihoods are computed in log-space from `00_setup.R` on;
-only the final presentation of summary metrics converts them back to standard
-scale.
+## Top-level Scripts
+- [00_globals.R](00_globals.R) — Global settings and helper utilities.
+- [01_data_generation.R](01_data_generation.R) — Conditional sampling via triangular transport mapping.
+- [02_split.R](02_split.R) — Reproducible 80/10/10 data partitioning.
+- [04_evaluation.R](04_evaluation.R) — Model evaluation helpers and table summaries.
+- [demo_script_do_not_change.R](demo_script_do_not_change.R) — Demonstration of conditional transformation forests.
+- [main.R](main.R) — Orchestrates full pipeline with global seed.
+- [miniboone.R](miniboone.R) — Preprocesses MiniBooNE data into splits.
+- [replicate_code.R](replicate_code.R) — Concatenates sourced scripts for reproducibility.
 
-## Configuration Syntax
+* * *
 
-The configuration `config` is a list of length $K`.  Each entry has a field
-`distr` specifying the family.
-
-## Interactive Analysis
-
-Knit `analysis_pipeline.Rmd` to run the exploratory workflow.  In a shell this
-amounts to
-
-```bash
-Rscript -e "rmarkdown::render('analysis_pipeline.Rmd')"
-```
-which produces an HTML report with all tables and plots.
-
-## End_of_readme
-
+## Notes
+- Developed within a master's thesis project.
+- Reproducibility: global RNG seed configured in [main.R](main.R).
