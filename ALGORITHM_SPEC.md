@@ -293,4 +293,36 @@ Each module drawing random numbers sets the RNG via `set.seed` with an integer s
   - `natsPerDim(L,N,d)=L/(N·d)` → normalized NLL per dimension.
   - `results_table`: matrix of mean NLL per dimension for each model.
 
+Kurzfassung:
+
+**Wie viele vollständige TTM‑Algorithmen?**
+→ **Zwei**: *Maps from samples* (Target→Reference, $S$) und *Maps from densities* (Reference→Target, $R$).&#x20;
+
+---
+
+### 1) *Maps from samples* (Target→Reference, $S$)
+
+* **Idee/Objective:** Minimiere $D_{\mathrm{KL}}(\pi \,\|\, S^{\sharp}\eta)$ ≡ maximiere die Log‑Likelihood der Pullback‑Dichte auf Fix‑Samples $x\sim\pi$.
+  **Gleichungen:** (31)–(39).
+  **Seiten im PDF:** p. 26 (31–34), p. 27 (35–38), p. 28 (39).&#x20;
+* **Kernformeln:** Zerlegung $\log\det\nabla S(x)=\sum_k \log \partial_{x_k} S_k(x)$ und Monte‑Carlo‑Kostenfunktion $\mathcal{J}(S)=\sum_{i,k}\big(\tfrac12 S_k(X_i)^2-\log\partial_{x_k}S_k(X_i)\big)$.&#x20;
+
+### 2) *Maps from densities* (Reference→Target, $R$)
+
+* **Idee/Objective:** Minimiere $D_{\mathrm{KL}}(\eta \,\|\, R^{\sharp}\tilde{\pi})$ (reverse KL) bei nur bis auf Konstante bekannter Zieldichte $\tilde{\pi}$; maximiere Log‑Likelihood der Pullback‑Dichte auf Referenz‑Samples $z\sim\eta$.
+  **Gleichungen:** (40)–(48).
+  **Seiten im PDF:** p. 28 (40–44), p. 29 (45–48).&#x20;
+* **Kernformeln:** $\log\det\nabla R(z)=\sum_k \log \partial_{z_k} R_k(z)$ und MC‑Ziel $\mathcal{J}(R)=\sum_i\big(-\log \tilde{\pi}(R(Z_i))-\sum_k \log\partial_{z_k}R_k(Z_i)\big)$.&#x20;
+
+---
+
+## Welche davon sind im Repo umgesetzt?
+
+* **Umgesetzt:** *Maps from samples* (Target→Reference, $S$) mit Maximierung der (negativen) Log‑Likelihood via BFGS. Das README beschreibt explizit den **lower‑triangular** Transport $z=S(x)$ und die Optimierung „on the negative log‑likelihood“. Das entspricht genau dem Objective (31)–(39) oben. ([GitHub][1])
+* **Nicht umgesetzt (derzeit ersichtlich):** *Maps from densities* (Reference→Target, $R$) mit reverse‑KL‑Objective (40)–(48) – im Repo finde ich keinen Hinweis auf das Ziehen von $z\sim\eta$ und ein Training gegen $\tilde{\pi}$. ([GitHub][1])
+
+> **Kurzantwort:** 2 vollständige TTM‑Algorithmen im Paper. *Maps from samples* (Eq. 31–39, p. 26–28) und *Maps from densities* (Eq. 40–48, p. 28–29). In eurem Repo ist der erste umgesetzt; der zweite scheint (noch) zu fehlen. ([GitHub][1])
+
+
+
 
