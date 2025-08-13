@@ -98,6 +98,17 @@ calc_loglik_tables <- function(models, config, X_te) {
     se_ttm   <- rep(NA_real_, K)
     se_sum_ttm <- NA_real_
   }
+  if (!is.null(models$ttm_sep)) {
+    ll_ttm_sep <- -predict(models$ttm_sep$S, X_te, type = "logdensity_by_dim")
+    mean_sep <- colMeans(ll_ttm_sep)
+    se_sep   <- apply(ll_ttm_sep, 2, stderr)
+    total_nll_sep <- rowSums(ll_ttm_sep)
+    se_sum_sep <- stats::sd(total_nll_sep) / sqrt(length(total_nll_sep))
+  } else {
+    mean_sep <- rep(NA_real_, K)
+    se_sep   <- rep(NA_real_, K)
+    se_sum_sep <- NA_real_
+  }
 
   mean_true <- colMeans(ll_true)
   se_true   <- apply(ll_true, 2, stderr)
@@ -120,6 +131,7 @@ calc_loglik_tables <- function(models, config, X_te) {
     trtf = fmt(mean_trtf, se_trtf),
     ks   = fmt(mean_ks, se_ks),
     ttm  = fmt(mean_ttm, se_ttm),
+    ttm_sep = fmt(mean_sep, se_sep),
     stringsAsFactors = FALSE
   )
 
@@ -130,6 +142,7 @@ calc_loglik_tables <- function(models, config, X_te) {
     trtf = fmt(sum(mean_trtf), se_sum_trtf),
     ks   = fmt(sum(mean_ks),   se_sum_ks),
     ttm  = fmt(sum(mean_ttm),  se_sum_ttm),
+    ttm_sep = fmt(sum(mean_sep),  se_sum_sep),
     stringsAsFactors = FALSE
   )
   tab <- rbind(tab, sum_row)
@@ -138,6 +151,7 @@ calc_loglik_tables <- function(models, config, X_te) {
   nm <- names(tab)
   nm[nm == "trtf"] <- "Random Forest"
   nm[nm == "ttm"]  <- "Marginal Map"
+  nm[nm == "ttm_sep"] <- "Separable Map"
   names(tab) <- nm
   message("Ergebnis (NLL in nats; lower is better)")
   tab
