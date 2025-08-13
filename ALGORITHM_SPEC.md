@@ -28,6 +28,13 @@ stderr(v)
 ######################################
 ```
 
+```
+########  TTM CORE (separable) ########
+trainSeparableMap(X_or_path)
+predict.ttm_separable(S, X, type)
+######################################
+```
+
 ## 2. Top-Level Pipeline
 The overarching routine `main()` follows the composition
 $$\operatorname{mainPipeline} := f_9 \circ f_8 \circ \cdots \circ f_1,$$
@@ -243,16 +250,39 @@ function calc_loglik_tables(models, X_te)
     ll_true <- -predict_TRUE(models.true, X_te)
     ll_trtf <- -predict(models.trtf, X_te)
     ll_ks   <- -predict(models.ks,   X_te)
-    mean_true <- colMeans(ll_true)
-    se_true   <- apply(ll_true, 2, stderr)
-    ... (same for trtf, ks)
+    if models.ttm exists:
+        ll_ttm <- -predict(models.ttm$S, X_te)
+        mean_ttm <- colMeans(ll_ttm)
+        se_ttm   <- apply(ll_ttm, 2, stderr)
+        se_sum_ttm <- sd(rowSums(ll_ttm)) / sqrt(nrow(ll_ttm))
+    else:
+        mean_ttm <- rep(NA, K); se_ttm <- rep(NA, K); se_sum_ttm <- NA
+    if models.ttm_sep exists:
+        ll_sep <- -predict(models.ttm_sep$S, X_te)
+        mean_sep <- colMeans(ll_sep)
+        se_sep   <- apply(ll_sep, 2, stderr)
+        se_sum_sep <- sd(rowSums(ll_sep)) / sqrt(nrow(ll_sep))
+    else:
+        mean_sep <- rep(NA, K); se_sep <- rep(NA, K); se_sum_sep <- NA
+    mean_true <- colMeans(ll_true); se_true <- apply(ll_true,2,stderr)
+    mean_trtf <- colMeans(ll_trtf); se_trtf <- apply(ll_trtf,2,stderr)
+    mean_ks   <- colMeans(ll_ks);   se_ks   <- apply(ll_ks,2,stderr)
+    fmt(x,se) = sprintf("%.2f ± %.2f", round(x,2), round(2*se,2))
     tab <- data.frame(dim, distribution,
-                      true = sprintf("%.2f ± %.2f", mean_true, 2*se_true),
-                      trtf = sprintf("%.2f ± %.2f", mean_trtf,2*se_trtf),
-                      ks   = sprintf("%.2f ± %.2f", mean_ks,  2*se_ks),
-                      ttm  = NA)
-    add_sum_row(tab)
-    return tab
+                      true = fmt(mean_true, se_true),
+                      trtf = fmt(mean_trtf, se_trtf),
+                      ks   = fmt(mean_ks,   se_ks),
+                      ttm  = fmt(mean_ttm,  se_ttm),
+                      ttm_sep = fmt(mean_sep, se_sep))
+    sum_row <- data.frame(dim="k", distribution="SUM",
+                          true=fmt(sum(mean_true), se_sum_true),
+                          trtf=fmt(sum(mean_trtf), se_sum_trtf),
+                          ks  =fmt(sum(mean_ks),   se_sum_ks),
+                          ttm =fmt(sum(mean_ttm),  se_sum_ttm),
+                          ttm_sep=fmt(sum(mean_sep), se_sum_sep))
+    rename columns: trtf->"Random Forest", ttm->"Marginal Map",
+                    ttm_sep->"Separable Map"
+    return rbind(tab, sum_row)
 ```
 
 
