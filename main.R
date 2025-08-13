@@ -5,6 +5,7 @@ source("models/true_model.R")
 source("models/trtf_model.R")
 source("models/ks_model.R")
 source("models/ttm_marginal.R")
+source("models/ttm_separable.R")
 source("04_evaluation.R")
 source("replicate_code.R")
 
@@ -28,12 +29,14 @@ config <- list(
 #' 
 #' @export
 main <- function() {
+  set.seed(42)
   prep <- prepare_data(n, config, seed = 42)
   mods <- list(
     true = fit_TRUE(prep$S, config),
     trtf = fit_TRTF(prep$S, config, seed = 42),
     ks   = fit_KS(prep$S, config),
-    ttm  = trainMarginalMap(prep$S)
+    ttm  = trainMarginalMap(prep$S),
+    ttm_sep = trainSeparableMap(prep$S)
   )
   tab <- calc_loglik_tables(mods, config, prep$S$X_te)
   print(tab)
