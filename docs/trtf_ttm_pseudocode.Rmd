@@ -1,0 +1,33 @@
+---
+title: "TRTF and TTM Pseudocode"
+author: "Research Team"
+date: "2025-08-13"
+output: html_document
+---
+
+## Notation & Setup
+
+Let $\pi(x)$ denote the target log density and $\eta(z)$ the base log density. The triangular transport map $S: \mathbb{R}^K \to \mathbb{R}^K$ has components $S_k(x_1,\ldots,x_k)$ for $k=1,\ldots,K$. Here $N$ is the number of observations and $K$ the dimension of $x$. The change of variables states, in words, that the log density of $x$ under $\pi$ equals the log density of $S(x)$ under $\eta$ plus the log determinant of the Jacobian, which reduces to a sum of log partial derivatives because $S$ is triangular. The pipeline main() -> TRUE/TRTF/KS/TTM marginal governs all experiments. Model artifacts are TRTF and the Marginal Map (diagonal). All log densities are measured in nats, and sums over dimensions yield the joint log density.
+
+## TRTF Pseudocode
+
+1. Input $\{x_i\}_{i=1}^N$.
+2. For $k = 1$ to $K$:
+   - Fit a transformation forest for $x_k$ conditioned on $(x_1,\ldots,x_{k-1})$ to obtain $S_k$.
+   - Accumulate $\log \partial_{x_k} S_k(x_1,\ldots,x_k)$.
+3. Evaluate $\log \eta(S(x))$ at the mapped sample.
+4. Return $\log \pi(x)$ as the sum of base log density and accumulated terms.
+
+## Marginal Map Pseudocode
+
+1. Input $\{x_i\}_{i=1}^N$.
+2. For each dimension $k$:
+   - Fit a univariate map $S_k$ on $x_k$.
+   - Accumulate $\log \partial_{x_k} S_k(x_k)$.
+3. Evaluate $\log \eta(S(x))$ using the diagonal map.
+4. Return $\log \pi(x)$ as the sum of base log density and accumulated terms.
+
+## Acceptance & Reproducibility
+
+A model is accepted when its joint log density exceeds that of the baseline. All computations use a single global seed shared across models. This policy ensures reproducibility and comparability across TRTF and Marginal Map (diagonal) artifacts.
+
