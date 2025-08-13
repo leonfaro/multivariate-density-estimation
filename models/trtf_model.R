@@ -7,7 +7,6 @@ p <- list(
 
 mytrtf <- function(data, ntree, minsplit, minbucket, maxdepth, seed, cores = NC) {
   stopifnot(is.matrix(data))
-  set.seed(seed)
   K <- ncol(data)
   df <- as.data.frame(data)
   names(df) <- paste0("X", seq_len(K))
@@ -82,13 +81,23 @@ logL_TRTF_dim <- function(model, X, cores = NC) {
   res
 }
 
-fit_TRTF <- function(S, config, seed = NULL, cores = NC) {
+fit_TRTF <- function(S, config, seed = NULL, ...) {
   stopifnot(is.list(S))
   X_tr <- S$X_tr
   X_te <- S$X_te
   stopifnot(is.matrix(X_tr), is.matrix(X_te))
 
-  if (!is.null(seed)) set.seed(seed)
+  if (!is.null(seed)) {
+    old_seed <- if (exists(".Random.seed", envir = .GlobalEnv)) get(".Random.seed", envir = .GlobalEnv) else NULL
+    set.seed(seed)
+    on.exit({
+      if (is.null(old_seed)) rm(".Random.seed", envir = .GlobalEnv) else assign(".Random.seed", old_seed, envir = .GlobalEnv)
+    }, add = TRUE)
+  }
+
+  old_mc <- getOption("mc.cores")
+  on.exit({ options(mc.cores = old_mc) }, add = TRUE)
+  options(mc.cores = 1)
 
   mod <- mytrtf(data = X_tr,
                 ntree = nrow(X_tr),
@@ -96,13 +105,13 @@ fit_TRTF <- function(S, config, seed = NULL, cores = NC) {
                 minbucket = p$minbucket,
                 maxdepth = p$maxdepth,
                 seed = seed,
-                cores = cores)
-  
+                cores = getOption("mc.cores"))
+
   mod$config  <- config
-  
-  logL_te_dim <- logL_TRTF_dim(mod, S$X_te, cores = cores)
+
+  logL_te_dim <- logL_TRTF_dim(mod, S$X_te, cores = getOption("mc.cores"))
   mod$logL_te_dim <- logL_te_dim
   mod$logL_te <- sum(logL_te_dim)
-  
+
   mod
 }

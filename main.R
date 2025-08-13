@@ -28,6 +28,13 @@ config <- list(
 #' 
 #' @export
 main <- function() {
+  old_mc <- getOption("mc.cores")
+  on.exit({ options(mc.cores = old_mc) }, add = TRUE)
+  options(mc.cores = 1)
+  old_NC <- NC
+  on.exit({ NC <<- old_NC }, add = TRUE)
+  NC <<- 1
+
   prep <- prepare_data(n, config, seed = 42)
   mods <- list(
     true = fit_TRUE(prep$S, config),
