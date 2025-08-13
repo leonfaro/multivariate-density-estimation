@@ -63,5 +63,16 @@ $J(S) = \operatorname{mean}_i\left(0.5\sum_k z_{i,k}^2\right) - \sum_k(\log b_k 
 
 ## Acceptance & Reproducibility
 
-A model is accepted when its joint log density exceeds that of the baseline. All computations use a single global seed shared across models. This policy ensures reproducibility and comparability across TRTF and Marginal Map (diagonal) artifacts.
+The following checklist must hold for accepting results and ensuring reproducibility:
+
+1. **Shape (TRTF):** `predict(mytrtf, X, 'logdensity_by_dim')` returns an $N\times K$ matrix; $\operatorname{rowSums}$ yields `'logdensity'`.
+2. **Shape (Marginal Map):** `predict(trainMarginalMap, X, 'logdensity_by_dim')` returns an $N\times K$ matrix; $\operatorname{rowSums}$ yields `'logdensity'`.
+3. **Constants:** Each dimension contributes $-0.5\log(2\pi)$; the Jacobian of `trainMarginalMap` contains $-\log(\sigma_k)$.
+4. **Standardisierung:** $\mu,\sigma$ are estimated on training data only and applied unchanged to validation and test sets.
+5. **Seed-Policy:** A single global seed is used; `mytrtf` and `trainMarginalMap` call `set.seed` with this value.
+6. **Stabilität:** Ranks use `ties.average`; $u$ is clipped to $[1/(N_{\text{tr}}+1), N_{\text{tr}}/(N_{\text{tr}}+1)]$.
+7. **Numerik:** `predict(...,'logdensity_by_dim')` outputs contain neither NA nor $\infty$.
+8. **Summenregel:** Summing over $K$ dimensions of `logdensity_by_dim` reproduces the joint log density.
+9. **Repro:** Two runs with the same seed yield identical negative log-likelihood tables (nats).
+10. **Dokument:** `docs/trtf_ttm_pseudocode.Rmd` consists solely of text and LaTeX without R code chunks.
 
