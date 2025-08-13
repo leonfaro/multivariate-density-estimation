@@ -35,12 +35,31 @@ Let $\pi(x)$ denote the target log density and $\eta(z)$ the base log density. T
 
 ## Marginal Map Pseudocode
 
-1. Input $\{x_i\}_{i=1}^N$.
-2. For each dimension $k$:
-   - Fit a univariate map $S_k$ on $x_k$.
-   - Accumulate $\log \partial_{x_k} S_k(x_k)$.
-3. Evaluate $\log \eta(S(x))$ using the diagonal map.
-4. Return $\log \pi(x)$ as the sum of base log density and accumulated terms.
+### Training
+
+1. Take the training sample matrix $X_{\text{tr}}$ of size $N_{\text{tr}}\times K$.
+2. Compute standardization parameters $\mu_k = \operatorname{mean}(x_{k})$ and $\sigma_k = \operatorname{sd}(x_{k})$ for each dimension; **these are train-only and stored for later use**.
+3. For $k=1,\ldots,K$:
+   - $u \leftarrow \operatorname{rank}(x_k, \text{ties.avg})/(N_{\text{tr}}+1)$ and clip $u$ to $[1/(N_{\text{tr}}+1), N_{\text{tr}}/(N_{\text{tr}}+1)]$.
+   - $z^\star \leftarrow \Phi^{-1}(u)$ where $\Phi^{-1}$ is the standard normal quantile.
+   - $b_k \leftarrow \max(0, \operatorname{cov}(x_k, z^\star)/\operatorname{var}(x_k))$.
+   - $a_k \leftarrow \operatorname{mean}(z^\star) - b_k\,\operatorname{mean}(x_k)$.
+   - Store coefficients $\text{coeffA}_k = \log(b_k+\varepsilon)$, $\text{coeffB}_k = a_k$, $\text{coeffC}_k = 0$ along with $\mu_k,\sigma_k$.
+
+### Prediction
+
+1. Standardize new data: $X_{\text{std}} = (X-\mu)/\sigma$ using the **training** $\mu,\sigma$.
+2. Compute $z = a + b\, X_{\text{std}}$ elementwise.
+3. For each $i,k$, 
+   $\text{logdensity\_by\_dim}[i,k] = -0.5\,z_{i,k}^2 -0.5\log(2\pi) + \log b_k - \log \sigma_k$.
+4. The term $\log b_k - \log \sigma_k$ is the Jacobian constant; it explicitly contains the contribution $-\log(\sigma_k)$ from the train-only standardization.
+5. Ensure no NA or $\infty$ appear in $\text{logdensity\_by\_dim}$.
+6. If `type == 'logdensity_by_dim'` return this $N\times K$ matrix; else return $\operatorname{rowSums}(\text{logdensity\_by\_dim})$ labelled `'logdensity'`.
+7. Somit gilt: `logdensity_by_dim` ist $N\times K$ und `rowSums` = `'logdensity'`.
+
+### Forward-KL Objective
+
+$J(S) = \operatorname{mean}_i\left(0.5\sum_k z_{i,k}^2\right) - \sum_k(\log b_k - \log \sigma_k)$.
 
 ## Acceptance & Reproducibility
 
