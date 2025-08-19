@@ -98,8 +98,10 @@ if (!exists(".standardize")) {
 }
 
 .forwardKLLoss_ct <- function(S, X) {
+  X <- as.matrix(X)
+  K <- ncol(X)
   LD <- predict(S, X, "logdensity_by_dim")
-  mean(-rowSums(LD) - 0.5 * ncol(X) * log(2 * pi))
+  mean(-rowSums(LD) - 0.5 * K * log(2 * pi))
 }
 
 # Exportierte Funktionen -----------------------------------------------------
@@ -156,7 +158,7 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2,
             I[i] <- I[i] + weights[q] * e
             dI[i, ] <- dI[i, ] + weights[q] * e * psi
           }
-          I[i] <- xi * I[i]
+          I[i] <- xi * I[i] - xi
           dI[i, ] <- xi * dI[i, ]
         }
         list(I = I, dI = dI)
@@ -246,6 +248,10 @@ predict.ttm_cross_term <- function(object, newdata,
     m_alpha <- ncol(Phi)
     alpha <- object$coeffs[[k]]$alpha
     beta <- object$coeffs[[k]]$beta
+    xprev_first <- if (k > 1) Xs[1, 1:(k - 1), drop = TRUE] else numeric(0)
+    psi_len <- length(.psi_basis_ct(Xs[1, k], xprev_first,
+                                    object$degree_t, object$degree_g, TRUE))
+    stopifnot(length(beta) == psi_len)
     m_beta <- length(beta)
     I <- numeric(N)
     psi_x <- matrix(0, N, m_beta)
@@ -259,7 +265,7 @@ predict.ttm_cross_term <- function(object, newdata,
         v <- pmin(pmax(v, -object$clip), object$clip)
         I[i] <- I[i] + weights[q] * exp(v)
       }
-      I[i] <- xi * I[i]
+      I[i] <- xi * I[i] - xi
       psi_x[i, ] <- .psi_basis_ct(xi, xp, object$degree_t, object$degree_g, TRUE)
     }
     if (m_alpha > 0) {
