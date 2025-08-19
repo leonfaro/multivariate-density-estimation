@@ -640,6 +640,7 @@ root_path <- dirname(dirname(root_path))
 source(file.path(root_path, "models/ttm_marginal.R"))
 source(file.path(root_path, "models/ttm_separable.R"))
 source(file.path(root_path, "models/ks_model.R"))
+source(file.path(root_path, "models/ttm_cross_term.R"))
 add_sum_row <- function(tab, label = "k") {
 stopifnot(is.data.frame(tab))
 sum_row <- setNames(vector("list", ncol(tab)), names(tab))
@@ -672,9 +673,16 @@ M_KS <- fit_KS(S, config)
 t_ks <- system.time({
 ll_ks <- logL_KS_dim(M_KS, S$X_te)
 })[["elapsed"]]
-list(models = list(true = M_TRUE, trtf = M_TRTF, ks = M_KS),
-ll = list(true = ll_true, trtf = ll_trtf, ks = ll_ks),
-times = c(true = t_true, trtf = t_trtf, ks = t_ks))
+M_TTM_cross <- trainCrossTermMap(S)
+t_ttm_cross <- system.time({
+ll_ttm_cross <- -predict(M_TTM_cross$S, S$X_te, type = "logdensity_by_dim")
+})[["elapsed"]]
+list(models = list(true = M_TRUE, trtf = M_TRTF, ks = M_KS,
+ttm_cross = M_TTM_cross),
+ll = list(true = ll_true, trtf = ll_trtf, ks = ll_ks,
+ttm_cross = ll_ttm_cross),
+times = c(true = t_true, trtf = t_trtf, ks = t_ks,
+ttm_cross = t_ttm_cross))
 }
 calc_loglik_tables <- function(models, config, X_te) {
 K <- length(config)
@@ -708,6 +716,18 @@ mean_sep <- rep(NA_real_, K)
 se_sep   <- rep(NA_real_, K)
 se_sum_sep <- NA_real_
 }
+if (!is.null(models$ttm_cross)) {
+ll_ttm_cross <- -predict(models$ttm_cross$S, X_te,
+type = "logdensity_by_dim")
+mean_cross <- colMeans(ll_ttm_cross)
+se_cross   <- apply(ll_ttm_cross, 2, stderr)
+total_nll_cross <- rowSums(ll_ttm_cross)
+se_sum_cross <- stats::sd(total_nll_cross) / sqrt(length(total_nll_cross))
+} else {
+mean_cross <- rep(NA_real_, K)
+se_cross   <- rep(NA_real_, K)
+se_sum_cross <- NA_real_
+}
 mean_true <- colMeans(ll_true)
 se_true   <- apply(ll_true, 2, stderr)
 total_nll_true <- rowSums(ll_true)
@@ -729,6 +749,7 @@ trtf = fmt(mean_trtf, se_trtf),
 ks   = fmt(mean_ks, se_ks),
 ttm  = fmt(mean_ttm, se_ttm),
 ttm_sep = fmt(mean_sep, se_sep),
+ttm_cross = fmt(mean_cross, se_cross),
 stringsAsFactors = FALSE
 )
 sum_row <- data.frame(
@@ -739,6 +760,7 @@ trtf = fmt(sum(mean_trtf), se_sum_trtf),
 ks   = fmt(sum(mean_ks),   se_sum_ks),
 ttm  = fmt(sum(mean_ttm),  se_sum_ttm),
 ttm_sep = fmt(sum(mean_sep),  se_sum_sep),
+ttm_cross = fmt(sum(mean_cross), se_sum_cross),
 stringsAsFactors = FALSE
 )
 tab <- rbind(tab, sum_row)
@@ -746,6 +768,7 @@ nm <- names(tab)
 nm[nm == "trtf"] <- "Random Forest"
 nm[nm == "ttm"]  <- "Marginal Map"
 nm[nm == "ttm_sep"] <- "Separable Map"
+nm[nm == "ttm_cross"] <- "Cross-term Map"
 names(tab) <- nm
 message("Ergebnis (NLL in nats; lower is better)")
 tab
@@ -834,7 +857,8 @@ true = fit_TRUE(prep$S, config),
 trtf = fit_TRTF(prep$S, config, seed = 42),
 ks   = fit_KS(prep$S, config),
 ttm  = trainMarginalMap(prep$S),
-ttm_sep = trainSeparableMap(prep$S)
+ttm_sep = trainSeparableMap(prep$S),
+ttm_cross = trainCrossTermMap(prep$S)
 )
 tab <- calc_loglik_tables(mods, config, prep$S$X_te)
 print(tab)
@@ -854,10 +878,10 @@ replicate_code_scripts("main.R", "replicated_code.txt", env = globalenv())
 3   3         beta -0.75 ± 1.23  -0.12 ± 0.52  -0.15 ± 0.70  0.41 ± 0.22
 4   4        gamma  2.93 ± 1.97   2.72 ± 1.98 10.90 ± 11.98  3.32 ± 1.45
 5   k          SUM  5.38 ± 2.03   6.95 ± 3.02 14.40 ± 12.48  8.59 ± 1.77
-  Separable Map
-1   1.55 ± 0.47
-2   1.91 ± 0.65
-3  -0.00 ± 0.63
-4   3.36 ± 2.68
-5   6.81 ± 3.36
+  Separable Map Cross-term Map
+1   1.55 ± 0.47    1.50 ± 0.46
+2   1.91 ± 0.65    2.66 ± 1.22
+3  -0.00 ± 0.63   -0.44 ± 1.29
+4   3.36 ± 2.68    2.43 ± 1.92
+5   6.81 ± 3.36    6.15 ± 2.53
 

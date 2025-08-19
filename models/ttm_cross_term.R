@@ -98,7 +98,8 @@ if (!exists(".standardize")) {
 }
 
 .forwardKLLoss_ct <- function(S, X) {
-  mean(rowSums(0.5 * predict(S, X, "logdensity_by_dim")^2))
+  LD <- predict(S, X, "logdensity_by_dim")
+  mean(-rowSums(LD) - 0.5 * ncol(X) * log(2 * pi))
 }
 
 # Exportierte Funktionen -----------------------------------------------------
