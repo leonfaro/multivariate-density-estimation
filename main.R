@@ -36,7 +36,8 @@ main <- function() {
     trtf = fit_TRTF(prep$S, config, seed = 42),
     ks   = fit_KS(prep$S, config),
     ttm  = trainMarginalMap(prep$S),
-    ttm_sep = trainSeparableMap(prep$S)
+    ttm_sep = trainSeparableMap(prep$S),
+    ttm_cross = trainCrossTermMap(prep$S)
   )
   tab <- calc_loglik_tables(mods, config, prep$S$X_te)
   print(tab)

@@ -68,3 +68,10 @@ sigma_tr <- apply(prep$S$X_tr, 2, sd) + .Machine$double.eps
   LD_check <- (-0.5) * (Z^2) + C + LJ
   expect_equal(LD, LD_check)
 }))
+
+(test_that(".forwardKLLoss_ct formula", {
+  val <- .forwardKLLoss_ct(fit$S, prep$S$X_te)
+  LD <- predict(fit$S, prep$S$X_te, "logdensity_by_dim")
+  expect_equal(val, mean(-rowSums(LD) - 0.5 * ncol(LD) * log(2 * pi)),
+               tolerance = 1e-10)
+}))

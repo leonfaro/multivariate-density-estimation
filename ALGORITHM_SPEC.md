@@ -39,6 +39,7 @@ predict.ttm_separable(S, X, type)
 ########  TTM CORE (cross term) ########
 trainCrossTermMap(X_or_path)
 predict.ttm_cross_term(S, X, type)
+forwardKLLoss_ct(S, X) = mean(-rowSums(predict(S,X,"logdensity_by_dim")) - 0.5*K*log(2*pi))
 - uses polynomial bases with optional cross terms
 - Gauss-Legendre quadrature on [0,1]
 - optimization of forward KL via L-BFGS-B
@@ -274,6 +275,13 @@ function calc_loglik_tables(models, X_te)
         se_sum_sep <- sd(rowSums(ll_sep)) / sqrt(nrow(ll_sep))
     else:
         mean_sep <- rep(NA, K); se_sep <- rep(NA, K); se_sum_sep <- NA
+    if models.ttm_cross exists:
+        ll_cross <- -predict(models.ttm_cross$S, X_te)
+        mean_cross <- colMeans(ll_cross)
+        se_cross   <- apply(ll_cross, 2, stderr)
+        se_sum_cross <- sd(rowSums(ll_cross)) / sqrt(nrow(ll_cross))
+    else:
+        mean_cross <- rep(NA, K); se_cross <- rep(NA, K); se_sum_cross <- NA
     mean_true <- colMeans(ll_true); se_true <- apply(ll_true,2,stderr)
     mean_trtf <- colMeans(ll_trtf); se_trtf <- apply(ll_trtf,2,stderr)
     mean_ks   <- colMeans(ll_ks);   se_ks   <- apply(ll_ks,2,stderr)
@@ -283,15 +291,18 @@ function calc_loglik_tables(models, X_te)
                       trtf = fmt(mean_trtf, se_trtf),
                       ks   = fmt(mean_ks,   se_ks),
                       ttm  = fmt(mean_ttm,  se_ttm),
-                      ttm_sep = fmt(mean_sep, se_sep))
+                      ttm_sep = fmt(mean_sep, se_sep),
+                      ttm_cross = fmt(mean_cross, se_cross))
     sum_row <- data.frame(dim="k", distribution="SUM",
                           true=fmt(sum(mean_true), se_sum_true),
                           trtf=fmt(sum(mean_trtf), se_sum_trtf),
                           ks  =fmt(sum(mean_ks),   se_sum_ks),
                           ttm =fmt(sum(mean_ttm),  se_sum_ttm),
-                          ttm_sep=fmt(sum(mean_sep), se_sum_sep))
+                          ttm_sep=fmt(sum(mean_sep), se_sum_sep),
+                          ttm_cross=fmt(sum(mean_cross), se_sum_cross))
     rename columns: trtf->"Random Forest", ttm->"Marginal Map",
-                    ttm_sep->"Separable Map"
+                    ttm_sep->"Separable Map",
+                    ttm_cross->"Cross-term Map"
     return rbind(tab, sum_row)
 ```
 
