@@ -148,18 +148,16 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2,
         dI <- matrix(0, N, m_beta)
         for (i in seq_len(N)) {
           xp <- if (k > 1) Xprev[i, , drop = TRUE] else numeric(0)
-          xi <- xk[i]
-          for (q in seq_len(Q)) {
-            t <- nodes[q] * xi
-            psi <- .psi_basis_ct(t, xp, degree_t, degree_g, TRUE)
-            v <- sum(beta * psi)
-            v <- pmin(pmax(v, -clip), clip)
-            e <- exp(v)
-            I[i] <- I[i] + weights[q] * e
-            dI[i, ] <- dI[i, ] + weights[q] * e * psi
-          }
-          I[i] <- xi * I[i] - xi
-          dI[i, ] <- xi * dI[i, ]
+          xval <- xk[i]
+          t_vec <- nodes * xval
+          Psi_q <- t(vapply(t_vec, function(tt)
+            .psi_basis_ct(tt, xp, degree_t, degree_g, TRUE),
+            numeric(m_beta)))
+          v <- Psi_q %*% beta
+          v <- pmin(pmax(v, -clip), clip)
+          e <- exp(v)
+          I[i] <- xval * sum(weights * e)
+          dI[i, ] <- xval * as.vector(t(Psi_q) %*% (weights * e))
         }
         list(I = I, dI = dI)
       }
@@ -257,16 +255,16 @@ predict.ttm_cross_term <- function(object, newdata,
     psi_x <- matrix(0, N, m_beta)
     for (i in seq_len(N)) {
       xp <- if (k > 1) Xprev[i, , drop = TRUE] else numeric(0)
-      xi <- xk[i]
-      for (q in seq_along(nodes)) {
-        t <- nodes[q] * xi
-        psi <- .psi_basis_ct(t, xp, object$degree_t, object$degree_g, TRUE)
-        v <- sum(beta * psi)
-        v <- pmin(pmax(v, -object$clip), object$clip)
-        I[i] <- I[i] + weights[q] * exp(v)
-      }
-      I[i] <- xi * I[i] - xi
-      psi_x[i, ] <- .psi_basis_ct(xi, xp, object$degree_t, object$degree_g, TRUE)
+      xval <- xk[i]
+      t_vec <- nodes * xval
+      Psi_q <- t(vapply(t_vec, function(tt)
+        .psi_basis_ct(tt, xp, object$degree_t, object$degree_g, TRUE),
+        numeric(m_beta)))
+      v <- Psi_q %*% beta
+      v <- pmin(pmax(v, -object$clip), object$clip)
+      e <- exp(v)
+      I[i] <- xval * sum(weights * e)
+      psi_x[i, ] <- .psi_basis_ct(xval, xp, object$degree_t, object$degree_g, TRUE)
     }
     if (m_alpha > 0) {
       Z[, k] <- as.vector(Phi %*% alpha) + I
