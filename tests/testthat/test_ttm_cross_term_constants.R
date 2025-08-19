@@ -12,7 +12,9 @@ for (k in seq_along(S0$coeffs)) {
 
 (test_that("predictor yields constants for zero coeffs", {
   LD0 <- predict(S0, prep$S$X_te, "logdensity_by_dim")
-  const <- -0.5 * log(2 * pi) - log(S0$sigma)
-  expected <- matrix(rep(const, each = nrow(LD0)), nrow(LD0), byrow = FALSE)
-  expect_equal(LD0, expected, tolerance = 1e-12)
+  Xs <- .standardize(S0, prep$S$X_te)
+  const <- -0.5 * log(2 * pi)
+  expected <- (-0.5) * (Xs^2) + const +
+    matrix(-log(S0$sigma), nrow(Xs), ncol(Xs), byrow = TRUE)
+  expect_equal(LD0, expected, tolerance = 1e-12, check.attributes = FALSE)
 }))
