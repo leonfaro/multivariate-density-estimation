@@ -39,6 +39,9 @@ predict.ttm_separable(S, X, type)
 ########  TTM CORE (cross term) ########
 trainCrossTermMap(X_or_path)
 predict.ttm_cross_term(S, X, type)
+- uses polynomial bases with optional cross terms
+- Gauss-Legendre quadrature on [0,1]
+- optimization of forward KL via L-BFGS-B
 ######################################
 ```
 
