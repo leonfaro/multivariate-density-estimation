@@ -55,6 +55,31 @@ if (!exists(".standardize")) {
   out
 }
 
+.build_Psi_q_ct <- function(xval, xp, nodes, nodes_pow, deg_t, deg_x) {
+  Q <- length(nodes)
+  m_beta <- deg_t + length(xp) * deg_x + length(xp)
+  Psi_q <- matrix(0, Q, m_beta)
+  if (deg_t > 0) {
+    x_pow <- xval^(seq_len(deg_t))
+    Psi_q[, seq_len(deg_t)] <- sweep(nodes_pow, 2, x_pow, "*")
+  }
+  if (length(xp) > 0) {
+    col <- deg_t
+    for (j in seq_along(xp)) {
+      if (deg_x > 0) {
+        xp_pow <- xp[j]^(seq_len(deg_x))
+        Psi_q[, col + seq_len(deg_x)] <- matrix(rep(xp_pow, each = Q), Q, deg_x)
+        col <- col + deg_x
+      }
+    }
+    t_vec <- nodes * xval
+    for (j in seq_along(xp)) {
+      Psi_q[, col + j - 1] <- t_vec * xp[j]
+    }
+  }
+  Psi_q
+}
+
 .gauss_legendre_01_ct <- function(n) {
   if (n <= 0 || n != as.integer(n)) {
     stop("n must be positive integer")
@@ -107,8 +132,8 @@ if (!exists(".standardize")) {
 # Exportierte Funktionen -----------------------------------------------------
 
 trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2,
-                              lambda = 1e-3, Q = 16, eps = 1e-6,
-                              clip = 20) {
+                              lambda = 1e-3, batch_n = NULL, Q = NULL,
+                              eps = 1e-6, clip = 20) {
   set.seed(42)
   S_in <- if (is.character(X_or_path)) readRDS(X_or_path) else X_or_path
   stopifnot(is.list(S_in))
@@ -123,79 +148,87 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2,
     sigma <- std$sigma
     N <- nrow(X_tr_std)
     K <- ncol(X_tr_std)
-    coeffs <- vector("list", K)
-
-    quad <- .gauss_legendre_01_ct(Q)
+    Q_use <- if (is.null(Q)) min(12, 4 + 2 * degree_t) else Q
+    batch_use <- if (is.null(batch_n)) max(128, floor(1e6 / max(1, K))) else batch_n
+    quad <- .gauss_legendre_01_ct(Q_use)
     nodes <- quad$nodes
     weights <- quad$weights
+    nodes_pow <- outer(nodes, seq_len(degree_t), `^`)
 
-    for (k in seq_len(K)) {
-      Xprev <- if (k > 1) X_tr_std[, 1:(k - 1), drop = FALSE] else
-        matrix(0, N, 0)
+    fit_k <- function(k) {
+      Xprev <- if (k > 1) X_tr_std[, 1:(k - 1), drop = FALSE] else matrix(0, N, 0)
       xk <- X_tr_std[, k]
       Phi <- .basis_g_ct(Xprev, degree_g)
       m_alpha <- ncol(Phi)
       xprev_first <- if (k > 1) Xprev[1, , drop = TRUE] else numeric(0)
       m_beta <- length(.psi_basis_ct(0, xprev_first, degree_t, degree_g, TRUE))
-      Psi_x <- matrix(0, N, m_beta)
-      for (i in seq_len(N)) {
-        xp <- if (k > 1) Xprev[i, , drop = TRUE] else numeric(0)
-        Psi_x[i, ] <- .psi_basis_ct(xk[i], xp, degree_t, degree_g, TRUE)
-      }
 
-      calc_I <- function(beta) {
-        I <- numeric(N)
-        dI <- matrix(0, N, m_beta)
-        for (i in seq_len(N)) {
-          xp <- if (k > 1) Xprev[i, , drop = TRUE] else numeric(0)
-          xval <- xk[i]
-          t_vec <- nodes * xval
-          Psi_q <- t(vapply(t_vec, function(tt)
-            .psi_basis_ct(tt, xp, degree_t, degree_g, TRUE),
-            numeric(m_beta)))
-          v <- Psi_q %*% beta
-          v <- pmin(pmax(v, -clip), clip)
-          e <- exp(v)
-          I[i] <- xval * sum(weights * e)
-          dI[i, ] <- xval * as.vector(t(Psi_q) %*% (weights * e))
+      loss_grad <- function(alpha, beta) {
+        S_sq_sum <- 0
+        term_sum <- 0
+        grad_alpha <- if (m_alpha > 0) rep(0, m_alpha) else numeric(0)
+        grad_beta <- rep(0, m_beta)
+        for (i0 in seq(1, N, by = batch_use)) {
+          idx <- i0:min(i0 + batch_use - 1, N)
+          Phi_blk <- if (m_alpha > 0) Phi[idx, , drop = FALSE] else NULL
+          Xprev_blk <- if (k > 1) Xprev[idx, , drop = FALSE] else matrix(0, length(idx), 0)
+          xk_blk <- xk[idx]
+          for (b in seq_along(idx)) {
+            xp <- if (k > 1) Xprev_blk[b, ] else numeric(0)
+            xval <- xk_blk[b]
+            Psi_q <- .build_Psi_q_ct(xval, xp, nodes, nodes_pow, degree_t, degree_g)
+            V <- Psi_q %*% beta
+            m <- max(V)
+            v_shift <- V - m
+            ev_full <- exp(v_shift)
+            ev_clip <- exp(pmax(v_shift, -clip))
+            s <- sum(weights * ev_clip)
+            I_i <- xval * exp(m) * s
+            dI_i <- xval * as.vector(t(Psi_q) %*% (weights * ev_full))
+            psi_x <- .psi_basis_ct(xval, xp, degree_t, degree_g, TRUE)
+            S_i <- if (m_alpha > 0) sum(Phi_blk[b, ] * alpha) + I_i else I_i
+            S_sq_sum <- S_sq_sum + S_i^2
+            if (m_alpha > 0) grad_alpha <- grad_alpha + S_i * Phi_blk[b, ]
+            grad_beta <- grad_beta + S_i * dI_i - psi_x
+            term_sum <- term_sum + sum(psi_x * beta)
+          }
         }
-        list(I = I, dI = dI)
+        loss <- 0.5 * S_sq_sum / N - term_sum / N +
+          0.5 * lambda * (sum(alpha^2) + sum(beta^2))
+        grad_alpha_out <- if (m_alpha > 0) grad_alpha / N + lambda * alpha else numeric(0)
+        grad_beta_out <- grad_beta / N + lambda * beta
+        list(loss = loss, grad = c(grad_alpha_out, grad_beta_out))
       }
 
+      cache <- new.env(parent = emptyenv())
       fn <- function(theta) {
         alpha <- if (m_alpha > 0) theta[seq_len(m_alpha)] else numeric(0)
         beta <- theta[(m_alpha + 1):length(theta)]
-        calc <- calc_I(beta)
-        S_vec <- calc$I
-        if (m_alpha > 0) {
-          S_vec <- S_vec + as.vector(Phi %*% alpha)
-        }
-        term <- Psi_x %*% beta
-        mean(0.5 * S_vec^2 - term) +
-          0.5 * lambda * (sum(alpha^2) + sum(beta^2))
+        res <- loss_grad(alpha, beta)
+        cache$grad <- res$grad
+        res$loss
       }
-
       gr <- function(theta) {
+        if (!is.null(cache$grad)) {
+          g <- cache$grad
+          cache$grad <- NULL
+          return(g)
+        }
         alpha <- if (m_alpha > 0) theta[seq_len(m_alpha)] else numeric(0)
         beta <- theta[(m_alpha + 1):length(theta)]
-        calc <- calc_I(beta)
-        S_vec <- calc$I
-        if (m_alpha > 0) {
-          S_vec <- S_vec + as.vector(Phi %*% alpha)
-        }
-        grad_alpha <- if (m_alpha > 0) colMeans(S_vec * Phi) + lambda * alpha else numeric(0)
-        grad_beta <- colMeans(S_vec * calc$dI) -
-          colMeans(Psi_x) + lambda * beta
-        c(grad_alpha, grad_beta)
+        loss_grad(alpha, beta)$grad
       }
 
       theta0 <- rep(0, m_alpha + m_beta)
-      opt <- optim(theta0, fn, gr, method = "L-BFGS-B",
-                   control = list(fnscale = 1), lower = -Inf, upper = Inf)
+      opt <- optim(theta0, fn, gr, method = "L-BFGS-B", lower = -Inf, upper = Inf)
       alpha_hat <- if (m_alpha > 0) opt$par[seq_len(m_alpha)] else numeric(0)
       beta_hat <- opt$par[(m_alpha + 1):length(opt$par)]
-      coeffs[[k]] <- list(alpha = alpha_hat, beta = beta_hat)
+      list(alpha = alpha_hat, beta = beta_hat)
     }
+
+    coeffs <- parallel::mclapply(seq_len(K), fit_k,
+      mc.cores = min(getOption("mc.cores", 1L), K),
+      mc.set.seed = FALSE, mc.preschedule = TRUE)
 
     S_map <- list(
       mu = mu,
@@ -203,9 +236,10 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2,
       degree_g = degree_g,
       degree_t = degree_t,
       coeffs = coeffs,
-      Q = Q,
+      Q = Q_use,
       quad_nodes_ct = nodes,
       quad_weights_ct = weights,
+      quad_nodes_pow_ct = nodes_pow,
       clip = clip,
       order = seq_len(K)
     )
@@ -216,7 +250,7 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2,
     predict(S_map, X_te, "logdensity_by_dim")
   })[["elapsed"]]
 
-  list(
+list(
     S = S_map,
     NLL_train = .NLL_set_ct(S_map, X_tr),
     NLL_val = .NLL_set_ct(S_map, X_val),
@@ -228,52 +262,56 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2,
 }
 
 predict.ttm_cross_term <- function(object, newdata,
-                                   type = c("logdensity_by_dim", "logdensity")) {
+                                   type = c("logdensity_by_dim", "logdensity"),
+                                   batch_n = NULL) {
   type <- tryCatch(match.arg(type), error = function(e) stop("unknown type"))
   Xs <- .standardize(object, newdata)
   N <- nrow(Xs)
   K <- ncol(Xs)
-  Z <- matrix(0, N, K)
-  LJ <- matrix(0, N, K)
+  batch_use <- if (is.null(batch_n)) max(128, floor(1e6 / max(1, K))) else batch_n
   nodes <- object$quad_nodes_ct
   weights <- object$quad_weights_ct
+  nodes_pow <- object$quad_nodes_pow_ct
   C <- -0.5 * log(2 * pi)
 
-  for (k in seq_len(K)) {
+  res <- parallel::mclapply(seq_len(K), function(k) {
     Xprev <- if (k > 1) Xs[, 1:(k - 1), drop = FALSE] else matrix(0, N, 0)
     xk <- Xs[, k]
     Phi <- .basis_g_ct(Xprev, object$degree_g)
     m_alpha <- ncol(Phi)
     alpha <- object$coeffs[[k]]$alpha
     beta <- object$coeffs[[k]]$beta
-    xprev_first <- if (k > 1) Xs[1, 1:(k - 1), drop = TRUE] else numeric(0)
+    xprev_first <- if (k > 1) Xprev[1, , drop = TRUE] else numeric(0)
     psi_len <- length(.psi_basis_ct(Xs[1, k], xprev_first,
                                     object$degree_t, object$degree_g, TRUE))
     stopifnot(length(beta) == psi_len)
-    m_beta <- length(beta)
-    I <- numeric(N)
-    psi_x <- matrix(0, N, m_beta)
-    for (i in seq_len(N)) {
-      xp <- if (k > 1) Xprev[i, , drop = TRUE] else numeric(0)
-      xval <- xk[i]
-      t_vec <- nodes * xval
-      Psi_q <- t(vapply(t_vec, function(tt)
-        .psi_basis_ct(tt, xp, object$degree_t, object$degree_g, TRUE),
-        numeric(m_beta)))
-      v <- Psi_q %*% beta
-      v <- pmin(pmax(v, -object$clip), object$clip)
-      e <- exp(v)
-      I[i] <- xval * sum(weights * e)
-      psi_x[i, ] <- .psi_basis_ct(xval, xp, object$degree_t, object$degree_g, TRUE)
+    Z_col <- numeric(N)
+    LJ_col <- numeric(N)
+    for (i0 in seq(1, N, by = batch_use)) {
+      idx <- i0:min(i0 + batch_use - 1, N)
+      Phi_blk <- if (m_alpha > 0) Phi[idx, , drop = FALSE] else NULL
+      Xprev_blk <- if (k > 1) Xprev[idx, , drop = FALSE] else matrix(0, length(idx), 0)
+      xk_blk <- xk[idx]
+      for (b in seq_along(idx)) {
+        xp <- if (k > 1) Xprev_blk[b, ] else numeric(0)
+        xval <- xk_blk[b]
+        Psi_q <- .build_Psi_q_ct(xval, xp, nodes, nodes_pow, object$degree_t, object$degree_g)
+        V <- Psi_q %*% beta
+        m <- max(V)
+        v_shift <- V - m
+        ev <- exp(pmax(v_shift, -object$clip))
+        s <- sum(weights * ev)
+        I_i <- xval * exp(m) * s
+        psi_x <- .psi_basis_ct(xval, xp, object$degree_t, object$degree_g, TRUE)
+        Z_col[idx[b]] <- if (m_alpha > 0) sum(Phi_blk[b, ] * alpha) + I_i else I_i
+        LJ_col[idx[b]] <- sum(beta * psi_x) - log(object$sigma[k])
+      }
     }
-    if (m_alpha > 0) {
-      Z[, k] <- as.vector(Phi %*% alpha) + I
-    } else {
-      Z[, k] <- I
-    }
-    LJ[, k] <- psi_x %*% beta - log(object$sigma[k])
-  }
+    list(Z_col = Z_col, LJ_col = LJ_col)
+  }, mc.cores = min(getOption("mc.cores", 1L), K), mc.set.seed = FALSE, mc.preschedule = TRUE)
 
+  Z <- do.call(cbind, lapply(res, `[[`, "Z_col"))
+  LJ <- do.call(cbind, lapply(res, `[[`, "LJ_col"))
   LD <- (-0.5) * (Z^2) + C + LJ
   if (type == "logdensity_by_dim") {
     LD
@@ -281,5 +319,6 @@ predict.ttm_cross_term <- function(object, newdata,
     rowSums(LD)
   }
 }
+
 
 # Ende -----------------------------------------------------------------------

@@ -43,6 +43,7 @@ forwardKLLoss_ct(S, X) = mean(-rowSums(predict(S,X,"logdensity_by_dim")) - 0.5*K
 - uses polynomial bases with optional cross terms
 - Gauss-Legendre quadrature on [0,1]
 - optimization of forward KL via L-BFGS-B
+- chunked training and prediction with stable log-sum-exp quadrature, parallelized over dimensions
 ######################################
 ```
 
