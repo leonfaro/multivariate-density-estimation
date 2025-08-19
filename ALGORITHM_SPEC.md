@@ -233,11 +233,14 @@ struct MapStruct:
     basisF[k], basisG[k], basisH[k]   # callable handles
 ```
 `add_sum_row(tab, label) : (data.frame, string) \to data.frame`
-- **Description:** append a row with columnwise sums for numeric columns.
+- **Description:** append a row with columnwise sums for numeric columns while ignoring `NA` values.
 - **Pseudocode:**
 ```
 function add_sum_row(tab, label)
-    sum_row <- numeric columns summed; 'dim' <- label
+    for each column in tab:
+        if column == "dim": set to label
+        else if numeric: sum column with na.rm = TRUE
+        else: NA
     return rbind(tab, sum_row)
 ```
 
