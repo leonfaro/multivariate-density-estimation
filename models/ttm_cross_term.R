@@ -55,6 +55,26 @@ if (!exists(".standardize")) {
   out
 }
 
+.dpsi_dt_ct <- function(t, xprev, deg_t, deg_x, cross = TRUE) {
+  out <- numeric(0)
+  for (d in seq_len(deg_t)) {
+    out <- c(out, d * t^(max(d - 1, 0)))
+  }
+  if (length(xprev) > 0) {
+    for (j in seq_along(xprev)) {
+      for (d in seq_len(deg_x)) {
+        out <- c(out, 0)
+      }
+    }
+    if (cross) {
+      for (j in seq_along(xprev)) {
+        out <- c(out, xprev[j])
+      }
+    }
+  }
+  out
+}
+
 .build_Psi_q_ct <- function(xval, xp, nodes, nodes_pow, deg_t, deg_x) {
   Q <- length(nodes)
   m_beta <- deg_t + length(xp) * deg_x + length(xp)
@@ -309,6 +329,12 @@ predict.ttm_cross_term <- function(object, newdata,
     }
     list(Z_col = Z_col, LJ_col = LJ_col)
   }, mc.cores = min(getOption("mc.cores", 1L), K), mc.set.seed = FALSE, mc.preschedule = TRUE)
+
+  if (length(res) != K || any(vapply(res, function(z) {
+    is.null(z$Z_col) || is.null(z$LJ_col)
+  }, logical(1)))) {
+    stop("predict.ttm_cross_term: worker error in mclapply (NULL chunk).")
+  }
 
   Z <- do.call(cbind, lapply(res, `[[`, "Z_col"))
   LJ <- do.call(cbind, lapply(res, `[[`, "LJ_col"))
