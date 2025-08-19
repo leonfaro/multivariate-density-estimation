@@ -11,6 +11,7 @@ source(file.path(root_path, "models/ks_model.R"))
 #'
 #' @param tab data frame mit numerischen Spalten
 #' @param label Bezeichner f\u00fcr die Summenzeile
+#' @details Fehlende Werte in numerischen Spalten werden bei der Summenbildung ignoriert.
 #' @return data frame mit zus\u00e4tzlicher Zeile
 #' @export
 add_sum_row <- function(tab, label = "k") {
@@ -20,7 +21,7 @@ add_sum_row <- function(tab, label = "k") {
     if (nm == "dim") {
       sum_row[[nm]] <- label
     } else if (is.numeric(tab[[nm]])) {
-      sum_row[[nm]] <- sum(tab[[nm]])
+      sum_row[[nm]] <- sum(tab[[nm]], na.rm = TRUE)
     } else {
       sum_row[[nm]] <- NA
     }

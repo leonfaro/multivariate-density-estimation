@@ -647,7 +647,7 @@ for (nm in names(tab)) {
 if (nm == "dim") {
 sum_row[[nm]] <- label
 } else if (is.numeric(tab[[nm]])) {
-sum_row[[nm]] <- sum(tab[[nm]])
+sum_row[[nm]] <- sum(tab[[nm]], na.rm = TRUE)
 } else {
 sum_row[[nm]] <- NA
 }
