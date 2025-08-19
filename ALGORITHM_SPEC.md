@@ -35,6 +35,13 @@ predict.ttm_separable(S, X, type)
 ######################################
 ```
 
+```
+########  TTM CORE (cross term) ########
+trainCrossTermMap(X_or_path)
+predict.ttm_cross_term(S, X, type)
+######################################
+```
+
 ## 2. Top-Level Pipeline
 The overarching routine `main()` follows the composition
 $$\operatorname{mainPipeline} := f_9 \circ f_8 \circ \cdots \circ f_1,$$
