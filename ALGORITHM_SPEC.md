@@ -59,6 +59,7 @@ where
    f_3b1 = fit_TTM_marginal
    f_3b2 = fit_TTM_separable
    f_3b3 = fit_TTM_cross  # train triangular transport maps via respective trainers
+   f_3b4 = fit_TRUE_JOINT    # evaluate oracle joint density
 4. $f_4 = \texttt{fit\_TRTF}$ – fit transformation forests.
 5. $f_5 = \texttt{fit\_KS}$ – fit kernel smoother model.
 6. $f_6 = \texttt{logL\_\*\_dim}$ – compute dimension-wise log-likelihoods.
@@ -120,6 +121,44 @@ function logL_TRUE(M, X)
     for k in 1..d
         ll_k <- log_density_vec(X[,k], distr_k, M.theta[[k]])
     return -sum(rowSums(ll_k))
+```
+
+### true_joint_logdensity_by_dim
+`true_joint_logdensity_by_dim(config, X) : (config, \mathbb R^{n\times d}) \to \mathbb R^{n\times d}`
+- **Description:** evaluates log $p(x_k \mid x_{1:k-1})$ row-wise using oracle parameters.
+- **Pre:** each `config[[k]]$parm` accepts data frame of previous columns.
+- **Post:** matrix with finite entries.
+- **Pseudocode:**
+```
+function true_joint_logdensity_by_dim(config, X)
+    for i in 1..n
+        for k in 1..d
+            prev <- X[i,1:(k-1)] as data.frame
+            args <- if config[k].parm null then {} else config[k].parm(prev)
+            sanitize positive args; map gamma shape1/shape2
+            xk <- clamp(X[i,k]) to support
+            ll[i,k] <- d<distr_k>(xk, args, log=TRUE)
+    return ll
+```
+
+### logL_TRUE_JOINT_dim
+`logL_TRUE_JOINT_dim(config, X) : (config, \mathbb R^{n\times d}) \to \mathbb R^d`
+- **Description:** average negative log-likelihood per dimension under true joint density.
+- **Pseudocode:** `return -colMeans(true_joint_logdensity_by_dim(config, X))`
+
+### logL_TRUE_JOINT
+`logL_TRUE_JOINT(config, X) : (config, \mathbb R^{n\times d}) \to \mathbb R`
+- **Description:** Gesamt-NLL under the oracle joint density.
+- **Pseudocode:** `return -mean(rowSums(true_joint_logdensity_by_dim(config, X)))`
+
+### fit_TRUE_JOINT
+`fit_TRUE_JOINT(S, config) : S \to M_{TRUE\_JOINT}`
+- **Description:** no training; evaluates test set under the known joint density.
+- **Pseudocode:**
+```
+function fit_TRUE_JOINT(S, config)
+    te_dim <- logL_TRUE_JOINT_dim(config, S.X_te)
+    return (config, te_dim, sum(te_dim))
 ```
 
 ### fit_KS
