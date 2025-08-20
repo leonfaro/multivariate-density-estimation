@@ -91,8 +91,6 @@ calc_loglik_tables <- function(models, config, X_te) {
     ll_true[, k] <- -ll_vec
   }
   ll_trtf <- -predict(models$trtf, X_te, type = "logdensity_by_dim")
-
-  ll_ks   <- -predict(models$ks,  X_te, type = "logdensity_by_dim")
   ll_true_joint <- - true_joint_logdensity_by_dim(config, X_te)
 
   if (!is.null(models$ttm)) {
