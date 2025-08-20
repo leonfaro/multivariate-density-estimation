@@ -35,49 +35,70 @@ if (!exists(".standardize")) {
   out
 }
 
-.psi_basis_ct <- function(t, xprev, deg_t, deg_x, cross = TRUE) {
+.psi_basis_ct <- function(t, xprev, deg_t, deg_x, cross = TRUE,
+                          deg_t_cross = 1, deg_x_cross = 1) {
   out <- numeric(0)
-  for (d in seq_len(deg_t)) {
-    out <- c(out, t^d)
+  if (deg_t > 0) {
+    for (d in seq_len(deg_t)) {
+      out <- c(out, t^d)
+    }
   }
   if (cross && length(xprev) > 0) {
     for (j in seq_along(xprev)) {
-      out <- c(out, t * xprev[j])
+      for (r in seq_len(deg_t_cross)) {
+        for (s in seq_len(deg_x_cross)) {
+          out <- c(out, t^r * xprev[j]^s)
+        }
+      }
     }
   }
   out
 }
 
-.dpsi_dt_ct <- function(t, xprev, deg_t, deg_x, cross = TRUE) {
+.dpsi_dt_ct <- function(t, xprev, deg_t, deg_x, cross = TRUE,
+                        deg_t_cross = 1, deg_x_cross = 1) {
   out <- numeric(0)
-  for (d in seq_len(deg_t)) {
-    out <- c(out, d * t^(max(d - 1, 0)))
+  if (deg_t > 0) {
+    for (d in seq_len(deg_t)) {
+      out <- c(out, d * t^(max(d - 1, 0)))
+    }
   }
   if (cross && length(xprev) > 0) {
     for (j in seq_along(xprev)) {
-      out <- c(out, xprev[j])
+      for (r in seq_len(deg_t_cross)) {
+        for (s in seq_len(deg_x_cross)) {
+          out <- c(out, r * t^(max(r - 1, 0)) * xprev[j]^s)
+        }
+      }
     }
   }
   out
 }
 
-.build_Psi_q_ct <- function(xval, xp, nodes, nodes_pow, deg_t, deg_x) {
+.build_Psi_q_ct <- function(xval, xp, nodes, nodes_pow, deg_t, deg_x,
+                            deg_t_cross = 1, deg_x_cross = 1) {
   Q <- length(nodes)
-  m_beta <- deg_t + length(xp)
+  m_beta <- deg_t + length(xp) * deg_t_cross * deg_x_cross
   Psi_q <- matrix(0, Q, m_beta)
   if (deg_t > 0) {
     x_pow <- xval^(seq_len(deg_t))
-    Psi_q[, seq_len(deg_t)] <- sweep(nodes_pow, 2, x_pow, "*")
+    Psi_q[, seq_len(deg_t)] <- sweep(nodes_pow[, seq_len(deg_t), drop = FALSE], 2, x_pow, "*")
   }
   if (length(xp) > 0) {
-    t_vec <- nodes * xval
+    col <- deg_t
+    x_pow_cross <- xval^(seq_len(deg_t_cross))
+    xp_pows <- lapply(xp, function(xj) xj^(seq_len(deg_x_cross)))
     for (j in seq_along(xp)) {
-      Psi_q[, deg_t + j] <- t_vec * xp[j]
+      for (r in seq_len(deg_t_cross)) {
+        for (s in seq_len(deg_x_cross)) {
+          col <- col + 1
+          Psi_q[, col] <- nodes_pow[, r] * x_pow_cross[r] * xp_pows[[j]][s]
+        }
+      }
     }
   }
   Psi_q
 }
-
 .gauss_legendre_01_ct <- function(n) {
   if (n <= 0 || n != as.integer(n)) {
     stop("n must be positive integer")
@@ -107,12 +128,13 @@ if (!exists(".standardize")) {
 .is_coeffs_ok <- function(x) is.list(x) && is.numeric(x$alpha) && is.numeric(x$beta)
 .is_predchunk_ok <- function(x) is.list(x) && is.numeric(x$Z_col) && is.numeric(x$LJ_col)
 
-.zero_coeffs_ct <- function(k, X_tr_std, degree_g, degree_t) {
+.zero_coeffs_ct <- function(k, X_tr_std, degree_g, degree_t,
+                           degree_t_cross, degree_x_cross) {
   N <- nrow(X_tr_std)
   Xprev <- if (k > 1) X_tr_std[, 1:(k - 1), drop = FALSE] else matrix(0, N, 0)
   m_alpha <- ncol(.basis_g_ct(Xprev, degree_g))
   xprev_first <- if (k > 1) Xprev[1, , drop = TRUE] else numeric(0)
-  m_beta <- length(.psi_basis_ct(0, xprev_first, degree_t, degree_g, TRUE))
+        m_beta <- length(.psi_basis_ct(0, xprev_first, degree_t, degree_g, TRUE, degree_t_cross, degree_x_cross))
   list(alpha = if (m_alpha > 0) rep(0, m_alpha) else numeric(0),
        beta  = rep(0, m_beta))
 }
@@ -136,7 +158,7 @@ if (!exists(".standardize")) {
   out <- numeric(K)
   for (k in seq_len(K)) {
     xprev <- if (k > 1) Xs[1, 1:(k - 1)] else numeric(0)
-    psi <- .psi_basis_ct(Xs[1, k], xprev, S$degree_t, S$degree_g, TRUE)
+    psi <- .psi_basis_ct(Xs[1, k], xprev, S$degree_t, S$degree_g, TRUE, S$degree_t_cross, S$degree_x_cross)
     beta <- S$coeffs[[k]]$beta
     out[k] <- sum(beta * psi) - log(S$sigma[k])
   }
@@ -152,7 +174,7 @@ if (!exists(".standardize")) {
 
 # Exportierte Funktionen -----------------------------------------------------
 
-trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2,
+trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2, degree_t_cross = 1, degree_x_cross = 1,
                               lambda = 1e-3, batch_n = NULL, Q = NULL,
                               eps = 1e-6, clip = 20) {
   set.seed(42)
@@ -169,12 +191,13 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2,
     sigma <- std$sigma
     N <- nrow(X_tr_std)
     K <- ncol(X_tr_std)
-    Q_use <- if (is.null(Q)) min(12, 4 + 2 * degree_t) else Q
-    batch_use <- if (is.null(batch_n)) min(N, max(256L, floor(65536 / max(1L, Q_use)))) else min(N, batch_n)
+      degree_t_max <- max(degree_t, degree_t_cross)
+      Q_use <- if (is.null(Q)) min(12, 4 + 2 * degree_t_max) else Q
+      batch_use <- if (is.null(batch_n)) min(N, max(256L, floor(65536 / max(1L, Q_use)))) else min(N, batch_n)
     quad <- .gauss_legendre_01_ct(Q_use)
     nodes <- quad$nodes
     weights <- quad$weights
-    nodes_pow <- outer(nodes, seq_len(degree_t), `^`)
+      nodes_pow <- outer(nodes, seq_len(degree_t_max), `^`)
 
     fit_k <- function(k) {
       Xprev <- if (k > 1) X_tr_std[, 1:(k - 1), drop = FALSE] else matrix(0, N, 0)
@@ -182,7 +205,7 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2,
       Phi <- .basis_g_ct(Xprev, degree_g)
       m_alpha <- ncol(Phi)
       xprev_first <- if (k > 1) Xprev[1, , drop = TRUE] else numeric(0)
-      m_beta <- length(.psi_basis_ct(0, xprev_first, degree_t, degree_g, TRUE))
+        m_beta <- length(.psi_basis_ct(0, xprev_first, degree_t, degree_g, TRUE, degree_t_cross, degree_x_cross))
 
       loss_grad <- function(alpha, beta) {
         S_sq_sum <- 0
@@ -197,7 +220,7 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2,
           for (b in seq_along(idx)) {
             xp <- if (k > 1) Xprev_blk[b, ] else numeric(0)
             xval <- xk_blk[b]
-            Psi_q <- .build_Psi_q_ct(xval, xp, nodes, nodes_pow, degree_t, degree_g)
+            Psi_q <- .build_Psi_q_ct(xval, xp, nodes, nodes_pow, degree_t, degree_g, degree_t_cross, degree_x_cross)
             V <- Psi_q %*% beta
             m <- max(V)
             v_shift <- V - m
@@ -205,7 +228,7 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2,
             s  <- sum(weights * ev)
             I_i  <- xval * exp(m) * s
             dI_i <- xval * exp(m) * as.vector(t(Psi_q) %*% (weights * ev))
-            psi_x <- .psi_basis_ct(xval, xp, degree_t, degree_g, TRUE)
+            psi_x <- .psi_basis_ct(xval, xp, degree_t, degree_g, TRUE, degree_t_cross, degree_x_cross)
             S_i <- if (m_alpha > 0) sum(Phi_blk[b, ] * alpha) + I_i else I_i
             S_sq_sum <- S_sq_sum + S_i^2
             if (m_alpha > 0) grad_alpha <- grad_alpha + S_i * Phi_blk[b, ]
@@ -252,7 +275,7 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2,
       if (!.is_coeffs_ok(res[[k]])) {
         r2 <- tryCatch(fit_k(k), error = function(e) e)
         if (!.is_coeffs_ok(r2)) {
-          r2 <- .zero_coeffs_ct(k, X_tr_std, degree_g, degree_t)
+            r2 <- .zero_coeffs_ct(k, X_tr_std, degree_g, degree_t, degree_t_cross, degree_x_cross)
         }
         res[[k]] <- r2
       }
@@ -266,6 +289,8 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2,
       sigma = sigma,
       degree_g = degree_g,
       degree_t = degree_t,
+      degree_t_cross = degree_t_cross,
+      degree_x_cross = degree_x_cross,
       coeffs = coeffs,
       Q = Q_use,
       nodes = nodes,
@@ -316,8 +341,8 @@ predict.ttm_cross_term <- function(object, newdata,
     alpha <- object$coeffs[[k]]$alpha
     beta <- object$coeffs[[k]]$beta
     xprev_first <- if (k > 1) Xprev[1, , drop = TRUE] else numeric(0)
-    psi_len <- length(.psi_basis_ct(Xs[1, k], xprev_first,
-                                    object$degree_t, object$degree_g, TRUE))
+      psi_len <- length(.psi_basis_ct(Xs[1, k], xprev_first,
+                                      object$degree_t, object$degree_g, TRUE, object$degree_t_cross, object$degree_x_cross))
     stopifnot(length(beta) == psi_len)
     Z_col <- numeric(N)
     LJ_col <- numeric(N)
@@ -329,14 +354,14 @@ predict.ttm_cross_term <- function(object, newdata,
       for (b in seq_along(idx)) {
         xp <- if (k > 1) Xprev_blk[b, ] else numeric(0)
         xval <- xk_blk[b]
-        Psi_q <- .build_Psi_q_ct(xval, xp, nodes, nodes_pow, object$degree_t, object$degree_g)
+        Psi_q <- .build_Psi_q_ct(xval, xp, nodes, nodes_pow, object$degree_t, object$degree_g, object$degree_t_cross, object$degree_x_cross)
         V <- Psi_q %*% beta
         m <- max(V)
         v_shift <- V - m
         ev <- exp(pmax(v_shift, -object$clip))
         s <- sum(weights * ev)
         I_i <- xval * exp(m) * s
-        psi_x <- .psi_basis_ct(xval, xp, object$degree_t, object$degree_g, TRUE)
+        psi_x <- .psi_basis_ct(xval, xp, object$degree_t, object$degree_g, TRUE, object$degree_t_cross, object$degree_x_cross)
         Z_col[idx[b]] <- if (m_alpha > 0) sum(Phi_blk[b, ] * alpha) + I_i else I_i
         LJ_col[idx[b]] <- sum(beta * psi_x) - log(object$sigma[k])
       }
