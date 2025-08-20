@@ -185,9 +185,8 @@ if (!exists(".standardize")) {
 
 .forwardKLLoss_ct <- function(S, X) {
   X <- as.matrix(X)
-  K <- ncol(X)
   LD <- predict(S, X, "logdensity_by_dim")
-  mean(-rowSums(LD) - 0.5 * K * log(2 * pi))
+  mean(-rowSums(LD))
 }
 
 # Exportierte Funktionen -----------------------------------------------------
@@ -241,10 +240,9 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2,
             V <- as.vector(Psi_q %*% beta)
             b_vec <- log(weights) + V
             b_max <- max(b_vec)
-            r_vec <- exp(b_vec - b_max)
-            s <- exp(b_max) * sum(r_vec)
-            I_i <- xval * s
-            soft <- r_vec / sum(r_vec)
+            log_s <- b_max + log(sum(exp(b_vec - b_max)))
+            I_i <- xval * exp(log_s)
+            soft <- exp(b_vec - log_s)
             dI_i <- I_i * as.vector(t(Psi_q) %*% soft)
             psi_x <- .psi_basis_ct(xval, xp, degree_t, degree_g, TRUE)
             S_i <- if (m_alpha > 0) sum(Phi_blk[b, ] * alpha) + I_i else I_i
@@ -282,8 +280,8 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2,
 
       theta0 <- rep(0, m_alpha + m_beta)
       opt <- optim(theta0, fn, gr, method = "L-BFGS-B",
-                   lower = rep(-50, length(theta0)),
-                   upper = rep(50, length(theta0)))
+                   lower = rep(-200, length(theta0)),
+                   upper = rep(200, length(theta0)))
       alpha_hat <- if (m_alpha > 0) opt$par[seq_len(m_alpha)] else numeric(0)
       beta_hat <- opt$par[(m_alpha + 1):length(opt$par)]
       list(alpha = alpha_hat, beta = beta_hat)
@@ -317,7 +315,6 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2,
       quad_nodes_ct = nodes,
       quad_weights_ct = weights,
       quad_nodes_pow_ct = nodes_pow,
-      clip = clip,
       order = seq_len(K)
     )
     class(S_map) <- "ttm_cross_term"
@@ -376,9 +373,8 @@ predict.ttm_cross_term <- function(object, newdata,
         V <- as.vector(Psi_q %*% beta)
         b_vec <- log(weights) + V
         b_max <- max(b_vec)
-        r_vec <- exp(b_vec - b_max)
-        s <- exp(b_max) * sum(r_vec)
-        I_i <- xval * s
+        log_s <- b_max + log(sum(exp(b_vec - b_max)))
+        I_i <- xval * exp(log_s)
         psi_x <- .psi_basis_ct(xval, xp, object$degree_t, object$degree_g, TRUE)
         Z_col[idx[b]] <- if (m_alpha > 0) sum(Phi_blk[b, ] * alpha) + I_i else I_i
         LJ_col[idx[b]] <- sum(beta * psi_x) - log(object$sigma[k])

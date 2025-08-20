@@ -34,10 +34,9 @@ fit <- trainCrossTermMap(prep$S)
       V <- as.vector(Psi_q %*% beta)
       b <- log(weights) + V
       b_max <- max(b)
-      r <- exp(b - b_max)
-      s <- exp(b_max) * sum(r)
-      I <- xval * s
-      soft <- r / sum(r)
+      log_s <- b_max + log(sum(exp(b - b_max)))
+      I <- xval * exp(log_s)
+      soft <- exp(b - log_s)
       dI <- I * as.vector(t(Psi_q) %*% soft)
       psi_x <- .psi_basis_ct(xval, xp, deg_t, deg_g, TRUE)
       S <- I
