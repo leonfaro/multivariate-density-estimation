@@ -40,16 +40,9 @@ if (!exists(".standardize")) {
   for (d in seq_len(deg_t)) {
     out <- c(out, t^d)
   }
-  if (length(xprev) > 0) {
+  if (cross && length(xprev) > 0) {
     for (j in seq_along(xprev)) {
-      for (d in seq_len(deg_x)) {
-        out <- c(out, xprev[j]^d)
-      }
-    }
-    if (cross) {
-      for (j in seq_along(xprev)) {
-        out <- c(out, t * xprev[j])
-      }
+      out <- c(out, t * xprev[j])
     }
   }
   out
@@ -60,16 +53,9 @@ if (!exists(".standardize")) {
   for (d in seq_len(deg_t)) {
     out <- c(out, d * t^(max(d - 1, 0)))
   }
-  if (length(xprev) > 0) {
+  if (cross && length(xprev) > 0) {
     for (j in seq_along(xprev)) {
-      for (d in seq_len(deg_x)) {
-        out <- c(out, 0)
-      }
-    }
-    if (cross) {
-      for (j in seq_along(xprev)) {
-        out <- c(out, xprev[j])
-      }
+      out <- c(out, xprev[j])
     }
   }
   out
@@ -77,24 +63,16 @@ if (!exists(".standardize")) {
 
 .build_Psi_q_ct <- function(xval, xp, nodes, nodes_pow, deg_t, deg_x) {
   Q <- length(nodes)
-  m_beta <- deg_t + length(xp) * deg_x + length(xp)
+  m_beta <- deg_t + length(xp)
   Psi_q <- matrix(0, Q, m_beta)
   if (deg_t > 0) {
     x_pow <- xval^(seq_len(deg_t))
     Psi_q[, seq_len(deg_t)] <- sweep(nodes_pow, 2, x_pow, "*")
   }
   if (length(xp) > 0) {
-    col <- deg_t
-    for (j in seq_along(xp)) {
-      if (deg_x > 0) {
-        xp_pow <- xp[j]^(seq_len(deg_x))
-        Psi_q[, col + seq_len(deg_x)] <- matrix(rep(xp_pow, each = Q), Q, deg_x)
-        col <- col + deg_x
-      }
-    }
     t_vec <- nodes * xval
     for (j in seq_along(xp)) {
-      Psi_q[, col + j - 1] <- t_vec * xp[j]
+      Psi_q[, deg_t + j] <- t_vec * xp[j]
     }
   }
   Psi_q
