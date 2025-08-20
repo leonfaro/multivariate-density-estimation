@@ -20,6 +20,8 @@ tab <- calc_loglik_tables(mods, config, prep$S$X_te)
 test_that("calc_loglik_tables works", {
   expect_true(is.data.frame(tab))
   expect_equal(nrow(tab), length(config) + 1)
+  expect_true(all(grepl("±", tab$`True (marginal)`)))
+  expect_true(all(grepl("±", tab$`True (Joint)`)))
   expect_true(all(grepl("±", tab$`Marginal Map`)))
   expect_true(all(grepl("±", tab$`Separable Map`)))
   expect_true(all(grepl("±", tab$`Cross-term Map`)))
