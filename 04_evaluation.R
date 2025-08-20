@@ -5,7 +5,6 @@ if (basename(root_path) == "testthat") {
 }
 source(file.path(root_path, "models/ttm_marginal.R"))
 source(file.path(root_path, "models/ttm_separable.R"))
-source(file.path(root_path, "models/ks_model.R"))
 source(file.path(root_path, "models/ttm_cross_term.R"))
 source(file.path(root_path, "models/true_joint_model.R"))
 
@@ -46,7 +45,7 @@ prepare_data <- function(n, config, seed = 42) {
   list(X = X, S = S)
 }
 
-#' TRUE, TRTF und KS Modelle fitten
+#' TRUE, TRTF und Cross-Term-Map fitten
 #'
 #' @param S Liste mit `X_tr`, `X_val`, `X_te`
 #' @param config Konfiguration der Zielverteilungen
@@ -58,27 +57,22 @@ fit_models <- function(S, config) {
     ll_true <- logL_TRUE_dim(M_TRUE, S$X_te)
   })[["elapsed"]]
 
-  M_TRTF <- fit_TRTF(S, config)
-  t_trtf <- system.time({
-    ll_trtf <- logL_TRTF_dim(M_TRTF, S$X_te)
-  })[["elapsed"]]
+    M_TRTF <- fit_TRTF(S, config)
+    t_trtf <- system.time({
+      ll_trtf <- logL_TRTF_dim(M_TRTF, S$X_te)
+    })[["elapsed"]]
 
-  M_KS <- fit_KS(S, config)
-  t_ks <- system.time({
-    ll_ks <- logL_KS_dim(M_KS, S$X_te)
-  })[["elapsed"]]
+    M_TTM_cross <- trainCrossTermMap(S)
+    t_ttm_cross <- system.time({
+      ll_ttm_cross <- -predict(M_TTM_cross$S, S$X_te, type = "logdensity_by_dim")
+    })[["elapsed"]]
 
-  M_TTM_cross <- trainCrossTermMap(S)
-  t_ttm_cross <- system.time({
-    ll_ttm_cross <- -predict(M_TTM_cross$S, S$X_te, type = "logdensity_by_dim")
-  })[["elapsed"]]
-
-  list(models = list(true = M_TRUE, trtf = M_TRTF, ks = M_KS,
-                     ttm_cross = M_TTM_cross),
-       ll = list(true = ll_true, trtf = ll_trtf, ks = ll_ks,
-                ttm_cross = ll_ttm_cross),
-       times = c(true = t_true, trtf = t_trtf, ks = t_ks,
-                 ttm_cross = t_ttm_cross))
+    list(models = list(true = M_TRUE, trtf = M_TRTF,
+                       ttm_cross = M_TTM_cross),
+         ll = list(true = ll_true, trtf = ll_trtf,
+                   ttm_cross = ll_ttm_cross),
+         times = c(true = t_true, trtf = t_trtf,
+                   ttm_cross = t_ttm_cross))
 }
 
 #' Log-Likelihood-Tabellen erzeugen
@@ -97,8 +91,10 @@ calc_loglik_tables <- function(models, config, X_te) {
     ll_true[, k] <- -ll_vec
   }
   ll_trtf <- -predict(models$trtf, X_te, type = "logdensity_by_dim")
+
   ll_ks   <- -predict(models$ks,  X_te, type = "logdensity_by_dim")
   ll_true_joint <- - true_joint_logdensity_by_dim(config, X_te)
+
   if (!is.null(models$ttm)) {
     ll_ttm <- -predict(models$ttm$S, X_te, type = "logdensity_by_dim")
     mean_ttm <- colMeans(ll_ttm)
@@ -147,10 +143,6 @@ calc_loglik_tables <- function(models, config, X_te) {
   se_trtf   <- apply(ll_trtf, 2, stderr)
   total_nll_trtf <- rowSums(ll_trtf)
   se_sum_trtf <- stats::sd(total_nll_trtf) / sqrt(length(total_nll_trtf))
-  mean_ks   <- colMeans(ll_ks)
-  se_ks     <- apply(ll_ks,   2, stderr)
-  total_nll_ks <- rowSums(ll_ks)
-  se_sum_ks <- stats::sd(total_nll_ks) / sqrt(length(total_nll_ks))
   fmt <- function(m, se) sprintf("%.2f ± %.2f", round(m, 2), round(2 * se, 2))
 
   tab <- data.frame(
@@ -159,7 +151,6 @@ calc_loglik_tables <- function(models, config, X_te) {
     true = fmt(mean_true, se_true),
     true_joint = fmt(mean_true_joint, se_true_joint),
     trtf = fmt(mean_trtf, se_trtf),
-    ks   = fmt(mean_ks, se_ks),
     ttm  = fmt(mean_ttm, se_ttm),
     ttm_sep = fmt(mean_sep, se_sep),
     ttm_cross = fmt(mean_cross, se_cross),
@@ -172,7 +163,6 @@ calc_loglik_tables <- function(models, config, X_te) {
     true = fmt(sum(mean_true), se_sum_true),
     true_joint = fmt(sum(mean_true_joint), se_sum_true_joint),
     trtf = fmt(sum(mean_trtf), se_sum_trtf),
-    ks   = fmt(sum(mean_ks),   se_sum_ks),
     ttm  = fmt(sum(mean_ttm),  se_sum_ttm),
     ttm_sep = fmt(sum(mean_sep),  se_sum_sep),
     ttm_cross = fmt(sum(mean_cross), se_sum_cross),
