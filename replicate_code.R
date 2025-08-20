@@ -3,7 +3,8 @@ extract_sources <- function(main_file = "main.R") {
   pattern <- 'source\\("([^\\"]+)"\\)'
   matches <- regmatches(lines, gregexpr(pattern, lines, perl = TRUE))
   src_files <- unlist(lapply(matches, function(x) if (length(x) > 0) gsub(pattern, "\\1", x)))
-  unique(src_files)
+  src_files <- unique(src_files)
+  src_files[basename(src_files) != "replicate_code.R"]
 }
 
 replicate_code_scripts <- function(main_file = "main.R",

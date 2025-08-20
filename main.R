@@ -6,6 +6,7 @@ source("models/trtf_model.R")
 source("models/ks_model.R")
 source("models/ttm_marginal.R")
 source("models/ttm_separable.R")
+source("models/ttm_cross_term.R")
 source("04_evaluation.R")
 source("replicate_code.R")
 
