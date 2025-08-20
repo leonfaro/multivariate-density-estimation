@@ -1,12 +1,11 @@
 source("helper_config.R")
 source("../../04_evaluation.R")
 source("../../models/trtf_model.R")
-source("../../models/ks_model.R")
 source("../../models/true_model.R")
 
 set.seed(2)
 prep <- prepare_data(30, config)
-mods <- fit_models(prep$S, config)
+  mods <- fit_models(prep$S, config)
 
 
 test_that("fit_models returns list of models", {

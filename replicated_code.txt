@@ -293,64 +293,6 @@ mod
 }
 ### End models/trtf_model.R ###
 
-### Begin models/ks_model.R ###
-.log_sum_exp <- function(x) {
-m <- max(x)
-m + log(sum(exp(x - m)))
-}
-fit_KS <- function(S, config, seed = 42) {
-stopifnot(is.list(S))
-X_tr  <- S$X_tr
-X_val <- S$X_val
-X_te  <- S$X_te
-stopifnot(is.matrix(X_tr), is.matrix(X_val), is.matrix(X_te))
-set.seed(seed)
-h <- apply(rbind(X_tr, X_val), 2, stats::bw.nrd0)
-model <- list(X_tr = X_tr, h = h, config = config, seed = seed)
-class(model) <- "ks_model"
-model$logL_te <- logL_KS(model, X_te)
-model
-}
-predict.ks_model <- function(object, newdata,
-type = c("logdensity", "logdensity_by_dim"),
-cores = NC) {
-type <- match.arg(type)
-X_tr <- object$X_tr
-h <- object$h
-stopifnot(is.matrix(newdata))
-K <- ncol(X_tr)
-n <- nrow(newdata)
-ll_list <- parallel::mclapply(seq_len(n), function(i) {
-x <- newdata[i, ]
-logkern <- vapply(seq_len(K), function(r) {
-dnorm((x[r] - X_tr[, r]) / h[r], log = TRUE) - log(h[r])
-}, numeric(nrow(X_tr)))
-cumsums <- t(apply(logkern, 1, cumsum))
-log_g <- apply(cumsums, 2, function(v) .log_sum_exp(v) - log(nrow(X_tr)))
-ll_i <- numeric(K)
-ll_i[1] <- log_g[1]
-if (K > 1) {
-ll_i[2:K] <- diff(log_g)
-}
-ll_i
-}, mc.cores = cores)
-ll <- do.call(rbind, ll_list)
-if (type == "logdensity_by_dim") return(ll)
-rowSums(ll)
-}
-logL_KS <- function(model, X, cores = NC) {
-val <- -mean(predict(model, X, type = "logdensity", cores = cores))
-if (!is.finite(val)) stop("log-likelihood not finite")
-val
-}
-logL_KS_dim <- function(model, X, cores = NC) {
-ll <- predict(model, X, type = "logdensity_by_dim", cores = cores)
-res <- -colMeans(ll)
-if (!all(is.finite(res))) stop("log-likelihood not finite")
-res
-}
-### End models/ks_model.R ###
-
 ### Begin models/ttm_marginal.R ###
 .standardizeData <- function(X) {
 mu <- colMeans(X)
@@ -1099,7 +1041,6 @@ root_path <- dirname(dirname(root_path))
 }
 source(file.path(root_path, "models/ttm_marginal.R"))
 source(file.path(root_path, "models/ttm_separable.R"))
-source(file.path(root_path, "models/ks_model.R"))
 source(file.path(root_path, "models/ttm_cross_term.R"))
 source(file.path(root_path, "models/true_joint_model.R"))
 add_sum_row <- function(tab, label = "k") {
@@ -1130,19 +1071,15 @@ M_TRTF <- fit_TRTF(S, config)
 t_trtf <- system.time({
 ll_trtf <- logL_TRTF_dim(M_TRTF, S$X_te)
 })[["elapsed"]]
-M_KS <- fit_KS(S, config)
-t_ks <- system.time({
-ll_ks <- logL_KS_dim(M_KS, S$X_te)
-})[["elapsed"]]
 M_TTM_cross <- trainCrossTermMap(S)
 t_ttm_cross <- system.time({
 ll_ttm_cross <- -predict(M_TTM_cross$S, S$X_te, type = "logdensity_by_dim")
 })[["elapsed"]]
-list(models = list(true = M_TRUE, trtf = M_TRTF, ks = M_KS,
+list(models = list(true = M_TRUE, trtf = M_TRTF,
 ttm_cross = M_TTM_cross),
-ll = list(true = ll_true, trtf = ll_trtf, ks = ll_ks,
+ll = list(true = ll_true, trtf = ll_trtf,
 ttm_cross = ll_ttm_cross),
-times = c(true = t_true, trtf = t_trtf, ks = t_ks,
+times = c(true = t_true, trtf = t_trtf,
 ttm_cross = t_ttm_cross))
 }
 calc_loglik_tables <- function(models, config, X_te) {
@@ -1154,8 +1091,10 @@ models$true$theta[[k]])
 ll_true[, k] <- -ll_vec
 }
 ll_trtf <- -predict(models$trtf, X_te, type = "logdensity_by_dim")
+
 ll_ks   <- -predict(models$ks,  X_te, type = "logdensity_by_dim")
 ll_true_joint <- - true_joint_logdensity_by_dim(config, X_te)
+
 if (!is.null(models$ttm)) {
 ll_ttm <- -predict(models$ttm$S, X_te, type = "logdensity_by_dim")
 mean_ttm <- colMeans(ll_ttm)
@@ -1203,10 +1142,6 @@ mean_trtf <- colMeans(ll_trtf)
 se_trtf   <- apply(ll_trtf, 2, stderr)
 total_nll_trtf <- rowSums(ll_trtf)
 se_sum_trtf <- stats::sd(total_nll_trtf) / sqrt(length(total_nll_trtf))
-mean_ks   <- colMeans(ll_ks)
-se_ks     <- apply(ll_ks,   2, stderr)
-total_nll_ks <- rowSums(ll_ks)
-se_sum_ks <- stats::sd(total_nll_ks) / sqrt(length(total_nll_ks))
 fmt <- function(m, se) sprintf("%.2f ± %.2f", round(m, 2), round(2 * se, 2))
 tab <- data.frame(
 dim = as.character(seq_len(K)),
@@ -1214,7 +1149,6 @@ distribution = sapply(config, `[[`, "distr"),
 true = fmt(mean_true, se_true),
 true_joint = fmt(mean_true_joint, se_true_joint),
 trtf = fmt(mean_trtf, se_trtf),
-ks   = fmt(mean_ks, se_ks),
 ttm  = fmt(mean_ttm, se_ttm),
 ttm_sep = fmt(mean_sep, se_sep),
 ttm_cross = fmt(mean_cross, se_cross),
@@ -1226,7 +1160,6 @@ distribution = "SUM",
 true = fmt(sum(mean_true), se_sum_true),
 true_joint = fmt(sum(mean_true_joint), se_sum_true_joint),
 trtf = fmt(sum(mean_trtf), se_sum_trtf),
-ks   = fmt(sum(mean_ks),   se_sum_ks),
 ttm  = fmt(sum(mean_ttm),  se_sum_ttm),
 ttm_sep = fmt(sum(mean_sep),  se_sum_sep),
 ttm_cross = fmt(sum(mean_cross), se_sum_cross),
@@ -1253,7 +1186,6 @@ source("01_data_generation.R")
 source("02_split.R")
 source("models/true_model.R")
 source("models/trtf_model.R")
-source("models/ks_model.R")
 source("models/ttm_marginal.R")
 source("models/ttm_separable.R")
 source("models/ttm_cross_term.R")
@@ -1278,7 +1210,6 @@ mods <- list(
 true = fit_TRUE(prep$S, config),
 true_joint = fit_TRUE_JOINT(prep$S, config),
 trtf = fit_TRTF(prep$S, config, seed = 42),
-ks   = fit_KS(prep$S, config),
 ttm  = trainMarginalMap(prep$S),
 ttm_sep = trainSeparableMap(prep$S),
 ttm_cross = trainCrossTermMap(prep$S)
@@ -1295,6 +1226,7 @@ replicate_code_scripts("main.R", "replicated_code.txt", env = globalenv())
 ### End main.R ###
 
 ### Final results table ###
+
   dim distribution True (marginal) True (Joint) Random Forest            ks
 1   1         norm     1.55 ± 0.47  1.54 ± 0.48   1.62 ± 0.42   1.60 ± 0.46
 2   2          exp     1.65 ± 0.63  1.65 ± 0.87   2.73 ± 1.00   2.06 ± 0.62
@@ -1307,4 +1239,5 @@ replicate_code_scripts("main.R", "replicated_code.txt", env = globalenv())
 3  0.41 ± 0.22  -0.00 ± 0.63    0.77 ± 7.75
 4  3.32 ± 1.45   3.36 ± 2.68    1.58 ± 0.34
 5  8.59 ± 1.77   6.81 ± 3.36    4.39 ± 8.36
+
 
