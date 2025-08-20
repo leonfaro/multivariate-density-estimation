@@ -100,24 +100,42 @@ if (!exists(".standardize")) {
   Psi_q
 }
 
-.gauss_legendre_01_ct <- function(n) {
-  if (n <= 0 || n != as.integer(n)) {
-    stop("n must be positive integer")
+.gauss_lobatto_01_ct <- function(Q, degree_t) {
+  if (!requireNamespace("statmod", quietly = TRUE)) {
+    stop("package 'statmod' required")
   }
-  if (n == 1) {
-    return(list(nodes = 0.5, weights = 1))
+  if (Q < 2 || Q != as.integer(Q)) {
+    stop("Q must be integer >= 2")
   }
-  i <- seq_len(n - 1)
-  b <- i / sqrt(4 * i^2 - 1)
-  J <- matrix(0, n, n)
-  for (k in i) {
-    J[k, k + 1] <- b[k]
-    J[k + 1, k] <- b[k]
+  if (Q == 2) {
+    nodes <- c(0, 1)
+    weights <- c(0.5, 0.5)
+  } else {
+    m <- Q - 2
+    gj <- statmod::gauss.quad(m, kind = "jacobi", alpha = 1, beta = 1)
+    interior <- gj$nodes
+    nodes_full <- c(-1, interior, 1)
+    legendreP <- function(n, x) {
+      if (n == 0) return(rep(1, length(x)))
+      if (n == 1) return(x)
+      p0 <- rep(1, length(x))
+      p1 <- x
+      for (k in 2:n) {
+        pk <- ((2 * k - 1) * x * p1 - (k - 1) * p0) / k
+        p0 <- p1
+        p1 <- pk
+      }
+      p1
+    }
+    Pn1 <- legendreP(Q - 1, nodes_full)
+    weights_full <- numeric(Q)
+    weights_full[1] <- weights_full[Q] <- 2 / (Q * (Q - 1))
+    weights_full[2:(Q - 1)] <- 2 / (Q * (Q - 1) * (Pn1[2:(Q - 1)])^2)
+    nodes <- (nodes_full + 1) / 2
+    weights <- weights_full / 2
   }
-  e <- eigen(J, symmetric = TRUE)
-  x <- (e$values + 1) / 2
-  w <- (2 * (e$vectors[1, ]^2)) / 2
-  list(nodes = x, weights = w)
+  nodes_pow <- outer(nodes, seq_len(degree_t), `^`)
+  list(nodes = nodes, weights = weights, nodes_pow = nodes_pow)
 }
 
 .safe_mclapply_ct <- function(X, FUN, mc.cores, ...) {
@@ -176,7 +194,7 @@ if (!exists(".standardize")) {
 
 trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2,
                               lambda = 1e-3, batch_n = NULL, Q = NULL,
-                              eps = 1e-6, clip = 20) {
+                              eps = 1e-6, clip = Inf) {
   set.seed(42)
   S_in <- if (is.character(X_or_path)) readRDS(X_or_path) else X_or_path
   stopifnot(is.list(S_in))
@@ -193,10 +211,10 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2,
     K <- ncol(X_tr_std)
     Q_use <- if (is.null(Q)) min(12, 4 + 2 * degree_t) else Q
     batch_use <- if (is.null(batch_n)) min(N, max(256L, floor(65536 / max(1L, Q_use)))) else min(N, batch_n)
-    quad <- .gauss_legendre_01_ct(Q_use)
+    quad <- .gauss_lobatto_01_ct(Q_use, degree_t)
     nodes <- quad$nodes
     weights <- quad$weights
-    nodes_pow <- outer(nodes, seq_len(degree_t), `^`)
+    nodes_pow <- quad$nodes_pow
 
     fit_k <- function(k) {
       Xprev <- if (k > 1) X_tr_std[, 1:(k - 1), drop = FALSE] else matrix(0, N, 0)
@@ -220,14 +238,14 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2,
             xp <- if (k > 1) Xprev_blk[b, ] else numeric(0)
             xval <- xk_blk[b]
             Psi_q <- .build_Psi_q_ct(xval, xp, nodes, nodes_pow, degree_t, degree_g)
-            V <- Psi_q %*% beta
-            m <- max(V)
-            v_shift <- V - m
-            ev_full <- exp(v_shift)
-            ev_clip <- exp(pmax(v_shift, -clip))
-            s <- sum(weights * ev_clip)
-            I_i <- xval * exp(m) * s
-            dI_i <- xval * as.vector(t(Psi_q) %*% (weights * ev_full))
+            V <- as.vector(Psi_q %*% beta)
+            b_vec <- log(weights) + V
+            b_max <- max(b_vec)
+            r_vec <- exp(b_vec - b_max)
+            s <- exp(b_max) * sum(r_vec)
+            I_i <- xval * s
+            soft <- r_vec / sum(r_vec)
+            dI_i <- I_i * as.vector(t(Psi_q) %*% soft)
             psi_x <- .psi_basis_ct(xval, xp, degree_t, degree_g, TRUE)
             S_i <- if (m_alpha > 0) sum(Phi_blk[b, ] * alpha) + I_i else I_i
             S_sq_sum <- S_sq_sum + S_i^2
@@ -263,7 +281,9 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2,
       }
 
       theta0 <- rep(0, m_alpha + m_beta)
-      opt <- optim(theta0, fn, gr, method = "L-BFGS-B", lower = -Inf, upper = Inf)
+      opt <- optim(theta0, fn, gr, method = "L-BFGS-B",
+                   lower = rep(-50, length(theta0)),
+                   upper = rep(50, length(theta0)))
       alpha_hat <- if (m_alpha > 0) opt$par[seq_len(m_alpha)] else numeric(0)
       beta_hat <- opt$par[(m_alpha + 1):length(opt$par)]
       list(alpha = alpha_hat, beta = beta_hat)
@@ -353,12 +373,12 @@ predict.ttm_cross_term <- function(object, newdata,
         xp <- if (k > 1) Xprev_blk[b, ] else numeric(0)
         xval <- xk_blk[b]
         Psi_q <- .build_Psi_q_ct(xval, xp, nodes, nodes_pow, object$degree_t, object$degree_g)
-        V <- Psi_q %*% beta
-        m <- max(V)
-        v_shift <- V - m
-        ev <- exp(pmax(v_shift, -object$clip))
-        s <- sum(weights * ev)
-        I_i <- xval * exp(m) * s
+        V <- as.vector(Psi_q %*% beta)
+        b_vec <- log(weights) + V
+        b_max <- max(b_vec)
+        r_vec <- exp(b_vec - b_max)
+        s <- exp(b_max) * sum(r_vec)
+        I_i <- xval * s
         psi_x <- .psi_basis_ct(xval, xp, object$degree_t, object$degree_g, TRUE)
         Z_col[idx[b]] <- if (m_alpha > 0) sum(Phi_blk[b, ] * alpha) + I_i else I_i
         LJ_col[idx[b]] <- sum(beta * psi_x) - log(object$sigma[k])
