@@ -2,7 +2,8 @@ source("helper_config.R")
 source("../../04_evaluation.R")
 
 set.seed(11)
-prep <- prepare_data(40, config)
+n <- 50
+prep <- prepare_data(n, config)
 fit <- trainMarginalMap(prep$S)
 
 mu_tr <- colMeans(prep$S$X_tr)

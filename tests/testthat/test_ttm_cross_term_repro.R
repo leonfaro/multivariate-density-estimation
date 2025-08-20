@@ -2,7 +2,8 @@ source("helper_config.R")
 source("../../04_evaluation.R")
 
 set.seed(16)
-prep <- prepare_data(30, config)
+n <- 50
+prep <- prepare_data(n, config)
 
 set.seed(101)
 fit1 <- trainCrossTermMap(prep$S)

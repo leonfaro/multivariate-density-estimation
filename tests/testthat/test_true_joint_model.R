@@ -2,7 +2,8 @@ source("helper_config.R")
 source("../../models/true_joint_model.R")
 
 set.seed(1)
-X <- matrix(runif(40, 0.1, 0.9), ncol = length(config))
+n <- 50
+X <- matrix(runif(n * length(config), 0.1, 0.9), ncol = length(config))
 
 test_that("true_joint_logdensity_by_dim returns finite matrix", {
   logmat <- true_joint_logdensity_by_dim(config, X)

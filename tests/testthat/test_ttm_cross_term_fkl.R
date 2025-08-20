@@ -2,7 +2,8 @@ source("helper_config.R")
 source("../../04_evaluation.R")
 
 set.seed(15)
-prep <- prepare_data(30, config)
+n <- 50
+prep <- prepare_data(n, config)
 fit <- trainCrossTermMap(prep$S)
 
 (test_that("forward KL identity holds", {

@@ -2,7 +2,8 @@ source("helper_config.R")
 source("../../04_evaluation.R")
 
 set.seed(14)
-prep <- prepare_data(30, config)
+n <- 50
+prep <- prepare_data(n, config)
 fit <- trainCrossTermMap(prep$S)
 S0 <- fit$S
 for (k in seq_along(S0$coeffs)) {

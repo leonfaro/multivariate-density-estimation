@@ -2,7 +2,8 @@ source("helper_config.R")
 source("../../04_evaluation.R")
 
 set.seed(13)
-prep <- prepare_data(30, config)
+n <- 50
+prep <- prepare_data(n, config)
 fit <- trainSeparableMap(prep$S)
 
 X_te <- prep$S$X_te

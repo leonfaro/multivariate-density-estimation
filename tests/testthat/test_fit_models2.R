@@ -4,7 +4,8 @@ source("../../models/trtf_model.R")
 source("../../models/true_model.R")
 
 set.seed(2)
-prep <- prepare_data(30, config)
+n <- 50
+prep <- prepare_data(n, config)
   mods <- fit_models(prep$S, config)
 
 
