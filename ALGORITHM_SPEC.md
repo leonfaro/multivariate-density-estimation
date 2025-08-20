@@ -59,6 +59,7 @@ where
    f_3b1 = fit_TTM_marginal
    f_3b2 = fit_TTM_separable
    f_3b3 = fit_TTM_cross  # train triangular transport maps via respective trainers
+   f_3b4 = fit_TRUE_JOINT    # evaluate oracle joint density
 4. $f_4 = \texttt{fit\_TRTF}$ – fit transformation forests.
 5. $f_5 = \texttt{logL\_\*\_dim}$ – compute dimension-wise log-likelihoods.
 6. $f_6 = \texttt{add\_sum\_row}$ – append totals to tables.
@@ -120,6 +121,47 @@ function logL_TRUE(M, X)
         ll_k <- log_density_vec(X[,k], distr_k, M.theta[[k]])
     return -sum(rowSums(ll_k))
 ```
+
+
+### true_joint_logdensity_by_dim
+`true_joint_logdensity_by_dim(config, X) : (config, \mathbb R^{n\times d}) \to \mathbb R^{n\times d}`
+- **Description:** evaluates log $p(x_k \mid x_{1:k-1})$ row-wise using oracle parameters.
+- **Pre:** each `config[[k]]$parm` accepts data frame of previous columns.
+- **Post:** matrix with finite entries.
+- **Pseudocode:**
+```
+function true_joint_logdensity_by_dim(config, X)
+    for i in 1..n
+        for k in 1..d
+            prev <- X[i,1:(k-1)] as data.frame
+            args <- if config[k].parm null then {} else config[k].parm(prev)
+            sanitize positive args; map gamma shape1/shape2
+            xk <- clamp(X[i,k]) to support
+            ll[i,k] <- d<distr_k>(xk, args, log=TRUE)
+    return ll
+```
+
+### logL_TRUE_JOINT_dim
+`logL_TRUE_JOINT_dim(config, X) : (config, \mathbb R^{n\times d}) \to \mathbb R^d`
+- **Description:** average negative log-likelihood per dimension under true joint density.
+- **Pseudocode:** `return -colMeans(true_joint_logdensity_by_dim(config, X))`
+
+### logL_TRUE_JOINT
+`logL_TRUE_JOINT(config, X) : (config, \mathbb R^{n\times d}) \to \mathbb R`
+- **Description:** Gesamt-NLL under the oracle joint density.
+- **Pseudocode:** `return -mean(rowSums(true_joint_logdensity_by_dim(config, X)))`
+
+### fit_TRUE_JOINT
+`fit_TRUE_JOINT(S, config) : S \to M_{TRUE\_JOINT}`
+- **Description:** no training; evaluates test set under the known joint density.
+- **Pseudocode:**
+```
+function fit_TRUE_JOINT(S, config)
+    te_dim <- logL_TRUE_JOINT_dim(config, S.X_te)
+    return (config, te_dim, sum(te_dim))
+```
+
+
 
 ### fit_TRTF
 `fit_TRTF(S, config, seed, cores) : S \to M_{TRTF}`
@@ -227,14 +269,15 @@ function add_sum_row(tab, label)
 ```
 
 ### calc_loglik_tables
-`calc_loglik_tables(models, X_te) : (list, matrix) \to data.frame`
+`calc_loglik_tables(models, config, X_te) : (list, list, matrix) \to data.frame`
 - **Description:** compute mean and standard error of negative log-likelihoods per dimension and return formatted table.
 - **Pseudocode:**
 ```
-function calc_loglik_tables(models, X_te)
+function calc_loglik_tables(models, config, X_te)
     ll_true <- -predict_TRUE(models.true, X_te)
     ll_trtf <- -predict(models.trtf, X_te)
     ll_ks   <- -predict(models.ks,   X_te)
+    ll_true_joint <- -true_joint_logdensity_by_dim(config, X_te)
     if models.ttm exists:
         ll_ttm <- -predict(models.ttm$S, X_te)
         mean_ttm <- colMeans(ll_ttm)
@@ -257,11 +300,16 @@ function calc_loglik_tables(models, X_te)
     else:
         mean_cross <- rep(NA, K); se_cross <- rep(NA, K); se_sum_cross <- NA
     mean_true <- colMeans(ll_true); se_true <- apply(ll_true,2,stderr)
+    se_sum_true <- sd(rowSums(ll_true)) / sqrt(nrow(ll_true))
+    mean_true_joint <- colMeans(ll_true_joint)
+    se_true_joint <- apply(ll_true_joint,2,stderr)
+    se_sum_true_joint <- sd(rowSums(ll_true_joint)) / sqrt(nrow(ll_true_joint))
     mean_trtf <- colMeans(ll_trtf); se_trtf <- apply(ll_trtf,2,stderr)
     mean_ks   <- colMeans(ll_ks);   se_ks   <- apply(ll_ks,2,stderr)
     fmt(x,se) = sprintf("%.2f ± %.2f", round(x,2), round(2*se,2))
     tab <- data.frame(dim, distribution,
                       true = fmt(mean_true, se_true),
+                      true_joint = fmt(mean_true_joint, se_true_joint),
                       trtf = fmt(mean_trtf, se_trtf),
                       ks   = fmt(mean_ks,   se_ks),
                       ttm  = fmt(mean_ttm,  se_ttm),
@@ -269,12 +317,14 @@ function calc_loglik_tables(models, X_te)
                       ttm_cross = fmt(mean_cross, se_cross))
     sum_row <- data.frame(dim="k", distribution="SUM",
                           true=fmt(sum(mean_true), se_sum_true),
+                          true_joint=fmt(sum(mean_true_joint), se_sum_true_joint),
                           trtf=fmt(sum(mean_trtf), se_sum_trtf),
                           ks  =fmt(sum(mean_ks),   se_sum_ks),
                           ttm =fmt(sum(mean_ttm),  se_sum_ttm),
                           ttm_sep=fmt(sum(mean_sep), se_sum_sep),
                           ttm_cross=fmt(sum(mean_cross), se_sum_cross))
-    rename columns: trtf->"Random Forest", ttm->"Marginal Map",
+    rename columns: true->"True (marginal)", true_joint->"True (Joint)",
+                    trtf->"Random Forest", ttm->"Marginal Map",
                     ttm_sep->"Separable Map",
                     ttm_cross->"Cross-term Map"
     return rbind(tab, sum_row)

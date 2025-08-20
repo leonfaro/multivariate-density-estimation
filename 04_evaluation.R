@@ -6,6 +6,7 @@ if (basename(root_path) == "testthat") {
 source(file.path(root_path, "models/ttm_marginal.R"))
 source(file.path(root_path, "models/ttm_separable.R"))
 source(file.path(root_path, "models/ttm_cross_term.R"))
+source(file.path(root_path, "models/true_joint_model.R"))
 
 #' Summen-Zeile an Tabelle anh\u00e4ngen
 #'
@@ -90,6 +91,10 @@ calc_loglik_tables <- function(models, config, X_te) {
     ll_true[, k] <- -ll_vec
   }
   ll_trtf <- -predict(models$trtf, X_te, type = "logdensity_by_dim")
+
+  ll_ks   <- -predict(models$ks,  X_te, type = "logdensity_by_dim")
+  ll_true_joint <- - true_joint_logdensity_by_dim(config, X_te)
+
   if (!is.null(models$ttm)) {
     ll_ttm <- -predict(models$ttm$S, X_te, type = "logdensity_by_dim")
     mean_ttm <- colMeans(ll_ttm)
@@ -129,6 +134,11 @@ calc_loglik_tables <- function(models, config, X_te) {
   se_true   <- apply(ll_true, 2, stderr)
   total_nll_true <- rowSums(ll_true)
   se_sum_true <- stats::sd(total_nll_true) / sqrt(length(total_nll_true))
+  mean_true_joint <- colMeans(ll_true_joint)
+  se_true_joint   <- apply(ll_true_joint, 2, stderr)
+  total_nll_true_joint <- rowSums(ll_true_joint)
+  se_sum_true_joint <- stats::sd(total_nll_true_joint) /
+    sqrt(length(total_nll_true_joint))
   mean_trtf <- colMeans(ll_trtf)
   se_trtf   <- apply(ll_trtf, 2, stderr)
   total_nll_trtf <- rowSums(ll_trtf)
@@ -139,6 +149,7 @@ calc_loglik_tables <- function(models, config, X_te) {
     dim = as.character(seq_len(K)),
     distribution = sapply(config, `[[`, "distr"),
     true = fmt(mean_true, se_true),
+    true_joint = fmt(mean_true_joint, se_true_joint),
     trtf = fmt(mean_trtf, se_trtf),
     ttm  = fmt(mean_ttm, se_ttm),
     ttm_sep = fmt(mean_sep, se_sep),
@@ -150,6 +161,7 @@ calc_loglik_tables <- function(models, config, X_te) {
     dim = "k",
     distribution = "SUM",
     true = fmt(sum(mean_true), se_sum_true),
+    true_joint = fmt(sum(mean_true_joint), se_sum_true_joint),
     trtf = fmt(sum(mean_trtf), se_sum_trtf),
     ttm  = fmt(sum(mean_ttm),  se_sum_ttm),
     ttm_sep = fmt(sum(mean_sep),  se_sum_sep),
@@ -160,6 +172,8 @@ calc_loglik_tables <- function(models, config, X_te) {
 
   # rename columns for display (do this as the last step before returning)
   nm <- names(tab)
+  nm[nm == "true"] <- "True (marginal)"
+  nm[nm == "true_joint"] <- "True (Joint)"
   nm[nm == "trtf"] <- "Random Forest"
   nm[nm == "ttm"]  <- "Marginal Map"
   nm[nm == "ttm_sep"] <- "Separable Map"

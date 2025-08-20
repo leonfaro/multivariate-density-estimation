@@ -1,4 +1,5 @@
 source("00_globals.R")
+if (!exists("%||%")) "%||%" <- function(a, b) if (is.null(a)) b else a
 source("01_data_generation.R")
 source("02_split.R")
 source("models/true_model.R")
@@ -6,6 +7,7 @@ source("models/trtf_model.R")
 source("models/ttm_marginal.R")
 source("models/ttm_separable.R")
 source("models/ttm_cross_term.R")
+source("models/true_joint_model.R")
 source("04_evaluation.R")
 source("replicate_code.R")
 
@@ -33,6 +35,7 @@ main <- function() {
   prep <- prepare_data(n, config, seed = 42)
   mods <- list(
     true = fit_TRUE(prep$S, config),
+    true_joint = fit_TRUE_JOINT(prep$S, config),
     trtf = fit_TRTF(prep$S, config, seed = 42),
     ttm  = trainMarginalMap(prep$S),
     ttm_sep = trainSeparableMap(prep$S),
