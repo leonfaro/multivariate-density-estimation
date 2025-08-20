@@ -45,6 +45,7 @@ forwardKLLoss_ct(S, X) = mean(-rowSums(predict(S,X,"logdensity_by_dim")) - 0.5*K
 - analytic derivative basis `.dpsi_dt_ct` for monotonicity checks
 - optimization of forward KL via L-BFGS-B
 - chunked training and prediction with stable log-sum-exp quadrature, parallelized over dimensions
+- robuste Parallelisierung mit sequentiellem Retry und Null-Koeffizienten-Fallback
 ######################################
 ```
 
