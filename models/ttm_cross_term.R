@@ -223,11 +223,10 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2,
             V <- Psi_q %*% beta
             m <- max(V)
             v_shift <- V - m
-            ev_full <- exp(v_shift)
-            ev_clip <- exp(pmax(v_shift, -clip))
-            s <- sum(weights * ev_clip)
-            I_i <- xval * exp(m) * s
-            dI_i <- xval * as.vector(t(Psi_q) %*% (weights * ev_full))
+            ev <- exp(pmax(v_shift, -clip))
+            s  <- sum(weights * ev)
+            I_i  <- xval * exp(m) * s
+            dI_i <- xval * exp(m) * as.vector(t(Psi_q) %*% (weights * ev))
             psi_x <- .psi_basis_ct(xval, xp, degree_t, degree_g, TRUE)
             S_i <- if (m_alpha > 0) sum(Phi_blk[b, ] * alpha) + I_i else I_i
             S_sq_sum <- S_sq_sum + S_i^2
