@@ -1,4 +1,7 @@
 source("../../00_globals.R")
+if (!requireNamespace("statmod", quietly = TRUE)) {
+  install.packages("statmod", repos = "https://cloud.r-project.org")
+}
 config <- list(
   list(distr = "norm", parm = NULL),
   list(distr = "exp",  parm = function(d) list(rate = softplus(d$X1))),

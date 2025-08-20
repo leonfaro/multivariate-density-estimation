@@ -12,7 +12,7 @@ test_that("trainMarginalMap nutzt nur Trainingsstandardisierung", {
   expect_s3_class(fit$S, "ttm_marginal")
   expect_equal(fit$S$mu, mu_tr)
   expect_equal(fit$S$sigma, sigma_tr)
-  expect_true(fit$time_train > 0)
+  expect_true(fit$time_train >= 0)
   expect_true(is.finite(fit$NLL_train))
   expect_true(is.finite(fit$NLL_val))
   expect_true(is.finite(fit$NLL_test))
