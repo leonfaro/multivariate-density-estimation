@@ -23,7 +23,7 @@ Sk_eval <- function(S, X) {
     for (i in seq_len(N)) {
       xp <- if (k > 1) Xprev[i, , drop = TRUE] else numeric(0)
       xval <- xk[i]
-      Psi_q <- .build_Psi_q_ct(xval, xp, nodes, nodes_pow, S$degree_t, S$degree_g)
+      Psi_q <- .build_Psi_q_ct(xval, xp, nodes, nodes_pow, S$degree_t, S$degree_g, S$degree_t_cross, S$degree_x_cross)
       V <- Psi_q %*% beta
       m <- max(V)
       v_shift <- V - m
@@ -40,14 +40,14 @@ dI_dx_hat <- function(S, xval, xp, beta) {
   nodes   <- S$quad_nodes_ct
   weights <- S$quad_weights_ct
   nodes_pow <- S$quad_nodes_pow_ct
-  Psi_q <- .build_Psi_q_ct(xval, xp, nodes, nodes_pow, S$degree_t, S$degree_g)
+  Psi_q <- .build_Psi_q_ct(xval, xp, nodes, nodes_pow, S$degree_t, S$degree_g, S$degree_t_cross, S$degree_x_cross)
   V     <- as.vector(Psi_q %*% beta)
   m     <- max(V)
   vsh   <- V - m
   ev    <- exp(pmin(pmax(vsh, -S$clip), S$clip))
   exp_m <- exp(pmin(m, S$clip))
   dpsi_q <- t(vapply(nodes * xval, function(tt)
-    .dpsi_dt_ct(tt, xp, S$degree_t, S$degree_g, TRUE),
+    .dpsi_dt_ct(tt, xp, S$degree_t, S$degree_g, TRUE, S$degree_t_cross, S$degree_x_cross),
     numeric(length(beta))))
   hprime <- as.vector(dpsi_q %*% beta)
   mask <- as.numeric(vsh > -S$clip)
@@ -69,7 +69,7 @@ test_that("cross-term map monotonic", {
       Xs <- .standardize(fit$S, x)
       xp <- if (k > 1) Xs[1, 1:(k - 1), drop = TRUE] else numeric(0)
       psi <- .psi_basis_ct(Xs[1, k], xp,
-                           fit$S$degree_t, fit$S$degree_g, TRUE)
+                           fit$S$degree_t, fit$S$degree_g, TRUE, fit$S$degree_t_cross, fit$S$degree_x_cross)
       h <- sum(fit$S$coeffs[[k]]$beta * psi)
       if (!is.finite(h) || abs(h) >= fit$S$clip / 2) next
       beta <- fit$S$coeffs[[k]]$beta
