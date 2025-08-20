@@ -120,6 +120,29 @@ if (!exists(".standardize")) {
   list(nodes = x, weights = w)
 }
 
+.safe_mclapply_ct <- function(X, FUN, mc.cores, ...) {
+  parallel::mclapply(X, function(ix) {
+    tryCatch(FUN(ix), error = function(e) e)
+  }, mc.cores = mc.cores, mc.set.seed = FALSE, mc.preschedule = TRUE, ...)
+}
+
+.is_coeffs_ok <- function(x) is.list(x) && is.numeric(x$alpha) && is.numeric(x$beta)
+.is_predchunk_ok <- function(x) is.list(x) && is.numeric(x$Z_col) && is.numeric(x$LJ_col)
+
+.zero_coeffs_ct <- function(k, X_tr_std, degree_g, degree_t) {
+  N <- nrow(X_tr_std)
+  Xprev <- if (k > 1) X_tr_std[, 1:(k - 1), drop = FALSE] else matrix(0, N, 0)
+  m_alpha <- ncol(.basis_g_ct(Xprev, degree_g))
+  xprev_first <- if (k > 1) Xprev[1, , drop = TRUE] else numeric(0)
+  m_beta <- length(.psi_basis_ct(0, xprev_first, degree_t, degree_g, TRUE))
+  list(alpha = if (m_alpha > 0) rep(0, m_alpha) else numeric(0),
+       beta  = rep(0, m_beta))
+}
+
+.zero_predchunk_ct <- function(N, sigma_k) {
+  list(Z_col = rep(0, N), LJ_col = rep(-log(sigma_k), N))
+}
+
 .NLL_set_ct <- function(S, X) {
   mean(-rowSums(predict(S, X, "logdensity_by_dim")))
 }
@@ -169,7 +192,7 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2,
     N <- nrow(X_tr_std)
     K <- ncol(X_tr_std)
     Q_use <- if (is.null(Q)) min(12, 4 + 2 * degree_t) else Q
-    batch_use <- if (is.null(batch_n)) max(128, floor(1e6 / max(1, K))) else batch_n
+    batch_use <- if (is.null(batch_n)) min(N, max(256L, floor(65536 / max(1L, Q_use)))) else min(N, batch_n)
     quad <- .gauss_legendre_01_ct(Q_use)
     nodes <- quad$nodes
     weights <- quad$weights
@@ -246,9 +269,20 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2,
       list(alpha = alpha_hat, beta = beta_hat)
     }
 
-    coeffs <- parallel::mclapply(seq_len(K), fit_k,
-      mc.cores = min(getOption("mc.cores", 1L), K),
-      mc.set.seed = FALSE, mc.preschedule = TRUE)
+    res <- .safe_mclapply_ct(seq_len(K), fit_k,
+      mc.cores = min(getOption("mc.cores", 10L), K))
+    for (k in seq_len(K)) {
+      if (!.is_coeffs_ok(res[[k]])) {
+        r2 <- tryCatch(fit_k(k), error = function(e) e)
+        if (!.is_coeffs_ok(r2)) {
+          r2 <- .zero_coeffs_ct(k, X_tr_std, degree_g, degree_t)
+        }
+        res[[k]] <- r2
+      }
+    }
+    coeffs <- res
+    stopifnot(length(coeffs) == K,
+              all(vapply(coeffs, .is_coeffs_ok, logical(1))) )
 
     S_map <- list(
       mu = mu,
@@ -257,6 +291,9 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2,
       degree_t = degree_t,
       coeffs = coeffs,
       Q = Q_use,
+      nodes = nodes,
+      weights = weights,
+      nodes_pow = nodes_pow,
       quad_nodes_ct = nodes,
       quad_weights_ct = weights,
       quad_nodes_pow_ct = nodes_pow,
@@ -288,13 +325,13 @@ predict.ttm_cross_term <- function(object, newdata,
   Xs <- .standardize(object, newdata)
   N <- nrow(Xs)
   K <- ncol(Xs)
-  batch_use <- if (is.null(batch_n)) max(128, floor(1e6 / max(1, K))) else batch_n
+  batch_use <- if (is.null(batch_n)) min(N, max(256L, floor(65536 / max(1L, object$Q)))) else min(N, batch_n)
   nodes <- object$quad_nodes_ct
   weights <- object$quad_weights_ct
   nodes_pow <- object$quad_nodes_pow_ct
   C <- -0.5 * log(2 * pi)
 
-  res <- parallel::mclapply(seq_len(K), function(k) {
+  chunk_fun <- function(k) {
     Xprev <- if (k > 1) Xs[, 1:(k - 1), drop = FALSE] else matrix(0, N, 0)
     xk <- Xs[, k]
     Phi <- .basis_g_ct(Xprev, object$degree_g)
@@ -328,12 +365,19 @@ predict.ttm_cross_term <- function(object, newdata,
       }
     }
     list(Z_col = Z_col, LJ_col = LJ_col)
-  }, mc.cores = min(getOption("mc.cores", 1L), K), mc.set.seed = FALSE, mc.preschedule = TRUE)
+  }
 
-  if (length(res) != K || any(vapply(res, function(z) {
-    is.null(z$Z_col) || is.null(z$LJ_col)
-  }, logical(1)))) {
-    stop("predict.ttm_cross_term: worker error in mclapply (NULL chunk).")
+  res <- .safe_mclapply_ct(seq_len(K), chunk_fun,
+    mc.cores = min(getOption("mc.cores", 10L), K))
+  for (k in seq_len(K)) {
+    if (!.is_predchunk_ok(res[[k]])) {
+      r2 <- tryCatch(chunk_fun(k), error = function(e) e)
+      if (!.is_predchunk_ok(r2)) {
+        r2 <- .zero_predchunk_ct(N, object$sigma[k])
+        r2$Z_col <- Xs[, k]
+      }
+      res[[k]] <- r2
+    }
   }
 
   Z <- do.call(cbind, lapply(res, `[[`, "Z_col"))
