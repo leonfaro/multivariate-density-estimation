@@ -40,16 +40,9 @@ if (!exists(".standardize")) {
   for (d in seq_len(deg_t)) {
     out <- c(out, t^d)
   }
-  if (length(xprev) > 0) {
+  if (cross && length(xprev) > 0) {
     for (j in seq_along(xprev)) {
-      for (d in seq_len(deg_x)) {
-        out <- c(out, xprev[j]^d)
-      }
-    }
-    if (cross) {
-      for (j in seq_along(xprev)) {
-        out <- c(out, t * xprev[j])
-      }
+      out <- c(out, t * xprev[j])
     }
   }
   out
@@ -60,16 +53,9 @@ if (!exists(".standardize")) {
   for (d in seq_len(deg_t)) {
     out <- c(out, d * t^(max(d - 1, 0)))
   }
-  if (length(xprev) > 0) {
+  if (cross && length(xprev) > 0) {
     for (j in seq_along(xprev)) {
-      for (d in seq_len(deg_x)) {
-        out <- c(out, 0)
-      }
-    }
-    if (cross) {
-      for (j in seq_along(xprev)) {
-        out <- c(out, xprev[j])
-      }
+      out <- c(out, xprev[j])
     }
   }
   out
@@ -77,24 +63,16 @@ if (!exists(".standardize")) {
 
 .build_Psi_q_ct <- function(xval, xp, nodes, nodes_pow, deg_t, deg_x) {
   Q <- length(nodes)
-  m_beta <- deg_t + length(xp) * deg_x + length(xp)
+  m_beta <- deg_t + length(xp)
   Psi_q <- matrix(0, Q, m_beta)
   if (deg_t > 0) {
     x_pow <- xval^(seq_len(deg_t))
     Psi_q[, seq_len(deg_t)] <- sweep(nodes_pow, 2, x_pow, "*")
   }
   if (length(xp) > 0) {
-    col <- deg_t
-    for (j in seq_along(xp)) {
-      if (deg_x > 0) {
-        xp_pow <- xp[j]^(seq_len(deg_x))
-        Psi_q[, col + seq_len(deg_x)] <- matrix(rep(xp_pow, each = Q), Q, deg_x)
-        col <- col + deg_x
-      }
-    }
     t_vec <- nodes * xval
     for (j in seq_along(xp)) {
-      Psi_q[, col + j - 1] <- t_vec * xp[j]
+      Psi_q[, deg_t + j] <- t_vec * xp[j]
     }
   }
   Psi_q
@@ -223,11 +201,10 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2,
             V <- Psi_q %*% beta
             m <- max(V)
             v_shift <- V - m
-            ev_full <- exp(v_shift)
-            ev_clip <- exp(pmax(v_shift, -clip))
-            s <- sum(weights * ev_clip)
-            I_i <- xval * exp(m) * s
-            dI_i <- xval * as.vector(t(Psi_q) %*% (weights * ev_full))
+            ev <- exp(pmax(v_shift, -clip))
+            s  <- sum(weights * ev)
+            I_i  <- xval * exp(m) * s
+            dI_i <- xval * exp(m) * as.vector(t(Psi_q) %*% (weights * ev))
             psi_x <- .psi_basis_ct(xval, xp, degree_t, degree_g, TRUE)
             S_i <- if (m_alpha > 0) sum(Phi_blk[b, ] * alpha) + I_i else I_i
             S_sq_sum <- S_sq_sum + S_i^2
