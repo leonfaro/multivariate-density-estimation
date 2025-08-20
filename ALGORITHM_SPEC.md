@@ -51,7 +51,7 @@ forwardKLLoss_ct(S, X) = mean(-rowSums(predict(S,X,"logdensity_by_dim")) - 0.5*K
 
 ## 2. Top-Level Pipeline
 The overarching routine `main()` follows the composition
-$$\operatorname{mainPipeline} := f_9 \circ f_8 \circ \cdots \circ f_1,$$
+$$\operatorname{mainPipeline} := f_7 \circ f_6 \circ \cdots \circ f_1,$$
 where
 1. $f_1 = \texttt{gen\_samples}$ – generate $X$ from configuration.
 2. $f_2 = \texttt{split\_data}$ – obtain $(X_{\text{tr}}, X_{\text{val}}, X_{\text{te}})$.
@@ -60,10 +60,9 @@ where
    f_3b2 = fit_TTM_separable
    f_3b3 = fit_TTM_cross  # train triangular transport maps via respective trainers
 4. $f_4 = \texttt{fit\_TRTF}$ – fit transformation forests.
-5. $f_5 = \texttt{fit\_KS}$ – fit kernel smoother model.
-6. $f_6 = \texttt{logL\_\*\_dim}$ – compute dimension-wise log-likelihoods.
-7. $f_7 = \texttt{add\_sum\_row}$ – append totals to tables.
-8. $f_8 = \texttt{format\_loglik\_table}$ – present final evaluation table.
+5. $f_5 = \texttt{logL\_\*\_dim}$ – compute dimension-wise log-likelihoods.
+6. $f_6 = \texttt{add\_sum\_row}$ – append totals to tables.
+7. $f_7 = \texttt{format\_loglik\_table}$ – present final evaluation table.
 Optional EDA helper functions are defined in `04_evaluation.R`.
 
 ## 3. Module Specifications
@@ -120,37 +119,6 @@ function logL_TRUE(M, X)
     for k in 1..d
         ll_k <- log_density_vec(X[,k], distr_k, M.theta[[k]])
     return -sum(rowSums(ll_k))
-```
-
-### fit_KS
-`fit_KS(S, config, seed) : S \to M_{KS}`
-- **Description:** kernel density estimate using Gaussian kernels with bandwidth `bw.nrd0`.
-- **Pre:** numeric matrices; seed scalar.
-- **Post:** returns training data, bandwidth vector and test log-likelihood.
-- **Randomness:** `set.seed(seed)` only influences bandwidth estimation.
-- **Pseudocode:**
-```
-function fit_KS(S, config, seed)
-    set seed to seed
-    X_tr <- S.X_tr
-    X_val <- S.X_val
-    X_te  <- S.X_te
-    h <- bw.nrd0 applied columnwise on rbind(X_tr, X_val)
-    model <- (X_tr, h, config)
-    model.logL_te <- logL_KS(model, X_te)
-    return model
-```
-
-### logL_KS
-`logL_KS(model, X) : (M_{KS}, \mathbb R^{n\times d}) \to \mathbb R`
-- **Description:** Gesamt-NLL via sequential KDE evaluation.
-- **Pre:** bandwidths $h>0$.
-- **Post:** finite scalar.
-- **Pseudocode:**
-```
-function logL_KS(model, X)
-    ll <- predict.ks_model(model, X, 'logdensity')
-    return -sum(ll)
 ```
 
 ### fit_TRTF
@@ -321,13 +289,12 @@ function calc_loglik_tables(models, X_te)
 - **Pre/Post:** keine Seiteneffekte auf Dateien.
 
 ## 4. Randomness & Reproducibility
-Each module drawing random numbers sets the RNG via `set.seed` with an integer seed. Seeds are derived from the global seed (`G.seed`) with deterministic offsets. Random variables are sampled from base R distributions (`rnorm`, `rexp`, `rbeta`, `rgamma`) or via transformation forests and kernel smoothing. All optimization routines are deterministic given these seeds. To reproduce results, record `G.seed` and any hyperparameter grid.
+Each module drawing random numbers sets the RNG via `set.seed` with an integer seed. Seeds are derived from the global seed (`G.seed`) with deterministic offsets. Random variables are sampled from base R distributions (`rnorm`, `rexp`, `rbeta`, `rgamma`) or via transformation forests. All optimization routines are deterministic given these seeds. To reproduce results, record `G.seed` and any hyperparameter grid.
 
 ## 5. Complexity Notes
 - `gen_samples`: $\\Theta(Nd)$.
 - `split_data`: $\\Theta(N)$ for shuffling.
 - `fit_TRUE`: dominated by optimization per dimension; roughly $\\Theta(d n_{tr} I)$ with iteration count $I$.
-- `fit_KS`: kernel evaluations yield $\\Theta(n_{te} n_{tr} d)$ during prediction.
 - `fit_TRTF` complexity hängt von der Tiefe der Bäume ab und ist datengesteuert.
 
 - Marginal-TTM:  \\Theta(N d)
@@ -340,7 +307,6 @@ Each module drawing random numbers sets the RNG via `set.seed` with an integer s
 - **Sample Matrix** `X`: numeric matrix with columns `X1` … `Xd`.
 - **Model Objects**:
   - `M_TRUE`: list `theta` (per-dimension parameter vectors), `config`, `logL_te`.
-  - `ks_model`: list `X_tr`, `h`, `config`, `logL_te`.
   - `mytrtf`: list `ymod`, `forests`, `seed`, `varimp`, `config`, `logL_te`.
   - `ttm_model`: functions implementing triangular transport maps.
   - `logJacDiag(S,x)` → returns vector of log partial derivatives.
