@@ -12,7 +12,8 @@ mods <- list(
   trtf = fit_TRTF(prep$S, config),
   ks   = fit_KS(prep$S, config),
   ttm  = trainMarginalMap(prep$S),
-  ttm_sep = trainSeparableMap(prep$S)
+  ttm_sep = trainSeparableMap(prep$S),
+  ttm_cross = trainCrossTermMap(prep$S)
 )
 tab <- calc_loglik_tables(mods, config, prep$S$X_te)
 
@@ -21,5 +22,6 @@ test_that("calc_loglik_tables works", {
   expect_equal(nrow(tab), length(config) + 1)
   expect_true(all(grepl("±", tab$`Marginal Map`)))
   expect_true(all(grepl("±", tab$`Separable Map`)))
+  expect_true(all(grepl("±", tab$`Cross-term Map`)))
   expect_false(any(grepl("NA", tab$`Separable Map`)))
 })
