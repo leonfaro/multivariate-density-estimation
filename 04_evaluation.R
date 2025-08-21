@@ -182,9 +182,74 @@ calc_loglik_tables <- function(models, config, X_te) {
 }
 
 #' Standardabweichungen der Log-Likelihoods
-#'
+#' 
 #' @param models Rueckgabe von `fit_models`
 #' @param S Liste mit `X_te`
 #' @param config Konfiguration
 #' @return Datenrahmen analog zu `calc_loglik_tables`
 #' @export
+
+#' Evaluate models on two-moons data
+#'
+#' Fits missing models, computes negative log-likelihoods (nats) and
+#' writes a CSV summary.
+#'
+#' @param mods optional list of fitted models
+#' @param S split structure from `make_halfmoon_splits`
+#' @param out_csv_path optional output path
+#' @return data frame with NLL metrics
+#' @export
+eval_halfmoon <- function(mods, S, out_csv_path = NULL) {
+  dir.create("results", showWarnings = FALSE)
+  N <- nrow(S$X_te)
+  K <- ncol(S$X_te)
+  need <- c("true", "trtf", "ttm", "ttm_sep", "ttm_cross")
+  config_moon <- list(list(distr = "norm"), list(distr = "norm"))
+  if (missing(mods) || length(mods) == 0 || !all(need %in% names(mods))) {
+    seed <- if (!is.null(S$meta$seed)) as.integer(S$meta$seed) else 42L
+    set.seed(seed)
+    mods <- list(
+      true = fit_TRUE(S, config_moon),
+      trtf = fit_TRTF(S, config_moon, seed = seed),
+      ttm = trainMarginalMap(S)$S,
+      ttm_sep = trainSeparableMap(S)$S,
+      ttm_cross = trainCrossTermMap(S)$S
+    )
+  }
+  rows <- list()
+  for (m in need) {
+    mod <- mods[[m]]
+    if (m == "true") {
+      cfg <- mod$config
+      LD <- do.call(cbind, lapply(seq_len(K), function(k)
+        .log_density_vec(S$X_te[, k], cfg[[k]]$distr, mod$theta[[k]])))
+    } else {
+      LD <- predict(mod, S$X_te, "logdensity_by_dim")
+    }
+    stopifnot(is.matrix(LD), all(dim(LD) == c(N, K)), all(is.finite(LD)))
+    if (m == "true") {
+      LDj <- rowSums(LD)
+    } else {
+      LDj_try <- try(predict(mod, S$X_te, "logdensity"), silent = TRUE)
+      LDj <- if (inherits(LDj_try, "try-error")) rowSums(LD) else as.numeric(LDj_try)
+    }
+    stopifnot(length(LDj) == N, all(is.finite(LDj)),
+              max(abs(rowSums(LD) - LDj)) < 1e-10)
+    nllj <- -LDj
+    per <- -colMeans(LD)
+    se <- stats::sd(nllj) / sqrt(N)
+    rows[[length(rows) + 1]] <- c(
+      list(model = m, mean_joint_nll = mean(nllj), se_joint = se),
+      setNames(as.list(per), paste0("per_dim_nll_", 1:K))
+    )
+  }
+  df <- do.call(rbind, lapply(rows, as.data.frame, stringsAsFactors = FALSE))
+  path <- if (is.null(out_csv_path))
+    sprintf("results/nll_halfmoon_seed%03d.csv", as.integer(S$meta$seed))
+  else out_csv_path
+  write.csv(df, path, row.names = FALSE)
+  print(df)
+  results_table <<- df
+  df
+}
+
