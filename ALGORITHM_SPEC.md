@@ -56,6 +56,7 @@ $$\operatorname{mainPipeline} := f_7 \circ f_6 \circ \cdots \circ f_1,$$
 where
 1. $f_1 = \texttt{gen\_samples}$ – generate $X$ from configuration.
 2. $f_2 = \texttt{split\_data}$ – obtain $(X_{\text{tr}}, X_{\text{val}}, X_{\text{te}})$.
+   $f_{2a} =$ optional column permutation $S \mapsto S_{perm}$ with corresponding config reordering.
 3. $f_3 = \texttt{fit\_TRUE}$ – fit independent parametric marginals.
    f_3b1 = fit_TTM_marginal
    f_3b2 = fit_TTM_separable
@@ -67,6 +68,11 @@ where
 7. $f_7 = \texttt{format\_loglik\_table}$ – present final evaluation table.
 Optional EDA helper functions are defined in `04_evaluation.R`.
 
+After presenting the negative log-likelihood table, the script prints a 6\u00d73 timing table with rows
+`True (marginal)`, `True (Joint)`, `Random Forest`, `Marginal Map`, `Separable Map`, `Cross-term Map` and columns
+`train_sec`, `test_sec`, and `total_sec` (sum of the first two). Finally, the permutation vector
+`perm` is echoed as `Permutation order a,b,c,d`.
+
 Environment variables allow selecting alternative toy datasets. Setting `DATASET=halfmoon2d`
 triggers generation of a two-moons sample via `make_halfmoon_splits` with
 parameters `N_TRAIN`, `N_TEST` (capped at 250), `NOISE` and `SEED`. The created
@@ -75,6 +81,7 @@ reset afterwards to keep subsequent model training comparable across datasets.
 Evaluation `eval_halfmoon` fits TRUE, TRTF and the three TTM variants on these
 splits and records per-dimension and joint negative log-likelihoods (in nats)
 to `results/nll_halfmoon_seedXXX.csv`.
+
 
 ## 3. Module Specifications
 `gen_samples(G) : G \to X`
