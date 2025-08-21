@@ -41,7 +41,6 @@ main <- function() {
     X_te  = S0$X_te[, perm, drop = FALSE]
   )
   cfg <- config[perm]
-  cat(sprintf("n=%d\n", n))
   mods <- list(
     true = fit_TRUE(S, cfg),
     true_joint = fit_TRUE_JOINT(S, cfg),
@@ -51,6 +50,7 @@ main <- function() {
     ttm_cross = trainCrossTermMap(S)
   )
   tab <- calc_loglik_tables(mods, cfg, S$X_te)
+  cat(sprintf("n=%d\n", n))
   print(tab)
   results_table <<- tab
   invisible(tab)
