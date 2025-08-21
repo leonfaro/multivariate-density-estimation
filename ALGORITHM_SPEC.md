@@ -67,6 +67,12 @@ where
 7. $f_7 = \texttt{format\_loglik\_table}$ – present final evaluation table.
 Optional EDA helper functions are defined in `04_evaluation.R`.
 
+Environment variables allow selecting alternative toy datasets. Setting `DATASET=halfmoon2d`
+triggers generation of a two-moons sample via `make_halfmoon_splits` with
+parameters `N_TRAIN`, `N_TEST` (capped at 250), `NOISE` and `SEED`. The created
+splits are stored as `results/splits_halfmoon2d_seedXXX.rds` and the RNG state is
+reset afterwards to keep subsequent model training comparable across datasets.
+
 ## 3. Module Specifications
 `gen_samples(G) : G \to X`
 - **Description:** sequentially draws $N=G.n$ samples from distributions specified in `G.config`.
