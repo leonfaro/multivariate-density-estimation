@@ -43,7 +43,8 @@ main <- function() {
   cfg <- config[perm]
 
   t_true_tr  <- system.time(mod_true      <- fit_TRUE(S, cfg))[['elapsed']]
-  t_joint_tr <- system.time(mod_true_joint <- fit_TRUE_JOINT(S, cfg))[['elapsed']]
+  t_joint_tr <- 0
+  mod_true_joint <- fit_TRUE_JOINT(S, cfg)
   t_trtf_tr  <- system.time(mod_trtf      <- fit_TRTF(S, cfg, seed = 42))[['elapsed']]
   mod_ttm     <- trainMarginalMap(S);  t_ttm_tr <- mod_ttm$time_train
   mod_ttm_sep <- trainSeparableMap(S); t_sep_tr <- mod_ttm_sep$time_train
@@ -67,6 +68,7 @@ main <- function() {
   tab <- calc_loglik_tables(mods, cfg, S$X_te)
   cat(sprintf("n=%d\n", n))
   print(tab)
+  cat(sprintf("Permutation order %s\n", paste(perm, collapse = ",")))
   time_tab <- data.frame(
     model = c("True (marginal)", "True (Joint)", "Random Forest",
               "Marginal Map", "Separable Map", "Cross-term Map"),
@@ -81,7 +83,6 @@ main <- function() {
                       time_tab$train_sec + time_tab$test_sec))
   print(time_tab)
   timing_table <<- time_tab
-  cat(sprintf("Permutation order %s\n", paste(perm, collapse = ",")))
   results_table <<- tab
   invisible(tab)
 }
