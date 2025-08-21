@@ -5,7 +5,8 @@ source("../../models/true_model.R")
 source("../../models/ttm_separable.R")
 
 set.seed(7)
-prep <- prepare_data(30, config)
+n <- 50
+prep <- prepare_data(n, config)
   mods <- list(
     true = fit_TRUE(prep$S, config),
     trtf = fit_TRTF(prep$S, config),

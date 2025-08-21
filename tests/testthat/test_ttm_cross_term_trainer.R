@@ -4,7 +4,8 @@ bg_old <- basis_g
 source("../../models/ttm_cross_term.R")
 
 set.seed(12)
-prep <- prepare_data(30, config)
+n <- 50
+prep <- prepare_data(n, config)
 fit <- trainCrossTermMap(prep$S)
 
 (test_that("no name collision with basis_g", {

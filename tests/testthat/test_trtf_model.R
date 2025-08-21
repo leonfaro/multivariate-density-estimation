@@ -4,7 +4,8 @@ source("../../02_split.R")
 source("../../models/trtf_model.R")
 
 set.seed(1)
-X <- Generate_iid_from_config(60, config)
+n <- 50
+X <- Generate_iid_from_config(n, config)
 S <- split_data(X, 42)
 
 

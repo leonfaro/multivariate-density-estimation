@@ -2,7 +2,8 @@ source("helper_config.R")
 source("../../04_evaluation.R")
 
 set.seed(17)
-prep <- prepare_data(30, config)
+n <- 50
+prep <- prepare_data(n, config)
 fit <- trainCrossTermMap(prep$S, Q = 16)
 
 Sk_eval <- function(S, X) {
