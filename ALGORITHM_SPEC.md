@@ -37,15 +37,16 @@ predict.ttm_separable(S, X, type)
 
 ```
 ########  TTM CORE (cross term) ########
-trainCrossTermMap(X_or_path)
+trainCrossTermMap(X_or_path, warmstart_from_separable=FALSE)
 predict.ttm_cross_term(S, X, type)
 forwardKLLoss_ct(S, X) = mean(-rowSums(predict(S,X,"logdensity_by_dim")) - 0.5*K*log(2*pi))
-- uses polynomial bases with optional cross terms
+- uses polynomial bases with cross terms t^r x_j^s (degrees deg_t_cross, deg_x_cross)
 - Gauss-Legendre quadrature on [0,1]
 - analytic derivative basis `.dpsi_dt_ct` for monotonicity checks
 - optimization of forward KL via L-BFGS-B
 - chunked training and prediction with stable log-sum-exp quadrature, parallelized over dimensions
 - robuste Parallelisierung mit sequentiellem Retry und Null-Koeffizienten-Fallback
+- optionaler Warm-Start der g_k-Koeffizienten aus der separablen Map
 ######################################
 ```
 
