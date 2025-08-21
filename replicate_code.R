@@ -48,6 +48,21 @@ replicate_code_scripts <- function(main_file = "main.R",
                       "")
   }
 
+  if (exists("timing_table", envir = env)) {
+    ttab <- get("timing_table", envir = env)
+    ttab_lines <- capture.output(print(ttab))
+    output_lines <- c(output_lines,
+                      "### Timing table ###",
+                      ttab_lines,
+                      "")
+  }
+
+  if (exists("perm", envir = env)) {
+    output_lines <- c(output_lines,
+                      sprintf("Permutation order %s", paste(get("perm", env), collapse = ",")),
+                      "")
+  }
+
   writeLines(output_lines, outfile)
 }
 

@@ -68,6 +68,11 @@ where
 7. $f_7 = \texttt{format\_loglik\_table}$ – present final evaluation table.
 Optional EDA helper functions are defined in `04_evaluation.R`.
 
+After presenting the negative log-likelihood table, the script prints a 6\u00d73 timing table with rows
+`True (marginal)`, `True (Joint)`, `Random Forest`, `Marginal Map`, `Separable Map`, `Cross-term Map` and columns
+`train_sec`, `test_sec`, and `total_sec` (sum of the first two). Finally, the permutation vector
+`perm` is echoed as `Permutation order a,b,c,d`.
+
 ## 3. Module Specifications
 `gen_samples(G) : G \to X`
 - **Description:** sequentially draws $N=G.n$ samples from distributions specified in `G.config`.
