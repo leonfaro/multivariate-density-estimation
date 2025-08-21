@@ -54,11 +54,6 @@ predict.mytrtf <- function(object, newdata,
   ld1 <- predict(object$ymod[[1]], newdata = df_new, type = "logdensity")
   stopifnot(is.numeric(ld1), length(ld1) == N)
 
-  logsumexp_rows <- function(M) {
-    mx <- apply(M, 1L, max)
-    mx + log(rowSums(exp(M - mx)))
-  }
-
   ld_rest <- lapply(seq_along(object$forests), function(j) {
     fr <- object$forests[[j]]
     resp <- paste0("X", j + 1L)
@@ -66,11 +61,14 @@ predict.mytrtf <- function(object, newdata,
     pr <- predict(fr, newdata = df_new, type = "logdensity", q = q,
                   cores = cores, trace = trace)
     if (is.numeric(pr) && length(pr) == N) {
-      pr
+      ld_j <- pr
     } else {
       M <- if (is.list(pr)) do.call(cbind, pr) else as.matrix(pr)
-      logsumexp_rows(M) - log(ncol(M))
+      if (ncol(M) > N) M <- M[, seq_len(N), drop = FALSE]
+      stopifnot(nrow(M) == N, ncol(M) == N)
+      ld_j <- diag(M)
     }
+    ld_j
   })
 
   ld_rest <- do.call(cbind, ld_rest)
