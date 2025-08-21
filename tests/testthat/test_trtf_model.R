@@ -24,3 +24,24 @@ test_that("logL_TRTF computes finite value", {
   val <- logL_TRTF(mod, S$X_te)
   expect_true(is.finite(val))
 })
+
+
+test_that("predict.mytrtf logdensity aggregation works", {
+  mod <- fit_TRTF(S, config, seed = 42)
+  ll_dim <- predict(mod, S$X_te, type = "logdensity_by_dim")
+  expect_equal(dim(ll_dim), dim(S$X_te))
+  expect_true(all(is.finite(ll_dim)))
+  ll <- predict(mod, S$X_te, type = "logdensity")
+  expect_equal(ll, rowSums(ll_dim), tolerance = 1e-12)
+})
+
+
+test_that("predict.mytrtf ist deterministisch bei seed 42", {
+  set.seed(42)
+  mod1 <- fit_TRTF(S, config, seed = 42)
+  pred1 <- predict(mod1, S$X_te, type = "logdensity")
+  set.seed(42)
+  mod2 <- fit_TRTF(S, config, seed = 42)
+  pred2 <- predict(mod2, S$X_te, type = "logdensity")
+  expect_identical(pred1, pred2)
+})

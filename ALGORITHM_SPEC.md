@@ -73,6 +73,16 @@ After presenting the negative log-likelihood table, the script prints a 6\u00d73
 `train_sec`, `test_sec`, and `total_sec` (sum of the first two). Finally, the permutation vector
 `perm` is echoed as `Permutation order a,b,c,d`.
 
+Environment variables allow selecting alternative toy datasets. Setting `DATASET=halfmoon2d`
+triggers generation of a two-moons sample via `make_halfmoon_splits` with
+parameters `N_TRAIN`, `N_TEST` (capped at 250), `NOISE` and `SEED`. The created
+splits are stored as `results/splits_halfmoon2d_seedXXX.rds` and the RNG state is
+reset afterwards to keep subsequent model training comparable across datasets.
+Evaluation `eval_halfmoon` fits TRUE, TRTF and the three TTM variants on these
+splits and records per-dimension and joint negative log-likelihoods (in nats)
+to `results/nll_halfmoon_seedXXX.csv`.
+
+
 ## 3. Module Specifications
 `gen_samples(G) : G \to X`
 - **Description:** sequentially draws $N=G.n$ samples from distributions specified in `G.config`.
