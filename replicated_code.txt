@@ -1216,6 +1216,7 @@ source("models/ttm_cross_term.R")
 source("models/true_joint_model.R")
 source("04_evaluation.R")
 source("replicate_code.R")
+perm <- c(1, 2, 3, 4)
 n <- 50
 config <- list(
 list(distr = "norm", parm = NULL),
@@ -1230,15 +1231,23 @@ scale = softplus(d$X2)))
 main <- function() {
 set.seed(42)
 prep <- prepare_data(n, config, seed = 42)
-mods <- list(
-true = fit_TRUE(prep$S, config),
-true_joint = fit_TRUE_JOINT(prep$S, config),
-trtf = fit_TRTF(prep$S, config, seed = 42),
-ttm  = trainMarginalMap(prep$S),
-ttm_sep = trainSeparableMap(prep$S),
-ttm_cross = trainCrossTermMap(prep$S)
+S0 <- prep$S
+S <- list(
+X_tr  = S0$X_tr[, perm, drop = FALSE],
+X_val = S0$X_val[, perm, drop = FALSE],
+X_te  = S0$X_te[, perm, drop = FALSE]
 )
-tab <- calc_loglik_tables(mods, config, prep$S$X_te)
+cfg <- config[perm]
+cat(sprintf("n=%d\n", n))
+mods <- list(
+true = fit_TRUE(S, cfg),
+true_joint = fit_TRUE_JOINT(S, cfg),
+trtf = fit_TRTF(S, cfg, seed = 42),
+ttm  = trainMarginalMap(S),
+ttm_sep = trainSeparableMap(S),
+ttm_cross = trainCrossTermMap(S)
+)
+tab <- calc_loglik_tables(mods, cfg, S$X_te)
 print(tab)
 results_table <<- tab
 invisible(tab)
