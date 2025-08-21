@@ -136,7 +136,8 @@ if (!exists(".standardize")) {
   xprev_first <- if (k > 1) Xprev[1, , drop = TRUE] else numeric(0)
         m_beta <- length(.psi_basis_ct(0, xprev_first, degree_t, degree_g, TRUE, degree_t_cross, degree_x_cross))
   list(alpha = if (m_alpha > 0) rep(0, m_alpha) else numeric(0),
-       beta  = rep(0, m_beta))
+       beta  = rep(0, m_beta),
+       convergence = NA_real_)
 }
 
 .zero_predchunk_ct <- function(N, sigma_k) {
@@ -176,13 +177,24 @@ if (!exists(".standardize")) {
 
 trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2, degree_t_cross = 1, degree_x_cross = 1,
                               lambda = 1e-3, batch_n = NULL, Q = NULL,
-                              eps = 1e-6, clip = 20) {
+                              eps = 1e-6, clip = 20,
+                              alpha_init_list = NULL, warmstart_from_separable = FALSE,
+                              sep_degree_g = NULL, sep_lambda = 1e-3) {
   set.seed(42)
   S_in <- if (is.character(X_or_path)) readRDS(X_or_path) else X_or_path
   stopifnot(is.list(S_in))
   X_tr <- S_in$X_tr
   X_val <- S_in$X_val
   X_te  <- S_in$X_te
+
+  if (is.null(alpha_init_list) && warmstart_from_separable) {
+    if (!exists("trainSeparableMap")) {
+      stop("trainSeparableMap not found for warm start")
+    }
+    sep_deg <- if (is.null(sep_degree_g)) degree_g else sep_degree_g
+    fit_sep <- trainSeparableMap(S_in, degree_g = sep_deg, lambda = sep_lambda)
+    alpha_init_list <- lapply(fit_sep$S$coeffs, `[[`, "c_non")
+  }
 
   time_train <- system.time({
     std <- .standardizeData(X_tr)
@@ -191,6 +203,9 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2, degree_t_cr
     sigma <- std$sigma
     N <- nrow(X_tr_std)
     K <- ncol(X_tr_std)
+    if (!is.null(alpha_init_list)) {
+      stopifnot(length(alpha_init_list) == K)
+    }
       degree_t_max <- max(degree_t, degree_t_cross)
       Q_use <- if (is.null(Q)) min(12, 4 + 2 * degree_t_max) else Q
       batch_use <- if (is.null(batch_n)) min(N, max(256L, floor(65536 / max(1L, Q_use)))) else min(N, batch_n)
@@ -206,6 +221,16 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2, degree_t_cr
       m_alpha <- ncol(Phi)
       xprev_first <- if (k > 1) Xprev[1, , drop = TRUE] else numeric(0)
         m_beta <- length(.psi_basis_ct(0, xprev_first, degree_t, degree_g, TRUE, degree_t_cross, degree_x_cross))
+      alpha_start <- if (m_alpha > 0) {
+        if (is.null(alpha_init_list)) {
+          rep(0, m_alpha)
+        } else {
+          ai <- alpha_init_list[[k]]
+          if (length(ai) != m_alpha) rep(0, m_alpha) else ai
+        }
+      } else {
+        numeric(0)
+      }
 
       loss_grad <- function(alpha, beta) {
         S_sq_sum <- 0
@@ -262,11 +287,11 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2, degree_t_cr
         loss_grad(alpha, beta)$grad
       }
 
-      theta0 <- rep(0, m_alpha + m_beta)
+      theta0 <- c(alpha_start, rep(0, m_beta))
       opt <- optim(theta0, fn, gr, method = "L-BFGS-B", lower = -Inf, upper = Inf)
       alpha_hat <- if (m_alpha > 0) opt$par[seq_len(m_alpha)] else numeric(0)
       beta_hat <- opt$par[(m_alpha + 1):length(opt$par)]
-      list(alpha = alpha_hat, beta = beta_hat)
+      list(alpha = alpha_hat, beta = beta_hat, convergence = opt$convergence)
     }
 
     res <- .safe_mclapply_ct(seq_len(K), fit_k,
