@@ -44,7 +44,7 @@ forwardKLLoss_ct(S, X) = mean(-rowSums(predict(S,X,"logdensity_by_dim")) - 0.5*K
 - Gauss-Legendre quadrature on [0,1]
 - analytic derivative basis `.dpsi_dt_ct` for monotonicity checks
 - optimization of forward KL via L-BFGS-B
-- chunked training and prediction with stable log-sum-exp quadrature, parallelized over dimensions
+- chunked training and prediction mit gewichteter log-sum-exp-Quadratur ohne Clipping, parallelisiert über Dimensionen
 - robuste Parallelisierung mit sequentiellem Retry und Null-Koeffizienten-Fallback
 - optionaler Warm-Start der g_k-Koeffizienten aus der separablen Map
 ######################################
