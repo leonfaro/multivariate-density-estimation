@@ -177,7 +177,7 @@ if (!exists(".standardize")) {
 
 trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2, degree_t_cross = 1, degree_x_cross = 1,
                               lambda = 1e-3, batch_n = NULL, Q = NULL,
-                              eps = 1e-6, clip = 20,
+                              eps = 1e-6, clip = Inf,
                               alpha_init_list = NULL, warmstart_from_separable = FALSE,
                               sep_degree_g = NULL, sep_lambda = 1e-3) {
   set.seed(42)
@@ -246,13 +246,14 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2, degree_t_cr
             xp <- if (k > 1) Xprev_blk[b, ] else numeric(0)
             xval <- xk_blk[b]
             Psi_q <- .build_Psi_q_ct(xval, xp, nodes, nodes_pow, degree_t, degree_g, degree_t_cross, degree_x_cross)
-            V <- Psi_q %*% beta
-            m <- max(V)
-            v_shift <- V - m
-            ev <- exp(pmax(v_shift, -clip))
-            s  <- sum(weights * ev)
-            I_i  <- xval * exp(m) * s
-            dI_i <- xval * exp(m) * as.vector(t(Psi_q) %*% (weights * ev))
+            V <- as.vector(Psi_q %*% beta)
+            b_vec <- log(weights) + V
+            b_max <- max(b_vec)
+            r <- exp(b_vec - b_max)
+            s <- exp(b_max) * sum(r)
+            I_i <- xval * s
+            soft <- r / sum(r)
+            dI_i <- I_i * as.vector(t(Psi_q) %*% soft)
             psi_x <- .psi_basis_ct(xval, xp, degree_t, degree_g, TRUE, degree_t_cross, degree_x_cross)
             S_i <- if (m_alpha > 0) sum(Phi_blk[b, ] * alpha) + I_i else I_i
             S_sq_sum <- S_sq_sum + S_i^2
@@ -380,12 +381,12 @@ predict.ttm_cross_term <- function(object, newdata,
         xp <- if (k > 1) Xprev_blk[b, ] else numeric(0)
         xval <- xk_blk[b]
         Psi_q <- .build_Psi_q_ct(xval, xp, nodes, nodes_pow, object$degree_t, object$degree_g, object$degree_t_cross, object$degree_x_cross)
-        V <- Psi_q %*% beta
-        m <- max(V)
-        v_shift <- V - m
-        ev <- exp(pmax(v_shift, -object$clip))
-        s <- sum(weights * ev)
-        I_i <- xval * exp(m) * s
+        V <- as.vector(Psi_q %*% beta)
+        b_vec <- log(weights) + V
+        b_max <- max(b_vec)
+        r <- exp(b_vec - b_max)
+        s <- exp(b_max) * sum(r)
+        I_i <- xval * s
         psi_x <- .psi_basis_ct(xval, xp, object$degree_t, object$degree_g, TRUE, object$degree_t_cross, object$degree_x_cross)
         Z_col[idx[b]] <- if (m_alpha > 0) sum(Phi_blk[b, ] * alpha) + I_i else I_i
         LJ_col[idx[b]] <- sum(beta * psi_x) - log(object$sigma[k])
