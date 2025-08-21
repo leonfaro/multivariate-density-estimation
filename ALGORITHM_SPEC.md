@@ -56,6 +56,7 @@ $$\operatorname{mainPipeline} := f_7 \circ f_6 \circ \cdots \circ f_1,$$
 where
 1. $f_1 = \texttt{gen\_samples}$ – generate $X$ from configuration.
 2. $f_2 = \texttt{split\_data}$ – obtain $(X_{\text{tr}}, X_{\text{val}}, X_{\text{te}})$.
+   $f_{2a} =$ optional column permutation $S \mapsto S_{perm}$ with corresponding config reordering.
 3. $f_3 = \texttt{fit\_TRUE}$ – fit independent parametric marginals.
    f_3b1 = fit_TTM_marginal
    f_3b2 = fit_TTM_separable
