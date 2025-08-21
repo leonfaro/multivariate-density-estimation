@@ -86,6 +86,66 @@ X[idx_te , , drop = FALSE]
 }
 ### End 02_split.R ###
 
+### Begin scripts/halfmoon_data.R ###
+generate_two_moons <- function(n, noise, seed) {
+stopifnot(is.numeric(n), n > 1, is.numeric(noise), is.numeric(seed))
+set.seed(seed)
+n1 <- floor(n / 2)
+n2 <- n - n1
+theta1 <- runif(n1, 0, pi)
+theta2 <- runif(n2, 0, pi)
+X1 <- cbind(cos(theta1), sin(theta1))
+X2 <- cbind(1 - cos(theta2), -sin(theta2) + 0.5)
+X <- rbind(X1, X2) + matrix(rnorm(2 * n, sd = noise), ncol = 2)
+idx <- sample.int(n)
+X <- X[idx, , drop = FALSE]
+colnames(X) <- c("x1", "x2")
+X
+}
+make_halfmoon_splits <- function(n_train, n_test, noise, seed, val_frac = 0.2) {
+Xtr <- generate_two_moons(n_train, noise, seed)
+Xte <- generate_two_moons(n_test, noise, seed + 1)
+n_val <- max(10L, round(val_frac * n_train))
+set.seed(seed + 2)
+idx <- sample.int(n_train, n_val)
+Xval <- Xtr[idx, , drop = FALSE]
+Xtr <- Xtr[-idx, , drop = FALSE]
+S <- list(
+X_tr = Xtr,
+X_val = Xval,
+X_te = Xte,
+K = 2L,
+meta = list(
+seed = seed,
+noise = noise,
+n_train = n_train,
+n_test = n_test,
+n_val = n_val,
+val_frac = val_frac
+)
+)
+check_halfmoon_splits(S)
+}
+check_halfmoon_splits <- function(S) {
+stopifnot(is.list(S), all(c("X_tr", "X_val", "X_te", "K", "meta") %in% names(S)))
+mats <- c("X_tr", "X_val", "X_te")
+for (m in mats) {
+X <- S[[m]]
+if (!is.matrix(X) || ncol(X) != 2) stop(m, " must be a numeric matrix with two columns")
+if (!is.numeric(X)) stop(m, " must be numeric")
+if (any(is.na(X)) || any(is.infinite(X))) stop(m, " contains NA or Inf")
+if (is.null(colnames(X)) || any(colnames(X) != c("x1", "x2"))) stop(m, " has wrong column names")
+}
+if (S$K != 2) stop("K must be 2")
+n_train <- S$meta$n_train
+n_test <- S$meta$n_test
+n_val <- S$meta$n_val
+if (nrow(S$X_tr) + nrow(S$X_val) != n_train) stop("Training and validation sizes inconsistent")
+if (nrow(S$X_te) != n_test) stop("Test size inconsistent")
+S
+}
+### End scripts/halfmoon_data.R ###
+
 ### Begin models/true_model.R ###
 neg_loglik_uni <- function(par, x, distr) {
 if (distr == "norm") {
@@ -247,15 +307,27 @@ stopifnot(inherits(object, "mytrtf"), is.matrix(newdata))
 K <- length(object$ymod)
 df_new <- as.data.frame(newdata)
 names(df_new) <- paste0("X", seq_len(K))
+N <- nrow(df_new)
 ld1 <- predict(object$ymod[[1]], newdata = df_new, type = "logdensity")
+stopifnot(is.numeric(ld1), length(ld1) == N)
 ld_rest <- lapply(seq_along(object$forests), function(j) {
 fr <- object$forests[[j]]
-q <- df_new[, variable.names(fr$model)[1]]
+resp <- paste0("X", j + 1L)
+q <- df_new[[resp]]
 pr <- predict(fr, newdata = df_new, type = "logdensity", q = q,
 cores = cores, trace = trace)
-diag(do.call(cbind, pr))
+if (is.numeric(pr) && length(pr) == N) {
+ld_j <- pr
+} else {
+M <- if (is.list(pr)) do.call(cbind, pr) else as.matrix(pr)
+if (ncol(M) > N) M <- M[, seq_len(N), drop = FALSE]
+stopifnot(nrow(M) == N, ncol(M) == N)
+ld_j <- diag(M)
+}
+ld_j
 })
-ll <- cbind(ld1, do.call(cbind, ld_rest))
+ld_rest <- do.call(cbind, ld_rest)
+ll <- cbind(ld1, ld_rest)
 if (type == "logdensity_by_dim") return(ll)
 rowSums(ll)
 }
@@ -1201,6 +1273,59 @@ names(tab) <- nm
 message("Ergebnis (NLL in nats; lower is better)")
 tab
 }
+eval_halfmoon <- function(mods, S, out_csv_path = NULL) {
+dir.create("results", showWarnings = FALSE)
+N <- nrow(S$X_te)
+K <- ncol(S$X_te)
+need <- c("true", "trtf", "ttm", "ttm_sep", "ttm_cross")
+config_moon <- list(list(distr = "norm"), list(distr = "norm"))
+if (missing(mods) || length(mods) == 0 || !all(need %in% names(mods))) {
+seed <- if (!is.null(S$meta$seed)) as.integer(S$meta$seed) else 42L
+set.seed(seed)
+mods <- list(
+true = fit_TRUE(S, config_moon),
+trtf = fit_TRTF(S, config_moon, seed = seed),
+ttm = trainMarginalMap(S)$S,
+ttm_sep = trainSeparableMap(S)$S,
+ttm_cross = trainCrossTermMap(S)$S
+)
+}
+rows <- list()
+for (m in need) {
+mod <- mods[[m]]
+if (m == "true") {
+cfg <- mod$config
+LD <- do.call(cbind, lapply(seq_len(K), function(k)
+.log_density_vec(S$X_te[, k], cfg[[k]]$distr, mod$theta[[k]])))
+} else {
+LD <- predict(mod, S$X_te, "logdensity_by_dim")
+}
+stopifnot(is.matrix(LD), all(dim(LD) == c(N, K)), all(is.finite(LD)))
+if (m == "true") {
+LDj <- rowSums(LD)
+} else {
+LDj_try <- try(predict(mod, S$X_te, "logdensity"), silent = TRUE)
+LDj <- if (inherits(LDj_try, "try-error")) rowSums(LD) else as.numeric(LDj_try)
+}
+stopifnot(length(LDj) == N, all(is.finite(LDj)),
+max(abs(rowSums(LD) - LDj)) < 1e-10)
+nllj <- -LDj
+per <- -colMeans(LD)
+se <- stats::sd(nllj) / sqrt(N)
+rows[[length(rows) + 1]] <- c(
+list(model = m, mean_joint_nll = mean(nllj), se_joint = se),
+setNames(as.list(per), paste0("per_dim_nll_", 1:K))
+)
+}
+df <- do.call(rbind, lapply(rows, as.data.frame, stringsAsFactors = FALSE))
+path <- if (is.null(out_csv_path))
+sprintf("results/nll_halfmoon_seed%03d.csv", as.integer(S$meta$seed))
+else out_csv_path
+write.csv(df, path, row.names = FALSE)
+print(df)
+results_table <<- df
+df
+}
 ### End 04_evaluation.R ###
 
 ### Begin main.R ###
@@ -1208,6 +1333,7 @@ source("00_globals.R")
 if (!exists("%||%")) "%||%" <- function(a, b) if (is.null(a)) b else a
 source("01_data_generation.R")
 source("02_split.R")
+source("scripts/halfmoon_data.R")
 source("models/true_model.R")
 source("models/trtf_model.R")
 source("models/ttm_marginal.R")
@@ -1229,6 +1355,7 @@ parm = function(d) list(shape = softplus(d$X3),
 scale = softplus(d$X2)))
 )
 main <- function() {
+
 set.seed(42)
 prep <- prepare_data(n, config, seed = 42)
 S0 <- prep$S
@@ -1257,6 +1384,35 @@ trtf = mod_trtf,
 ttm  = mod_ttm,
 ttm_sep = mod_ttm_sep,
 ttm_cross = mod_ttm_cross
+
+dataset <- Sys.getenv("DATASET", "config4d")
+seed <- as.integer(Sys.getenv("SEED", 42))
+set.seed(seed)
+if (dataset == "halfmoon2d") {
+ntr <- pmin(as.integer(Sys.getenv("N_TRAIN", 250)), 250)
+nte <- pmin(as.integer(Sys.getenv("N_TEST", 250)), 250)
+noise <- as.numeric(Sys.getenv("NOISE", 0.15))
+S <- make_halfmoon_splits(ntr, nte, noise, seed)
+S$meta$dataset <- dataset
+dir.create("results", showWarnings = FALSE)
+saveRDS(S, sprintf("results/splits_%s_seed%03d.rds", dataset, seed))
+cat(sprintf("[DATASET %s] K=%d | n_tr=%d (val=%d) | n_te=%d | noise=%.3f | seed=%d\n",
+dataset, ncol(S$X_tr), nrow(S$X_tr), nrow(S$X_val),
+nrow(S$X_te), noise, seed))
+set.seed(seed)
+mods <- list()
+eval_halfmoon(mods, S, NULL)
+invisible(NULL)
+} else {
+prep <- prepare_data(n, config, seed = seed)
+mods <- list(
+true = fit_TRUE(prep$S, config),
+true_joint = fit_TRUE_JOINT(prep$S, config),
+trtf = fit_TRTF(prep$S, config, seed = seed),
+ttm  = trainMarginalMap(prep$S),
+ttm_sep = trainSeparableMap(prep$S),
+ttm_cross = trainCrossTermMap(prep$S)
+
 )
 tab <- calc_loglik_tables(mods, cfg, S$X_te)
 cat(sprintf("n=%d\n", n))
@@ -1278,6 +1434,7 @@ timing_table <<- time_tab
 cat(sprintf("Permutation order %s\n", paste(perm, collapse = ",")))
 results_table <<- tab
 invisible(tab)
+}
 }
 if (sys.nframe() == 0L) {
 main()
