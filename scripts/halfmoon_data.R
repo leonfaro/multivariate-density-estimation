@@ -86,17 +86,3 @@ check_halfmoon_splits <- function(S) {
   if (nrow(S$X_te) != n_test) stop("Test size inconsistent")
   S
 }
-
-#' Placeholder evaluation for half-moon dataset
-#'
-#' @param mods List of fitted models (unused)
-#' @param S Split structure from `make_halfmoon_splits`
-#' @param config Optional configuration (unused)
-#' @return Invisible NULL after printing a short summary
-#' @export
-eval_halfmoon <- function(mods, S, config = NULL) {
-  cat(sprintf("[HALFMOON] n_tr=%d | n_val=%d | n_te=%d\n",
-              nrow(S$X_tr), nrow(S$X_val), nrow(S$X_te)))
-  invisible(NULL)
-}
-
