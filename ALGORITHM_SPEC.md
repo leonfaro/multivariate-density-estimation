@@ -81,7 +81,9 @@ reset afterwards to keep subsequent model training comparable across datasets.
 Evaluation `eval_halfmoon` fits TRUE, TRTF and the three TTM variants on these
 splits and records per-dimension and joint negative log-likelihoods (in nats)
 to `results/nll_halfmoon_seedXXX.csv`.
-
+The script `main_moon.R` provides a small wrapper that sets these environment variables,
+invokes `main()`, refits the half-moon models and saves the panel plot
+`results/halfmoon_panels_seedXXX.png` alongside the CSV.
 
 ## 3. Module Specifications
 `gen_samples(G) : G \to X`
