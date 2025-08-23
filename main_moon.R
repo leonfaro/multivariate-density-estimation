@@ -19,10 +19,7 @@ mods <- fit_halfmoon_models(S, seed = seed)
 plot_halfmoon_models(mods, S, grid_n = 120, save_png = TRUE)
 png_file <- sprintf("results/halfmoon_panels_seed%03d.png", seed)
 stopifnot(file.exists(png_file))
-if (exists("results_table", inherits = TRUE)) {
-  print(results_table)
-} else {
-  print(tab)
-}
+stopifnot(identical(tab, results_table))
+print(tab)
 message("Panel PNG: ", png_file)
 message("Half-moon NLL (nats): ", csv)
