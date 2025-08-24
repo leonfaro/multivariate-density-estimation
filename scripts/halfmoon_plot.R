@@ -16,14 +16,7 @@ fit_halfmoon_models <- function(S, seed = NULL) {
   )
 }
 
-plot_halfmoon_models <- function(mods, S, grid_n = 120,
-                                 levels = c(0.9, 0.7, 0.5),
-                                 save_png = TRUE, seed = NULL) {
-  if (!is.null(seed)) {
-    set.seed(seed)
-  } else if (!is.null(S$meta$seed)) {
-    set.seed(S$meta$seed)
-  }
+.draw_panels <- function(mods, S, grid_n, levels_policy) {
   Xall <- rbind(S$X_tr, S$X_val, S$X_te)
   xr <- range(Xall[, 1])
   yr <- range(Xall[, 2])
@@ -44,35 +37,47 @@ plot_halfmoon_models <- function(mods, S, grid_n = 120,
     } else {
       LDj <- as.numeric(predict(mods[[name]], G, "logdensity"))
     }
-    list(LDj = LDj, lev = as.numeric(stats::quantile(LDj, probs = levels, na.rm = TRUE)))
+    list(LDj = LDj,
+         lev = as.numeric(stats::quantile(LDj, probs = levels_policy, na.rm = TRUE)))
   }
   panels <- c("true", "trtf", "ttm", "ttm_sep", "ttm_cross")
-  draw_panels <- function() {
-    op <- par(mfrow = c(2, 3), mar = c(3, 3, 2, 1))
+  op <- par(mfrow = c(2, 3), mar = c(3, 3, 2, 1))
+  plot(S$X_te, pch = 16, cex = 0.35, col = gray(0, 0.25),
+       xlab = "x1", ylab = "x2", main = "Data")
+  abline(h = 0, v = 0, lty = 3, col = "gray")
+  for (nm in panels) {
+    res <- eval_panel(nm)
+    Z <- matrix(res$LDj, nrow = length(xseq), ncol = length(yseq))
     plot(S$X_te, pch = 16, cex = 0.35, col = gray(0, 0.25),
-         xlab = "x1", ylab = "x2", main = "Data")
+         xlab = "x1", ylab = "x2", main = nm)
     abline(h = 0, v = 0, lty = 3, col = "gray")
-    for (nm in panels) {
-      res <- eval_panel(nm)
-      Z <- matrix(res$LDj, nrow = length(xseq), ncol = length(yseq))
-      plot(S$X_te, pch = 16, cex = 0.35, col = gray(0, 0.25),
-           xlab = "x1", ylab = "x2", main = nm)
-      abline(h = 0, v = 0, lty = 3, col = "gray")
-      contour(xseq, yseq, Z, levels = res$lev, add = TRUE, drawlabels = FALSE)
-    }
-    par(op)
+    contour(xseq, yseq, Z, levels = res$lev, add = TRUE, drawlabels = FALSE)
+  }
+  par(op)
+  invisible(TRUE)
+}
+
+plot_halfmoon_models <- function(mods, S, grid_n = 120,
+                                 levels_policy = c(0.9, 0.7, 0.5),
+                                 save_png = TRUE, show_plot = TRUE,
+                                 seed = NULL) {
+  if (!is.null(seed)) {
+    set.seed(seed)
+  } else if (!is.null(S$meta$seed)) {
+    set.seed(S$meta$seed)
   }
   if (save_png) {
     dir.create("results", showWarnings = FALSE)
     seed0 <- if (!is.null(S$meta$seed)) S$meta$seed else 0
     f <- sprintf("results/halfmoon_panels_seed%03d.png", seed0)
     png(f, width = 1200, height = 800)
-    draw_panels()
+    .draw_panels(mods, S, grid_n, levels_policy)
     dev.off()
     message("Saved: ", f)
-  } else {
-    draw_panels()
   }
-  invisible(NULL)
+  if (show_plot && interactive()) {
+    .draw_panels(mods, S, grid_n, levels_policy)
+  }
+  invisible(TRUE)
 }
 
