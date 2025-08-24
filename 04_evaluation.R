@@ -211,9 +211,9 @@ eval_halfmoon <- function(mods, S, out_csv_path = NULL) {
     mods <- list(
       true = fit_TRUE(S, config_moon),
       trtf = fit_TRTF(S, config_moon, seed = seed),
-      ttm = trainMarginalMap(S)$S,
-      ttm_sep = trainSeparableMap(S)$S,
-      ttm_cross = trainCrossTermMap(S)$S
+      ttm = trainMarginalMap(S, seed = seed)$S,
+      ttm_sep = trainSeparableMap(S, seed = seed)$S,
+      ttm_cross = trainCrossTermMap(S, seed = seed)$S
     )
   }
   rows <- list()
