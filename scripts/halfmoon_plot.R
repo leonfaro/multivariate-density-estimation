@@ -16,14 +16,33 @@ fit_halfmoon_models <- function(S, seed = NULL) {
   )
 }
 
-.draw_panels <- function(mods, S, grid_n, levels_policy) {
+compute_limits <- function(S, pad = 0.05) {
   Xall <- rbind(S$X_tr, S$X_val, S$X_te)
   xr <- range(Xall[, 1])
   yr <- range(Xall[, 2])
-  dx <- 0.1 * diff(xr)
-  dy <- 0.1 * diff(yr)
-  xseq <- seq(xr[1] - dx, xr[2] + dx, length.out = grid_n)
-  yseq <- seq(yr[1] - dy, yr[2] + dy, length.out = grid_n)
+  dx <- pad * diff(xr)
+  dy <- pad * diff(yr)
+  list(xlim = xr + c(-dx, dx), ylim = yr + c(-dy, dy))
+}
+
+draw_points <- function(S, style = list()) {
+  n_all <- nrow(S$X_tr) + nrow(S$X_val) + nrow(S$X_te)
+  cex <- if (!is.null(style$cex)) style$cex else min(1.2, sqrt(800 / n_all))
+  cols <- if (!is.null(style$cols)) style$cols else c(
+    train = rgb(0.2, 0.4, 1, 0.65),
+    val = rgb(1, 0.6, 0, 0.5),
+    test = rgb(1, 0, 0, 0.7)
+  )
+  points(S$X_tr, pch = 16, cex = cex, col = cols["train"])
+  points(S$X_val, pch = 16, cex = cex, col = cols["val"])
+  points(S$X_te, pch = 16, cex = cex * 1.1, col = cols["test"])
+  invisible(n_all)
+}
+
+.draw_panels <- function(mods, S, grid_n, levels_policy) {
+  lim <- compute_limits(S, pad = 0.05)
+  xseq <- seq(lim$xlim[1], lim$xlim[2], length.out = grid_n)
+  yseq <- seq(lim$ylim[1], lim$ylim[2], length.out = grid_n)
   G <- as.matrix(expand.grid(xseq, yseq))
   get_LDj_true <- function(mod_true, G) {
     cbind(
@@ -40,18 +59,29 @@ fit_halfmoon_models <- function(S, seed = NULL) {
     list(LDj = LDj,
          lev = as.numeric(stats::quantile(LDj, probs = levels_policy, na.rm = TRUE)))
   }
+  n_all <- nrow(S$X_tr) + nrow(S$X_val) + nrow(S$X_te)
+  style <- list(
+    cex = min(1.2, sqrt(800 / n_all)),
+    cols = c(train = rgb(0.2, 0.4, 1, 0.65),
+             val = rgb(1, 0.6, 0, 0.5),
+             test = rgb(1, 0, 0, 0.7))
+  )
   panels <- c("true", "trtf", "ttm", "ttm_sep", "ttm_cross")
   op <- par(mfrow = c(2, 3), mar = c(3, 3, 2, 1))
-  plot(S$X_te, pch = 16, cex = 0.35, col = gray(0, 0.25),
-       xlab = "x1", ylab = "x2", main = "Data")
-  abline(h = 0, v = 0, lty = 3, col = "gray")
+  plot(NA, xlim = lim$xlim, ylim = lim$ylim, xlab = "x1", ylab = "x2", main = "Data")
+  grid(col = "gray90", lty = 3)
+  draw_points(S, style)
+  legend("bottomright", legend = c("Train", "Val", "Test"), pch = 16,
+         col = style$cols, pt.cex = c(style$cex, style$cex, style$cex * 1.1), bty = "n")
   for (nm in panels) {
     res <- eval_panel(nm)
     Z <- matrix(res$LDj, nrow = length(xseq), ncol = length(yseq))
-    plot(S$X_te, pch = 16, cex = 0.35, col = gray(0, 0.25),
-         xlab = "x1", ylab = "x2", main = nm)
-    abline(h = 0, v = 0, lty = 3, col = "gray")
+    plot(NA, xlim = lim$xlim, ylim = lim$ylim, xlab = "x1", ylab = "x2", main = nm)
+    grid(col = "gray90", lty = 3)
     contour(xseq, yseq, Z, levels = res$lev, add = TRUE, drawlabels = FALSE)
+    draw_points(S, style)
+    legend("bottomright", legend = c("Train", "Val", "Test"), pch = 16,
+           col = style$cols, pt.cex = c(style$cex, style$cex, style$cex * 1.1), bty = "n")
   }
   par(op)
   invisible(TRUE)
