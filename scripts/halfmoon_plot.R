@@ -39,25 +39,49 @@ draw_points <- function(S, style = list()) {
   invisible(n_all)
 }
 
-.draw_panels <- function(mods, S, grid_n, levels_policy) {
+clip01 <- function(x) {
+  q <- stats::quantile(x, c(0.01, 0.99))
+  pmin(pmax(x, q[1]), q[2])
+}
+
+.draw_panels <- function(mods, S, grid_n, levels_policy = c("global_quantiles", "per_model")) {
+  levels_policy <- match.arg(levels_policy)
   lim <- compute_limits(S, pad = 0.05)
   xseq <- seq(lim$xlim[1], lim$xlim[2], length.out = grid_n)
   yseq <- seq(lim$ylim[1], lim$ylim[2], length.out = grid_n)
   G <- as.matrix(expand.grid(xseq, yseq))
-  get_LDj_true <- function(mod_true, G) {
+  get_LDj_true <- function(mod_true) {
     cbind(
       .log_density_vec(G[, 1], "norm", mod_true$theta[[1]]),
       .log_density_vec(G[, 2], "norm", mod_true$theta[[2]])
     ) |> rowSums()
   }
-  eval_panel <- function(name) {
+  get_LDj <- function(name) {
     if (name == "true") {
-      LDj <- get_LDj_true(mods$true, G)
+      get_LDj_true(mods$true)
     } else {
-      LDj <- as.numeric(predict(mods[[name]], G, "logdensity"))
+      as.numeric(predict(mods[[name]], G, "logdensity"))
     }
-    list(LDj = LDj,
-         lev = as.numeric(stats::quantile(LDj, probs = levels_policy, na.rm = TRUE)))
+  }
+  panels <- c("true", "trtf", "ttm", "ttm_sep", "ttm_cross")
+  LD_list <- setNames(lapply(panels, get_LDj), panels)
+  all_finite <- all(sapply(LD_list, function(z) all(is.finite(z))))
+  probs <- c(0.9, 0.7, 0.5)
+  if (levels_policy == "global_quantiles") {
+    all_vals <- unlist(lapply(LD_list, function(z) clip01(z[is.finite(z)])))
+    lev <- stats::quantile(all_vals, probs)
+    message("Contour levels (global): ", paste(sprintf("%.3f", lev), collapse = ", "))
+    lev_list <- rep(list(lev), length(panels))
+    names(lev_list) <- panels
+    lev_ret <- lev
+  } else {
+    lev_list <- lapply(LD_list, function(z) {
+      stats::quantile(clip01(z[is.finite(z)]), probs)
+    })
+    message("Contour levels (per_model): ",
+            paste(names(lev_list),
+                  sapply(lev_list, function(v) paste(sprintf("%.3f", v), collapse = ", ")), collapse = " | "))
+    lev_ret <- lev_list
   }
   n_all <- nrow(S$X_tr) + nrow(S$X_val) + nrow(S$X_te)
   style <- list(
@@ -66,7 +90,6 @@ draw_points <- function(S, style = list()) {
              val = rgb(1, 0.6, 0, 0.5),
              test = rgb(1, 0, 0, 0.7))
   )
-  panels <- c("true", "trtf", "ttm", "ttm_sep", "ttm_cross")
   op <- par(mfrow = c(2, 3), mar = c(3, 3, 2, 1))
   plot(NA, xlim = lim$xlim, ylim = lim$ylim, xlab = "x1", ylab = "x2", main = "Data")
   grid(col = "gray90", lty = 3)
@@ -74,23 +97,23 @@ draw_points <- function(S, style = list()) {
   legend("bottomright", legend = c("Train", "Val", "Test"), pch = 16,
          col = style$cols, pt.cex = c(style$cex, style$cex, style$cex * 1.1), bty = "n")
   for (nm in panels) {
-    res <- eval_panel(nm)
-    Z <- matrix(res$LDj, nrow = length(xseq), ncol = length(yseq))
+    Z <- matrix(LD_list[[nm]], nrow = length(xseq), ncol = length(yseq))
     plot(NA, xlim = lim$xlim, ylim = lim$ylim, xlab = "x1", ylab = "x2", main = nm)
     grid(col = "gray90", lty = 3)
-    contour(xseq, yseq, Z, levels = res$lev, add = TRUE, drawlabels = FALSE)
+    contour(xseq, yseq, Z, levels = lev_list[[nm]], add = TRUE, drawlabels = FALSE)
     draw_points(S, style)
     legend("bottomright", legend = c("Train", "Val", "Test"), pch = 16,
            col = style$cols, pt.cex = c(style$cex, style$cex, style$cex * 1.1), bty = "n")
   }
   par(op)
-  invisible(TRUE)
+  invisible(list(levels = lev_ret, grid_points = nrow(G), all_finite = all_finite))
 }
 
-plot_halfmoon_models <- function(mods, S, grid_n = 120,
-                                 levels_policy = c(0.9, 0.7, 0.5),
+plot_halfmoon_models <- function(mods, S, grid_n = 200,
+                                 levels_policy = c("global_quantiles", "per_model"),
                                  save_png = TRUE, show_plot = TRUE,
                                  seed = NULL) {
+  levels_policy <- match.arg(levels_policy)
   if (!is.null(seed)) {
     set.seed(seed)
   } else if (!is.null(S$meta$seed)) {
