@@ -33,8 +33,27 @@ config <- list(
 #' 
 #' @export
 main <- function() {
-  set.seed(42)
-  prep <- prepare_data(n, config, seed = 42)
+  dataset <- Sys.getenv("DATASET", "config4d")
+  seed <- as.integer(Sys.getenv("SEED", 42))
+  set.seed(seed)
+
+  if (dataset == "halfmoon2d") {
+    ntr <- pmin(as.integer(Sys.getenv("N_TRAIN", 250)), 250)
+    nte <- pmin(as.integer(Sys.getenv("N_TEST", 250)), 250)
+    noise <- as.numeric(Sys.getenv("NOISE", 0.15))
+    S <- make_halfmoon_splits(ntr, nte, noise, seed)
+    S$meta$dataset <- dataset
+    dir.create("results", showWarnings = FALSE)
+    saveRDS(S, sprintf("results/splits_%s_seed%03d.rds", dataset, seed))
+    cat(sprintf("[DATASET %s] K=%d | n_tr=%d (val=%d) | n_te=%d | noise=%.3f | seed=%d\n",
+                dataset, ncol(S$X_tr), nrow(S$X_tr), nrow(S$X_val),
+                nrow(S$X_te), noise, seed))
+    df <- eval_halfmoon(S = S)
+    assign("results_table", df, envir = .GlobalEnv)
+    return(df)
+  }
+
+  prep <- prepare_data(n, config, seed = seed)
   S0 <- prep$S
   S <- list(
     X_tr  = S0$X_tr[, perm, drop = FALSE],
@@ -46,7 +65,7 @@ main <- function() {
   t_true_tr  <- system.time(mod_true      <- fit_TRUE(S, cfg))[['elapsed']]
   t_joint_tr <- 0
   mod_true_joint <- fit_TRUE_JOINT(S, cfg)
-  t_trtf_tr  <- system.time(mod_trtf      <- fit_TRTF(S, cfg, seed = 42))[['elapsed']]
+  t_trtf_tr  <- system.time(mod_trtf      <- fit_TRTF(S, cfg, seed = seed))[['elapsed']]
   mod_ttm     <- trainMarginalMap(S);  t_ttm_tr <- mod_ttm$time_train
   mod_ttm_sep <- trainSeparableMap(S); t_sep_tr <- mod_ttm_sep$time_train
   mod_ttm_cross <- trainCrossTermMap(S); t_ct_tr <- mod_ttm_cross$time_train
@@ -84,44 +103,8 @@ main <- function() {
                       time_tab$train_sec + time_tab$test_sec))
   print(time_tab)
   timing_table <<- time_tab
-  results_table <<- tab
-  invisible(tab)
-
-  dataset <- Sys.getenv("DATASET", "config4d")
-  seed <- as.integer(Sys.getenv("SEED", 42))
-  set.seed(seed)
-
-  if (dataset == "halfmoon2d") {
-    ntr <- pmin(as.integer(Sys.getenv("N_TRAIN", 250)), 250)
-    nte <- pmin(as.integer(Sys.getenv("N_TEST", 250)), 250)
-    noise <- as.numeric(Sys.getenv("NOISE", 0.15))
-    S <- make_halfmoon_splits(ntr, nte, noise, seed)
-    S$meta$dataset <- dataset
-    dir.create("results", showWarnings = FALSE)
-    saveRDS(S, sprintf("results/splits_%s_seed%03d.rds", dataset, seed))
-    cat(sprintf("[DATASET %s] K=%d | n_tr=%d (val=%d) | n_te=%d | noise=%.3f | seed=%d\n",
-                dataset, ncol(S$X_tr), nrow(S$X_tr), nrow(S$X_val),
-                nrow(S$X_te), noise, seed))
-    set.seed(seed)
-    mods <- list()
-    eval_halfmoon(mods, S, NULL)
-    invisible(NULL)
-  } else {
-    prep <- prepare_data(n, config, seed = seed)
-    mods <- list(
-      true = fit_TRUE(prep$S, config),
-      true_joint = fit_TRUE_JOINT(prep$S, config),
-      trtf = fit_TRTF(prep$S, config, seed = seed),
-      ttm  = trainMarginalMap(prep$S),
-      ttm_sep = trainSeparableMap(prep$S),
-      ttm_cross = trainCrossTermMap(prep$S)
-    )
-    tab <- calc_loglik_tables(mods, config, prep$S$X_te)
-    print(tab)
-    results_table <<- tab
-    invisible(tab)
-  }
-
+  assign("results_table", tab, envir = .GlobalEnv)
+  return(tab)
 }
 
 if (sys.nframe() == 0L) {
