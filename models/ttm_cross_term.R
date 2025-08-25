@@ -179,8 +179,8 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2, degree_t_cr
                               lambda = 1e-3, batch_n = NULL, Q = NULL,
                               eps = 1e-6, clip = Inf,
                               alpha_init_list = NULL, warmstart_from_separable = FALSE,
-                              sep_degree_g = NULL, sep_lambda = 1e-3) {
-  set.seed(42)
+                              sep_degree_g = NULL, sep_lambda = 1e-3, seed = 42) {
+  set.seed(seed)
   S_in <- if (is.character(X_or_path)) readRDS(X_or_path) else X_or_path
   stopifnot(is.list(S_in))
   X_tr <- S_in$X_tr
@@ -192,7 +192,7 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2, degree_t_cr
       stop("trainSeparableMap not found for warm start")
     }
     sep_deg <- if (is.null(sep_degree_g)) degree_g else sep_degree_g
-    fit_sep <- trainSeparableMap(S_in, degree_g = sep_deg, lambda = sep_lambda)
+    fit_sep <- trainSeparableMap(S_in, degree_g = sep_deg, lambda = sep_lambda, seed = seed)
     alpha_init_list <- lapply(fit_sep$S$coeffs, `[[`, "c_non")
   }
 

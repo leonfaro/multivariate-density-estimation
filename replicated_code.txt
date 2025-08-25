@@ -387,8 +387,8 @@ log(b) - log(S$sigma)
 X <- sweep(X, 2, S$mu, "-")
 sweep(X, 2, S$sigma, "/")
 }
-trainMarginalMap <- function(X_or_path) {
-set.seed(42)
+trainMarginalMap <- function(X_or_path, seed = 42) {
+set.seed(seed)
 S_in <- if (is.character(X_or_path)) readRDS(X_or_path) else X_or_path
 stopifnot(is.list(S_in))
 X_tr <- S_in$X_tr
@@ -533,8 +533,8 @@ out <- cbind(out, xj^d)
 }
 out
 }
-trainSeparableMap <- function(X_or_path, degree_g = 2, lambda = 1e-3, eps = 1e-6) {
-set.seed(42)
+trainSeparableMap <- function(X_or_path, degree_g = 2, lambda = 1e-3, eps = 1e-6, seed = 42) {
+set.seed(seed)
 S_in <- if (is.character(X_or_path)) readRDS(X_or_path) else X_or_path
 stopifnot(is.list(S_in))
 X_tr <- S_in$X_tr
@@ -805,10 +805,10 @@ mean(-rowSums(LD) - 0.5 * K * log(2 * pi))
 }
 trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2, degree_t_cross = 1, degree_x_cross = 1,
 lambda = 1e-3, batch_n = NULL, Q = NULL,
-eps = 1e-6, clip = 20,
+eps = 1e-6, clip = Inf,
 alpha_init_list = NULL, warmstart_from_separable = FALSE,
-sep_degree_g = NULL, sep_lambda = 1e-3) {
-set.seed(42)
+sep_degree_g = NULL, sep_lambda = 1e-3, seed = 42) {
+set.seed(seed)
 S_in <- if (is.character(X_or_path)) readRDS(X_or_path) else X_or_path
 stopifnot(is.list(S_in))
 X_tr <- S_in$X_tr
@@ -819,7 +819,7 @@ if (!exists("trainSeparableMap")) {
 stop("trainSeparableMap not found for warm start")
 }
 sep_deg <- if (is.null(sep_degree_g)) degree_g else sep_degree_g
-fit_sep <- trainSeparableMap(S_in, degree_g = sep_deg, lambda = sep_lambda)
+fit_sep <- trainSeparableMap(S_in, degree_g = sep_deg, lambda = sep_lambda, seed = seed)
 alpha_init_list <- lapply(fit_sep$S$coeffs, `[[`, "c_non")
 }
 time_train <- system.time({
@@ -870,13 +870,14 @@ for (b in seq_along(idx)) {
 xp <- if (k > 1) Xprev_blk[b, ] else numeric(0)
 xval <- xk_blk[b]
 Psi_q <- .build_Psi_q_ct(xval, xp, nodes, nodes_pow, degree_t, degree_g, degree_t_cross, degree_x_cross)
-V <- Psi_q %*% beta
-m <- max(V)
-v_shift <- V - m
-ev <- exp(pmax(v_shift, -clip))
-s  <- sum(weights * ev)
-I_i  <- xval * exp(m) * s
-dI_i <- xval * exp(m) * as.vector(t(Psi_q) %*% (weights * ev))
+V <- as.vector(Psi_q %*% beta)
+b_vec <- log(weights) + V
+b_max <- max(b_vec)
+r <- exp(b_vec - b_max)
+s <- exp(b_max) * sum(r)
+I_i <- xval * s
+soft <- r / sum(r)
+dI_i <- I_i * as.vector(t(Psi_q) %*% soft)
 psi_x <- .psi_basis_ct(xval, xp, degree_t, degree_g, TRUE, degree_t_cross, degree_x_cross)
 S_i <- if (m_alpha > 0) sum(Phi_blk[b, ] * alpha) + I_i else I_i
 S_sq_sum <- S_sq_sum + S_i^2
@@ -996,12 +997,12 @@ for (b in seq_along(idx)) {
 xp <- if (k > 1) Xprev_blk[b, ] else numeric(0)
 xval <- xk_blk[b]
 Psi_q <- .build_Psi_q_ct(xval, xp, nodes, nodes_pow, object$degree_t, object$degree_g, object$degree_t_cross, object$degree_x_cross)
-V <- Psi_q %*% beta
-m <- max(V)
-v_shift <- V - m
-ev <- exp(pmax(v_shift, -object$clip))
-s <- sum(weights * ev)
-I_i <- xval * exp(m) * s
+V <- as.vector(Psi_q %*% beta)
+b_vec <- log(weights) + V
+b_max <- max(b_vec)
+r <- exp(b_vec - b_max)
+s <- exp(b_max) * sum(r)
+I_i <- xval * s
 psi_x <- .psi_basis_ct(xval, xp, object$degree_t, object$degree_g, TRUE, object$degree_t_cross, object$degree_x_cross)
 Z_col[idx[b]] <- if (m_alpha > 0) sum(Phi_blk[b, ] * alpha) + I_i else I_i
 LJ_col[idx[b]] <- sum(beta * psi_x) - log(object$sigma[k])
@@ -1285,9 +1286,9 @@ set.seed(seed)
 mods <- list(
 true = fit_TRUE(S, config_moon),
 trtf = fit_TRTF(S, config_moon, seed = seed),
-ttm = trainMarginalMap(S)$S,
-ttm_sep = trainSeparableMap(S)$S,
-ttm_cross = trainCrossTermMap(S)$S
+ttm = trainMarginalMap(S, seed = seed)$S,
+ttm_sep = trainSeparableMap(S, seed = seed)$S,
+ttm_cross = trainCrossTermMap(S, seed = seed)$S
 )
 }
 rows <- list()
@@ -1355,36 +1356,6 @@ parm = function(d) list(shape = softplus(d$X3),
 scale = softplus(d$X2)))
 )
 main <- function() {
-
-set.seed(42)
-prep <- prepare_data(n, config, seed = 42)
-S0 <- prep$S
-S <- list(
-X_tr  = S0$X_tr[, perm, drop = FALSE],
-X_val = S0$X_val[, perm, drop = FALSE],
-X_te  = S0$X_te[, perm, drop = FALSE]
-)
-cfg <- config[perm]
-t_true_tr  <- system.time(mod_true      <- fit_TRUE(S, cfg))[['elapsed']]
-t_joint_tr <- system.time(mod_true_joint <- fit_TRUE_JOINT(S, cfg))[['elapsed']]
-t_trtf_tr  <- system.time(mod_trtf      <- fit_TRTF(S, cfg, seed = 42))[['elapsed']]
-mod_ttm     <- trainMarginalMap(S);  t_ttm_tr <- mod_ttm$time_train
-mod_ttm_sep <- trainSeparableMap(S); t_sep_tr <- mod_ttm_sep$time_train
-mod_ttm_cross <- trainCrossTermMap(S); t_ct_tr <- mod_ttm_cross$time_train
-t_true_te  <- system.time(logL_TRUE(mod_true, S$X_te))[['elapsed']]
-t_joint_te <- system.time(true_joint_logdensity_by_dim(cfg, S$X_te))[['elapsed']]
-t_trtf_te  <- system.time(predict(mod_trtf, S$X_te, type = "logdensity_by_dim"))[['elapsed']]
-t_ttm_te   <- mod_ttm$time_pred
-t_sep_te   <- mod_ttm_sep$time_pred
-t_ct_te    <- mod_ttm_cross$time_pred
-mods <- list(
-true = mod_true,
-true_joint = mod_true_joint,
-trtf = mod_trtf,
-ttm  = mod_ttm,
-ttm_sep = mod_ttm_sep,
-ttm_cross = mod_ttm_cross
-
 dataset <- Sys.getenv("DATASET", "config4d")
 seed <- as.integer(Sys.getenv("SEED", 42))
 set.seed(seed)
@@ -1399,24 +1370,43 @@ saveRDS(S, sprintf("results/splits_%s_seed%03d.rds", dataset, seed))
 cat(sprintf("[DATASET %s] K=%d | n_tr=%d (val=%d) | n_te=%d | noise=%.3f | seed=%d\n",
 dataset, ncol(S$X_tr), nrow(S$X_tr), nrow(S$X_val),
 nrow(S$X_te), noise, seed))
-set.seed(seed)
-mods <- list()
-eval_halfmoon(mods, S, NULL)
-invisible(NULL)
-} else {
+df <- eval_halfmoon(S = S)
+assign("results_table", df, envir = .GlobalEnv)
+return(df)
+}
 prep <- prepare_data(n, config, seed = seed)
+S0 <- prep$S
+S <- list(
+X_tr  = S0$X_tr[, perm, drop = FALSE],
+X_val = S0$X_val[, perm, drop = FALSE],
+X_te  = S0$X_te[, perm, drop = FALSE]
+)
+cfg <- config[perm]
+t_true_tr  <- system.time(mod_true      <- fit_TRUE(S, cfg))[['elapsed']]
+t_joint_tr <- 0
+mod_true_joint <- fit_TRUE_JOINT(S, cfg)
+t_trtf_tr  <- system.time(mod_trtf      <- fit_TRTF(S, cfg, seed = seed))[['elapsed']]
+mod_ttm     <- trainMarginalMap(S, seed = seed);  t_ttm_tr <- mod_ttm$time_train
+mod_ttm_sep <- trainSeparableMap(S, seed = seed); t_sep_tr <- mod_ttm_sep$time_train
+mod_ttm_cross <- trainCrossTermMap(S, seed = seed); t_ct_tr <- mod_ttm_cross$time_train
+t_true_te  <- system.time(logL_TRUE(mod_true, S$X_te))[['elapsed']]
+t_joint_te <- system.time(true_joint_logdensity_by_dim(cfg, S$X_te))[['elapsed']]
+t_trtf_te  <- system.time(predict(mod_trtf, S$X_te, type = "logdensity_by_dim"))[['elapsed']]
+t_ttm_te   <- mod_ttm$time_pred
+t_sep_te   <- mod_ttm_sep$time_pred
+t_ct_te    <- mod_ttm_cross$time_pred
 mods <- list(
-true = fit_TRUE(prep$S, config),
-true_joint = fit_TRUE_JOINT(prep$S, config),
-trtf = fit_TRTF(prep$S, config, seed = seed),
-ttm  = trainMarginalMap(prep$S),
-ttm_sep = trainSeparableMap(prep$S),
-ttm_cross = trainCrossTermMap(prep$S)
-
+true = mod_true,
+true_joint = mod_true_joint,
+trtf = mod_trtf,
+ttm  = mod_ttm,
+ttm_sep = mod_ttm_sep,
+ttm_cross = mod_ttm_cross
 )
 tab <- calc_loglik_tables(mods, cfg, S$X_te)
 cat(sprintf("n=%d\n", n))
 print(tab)
+cat(sprintf("Permutation order %s\n", paste(perm, collapse = ",")))
 time_tab <- data.frame(
 model = c("True (marginal)", "True (Joint)", "Random Forest",
 "Marginal Map", "Separable Map", "Cross-term Map"),
@@ -1431,10 +1421,9 @@ stopifnot(all.equal(time_tab$total_sec,
 time_tab$train_sec + time_tab$test_sec))
 print(time_tab)
 timing_table <<- time_tab
-cat(sprintf("Permutation order %s\n", paste(perm, collapse = ",")))
 results_table <<- tab
-invisible(tab)
-}
+stopifnot(identical(results_table, tab))
+return(tab)
 }
 if (sys.nframe() == 0L) {
 main()
@@ -1443,27 +1432,12 @@ replicate_code_scripts("main.R", "replicated_code.txt", env = globalenv())
 ### End main.R ###
 
 ### Final results table ###
-  dim distribution True (marginal) True (Joint) Random Forest Marginal Map
-1   1         norm     1.55 ± 0.47  1.54 ± 0.48   1.62 ± 0.42  1.57 ± 0.38
-2   2          exp     1.65 ± 0.63  1.65 ± 0.87   2.73 ± 1.00  3.30 ± 0.01
-3   3         beta    -0.75 ± 1.23 -1.23 ± 1.69  -0.12 ± 0.52  0.41 ± 0.22
-4   4        gamma     2.93 ± 1.97  2.25 ± 1.47   2.72 ± 1.98  3.32 ± 1.45
-5   k          SUM     5.38 ± 2.03  4.21 ± 2.17   6.95 ± 3.02  8.59 ± 1.77
-  Separable Map Cross-term Map
-1   1.55 ± 0.47    1.50 ± 0.46
-2   1.91 ± 0.65    2.92 ± 1.21
-3  -0.00 ± 0.63   -0.75 ± 1.20
-4   3.36 ± 2.68    1.72 ± 1.03
-5   6.81 ± 3.36    5.38 ± 1.54
-
-### Timing table ###
-            model train_sec test_sec total_sec
-1 True (marginal)     0.420    0.196     0.616
-2    True (Joint)     0.499    0.174     0.673
-3   Random Forest     8.733    2.725    11.458
-4    Marginal Map     0.003    0.019     0.022
-5   Separable Map     0.035    0.047     0.082
-6  Cross-term Map     3.217    0.290     3.507
+      model mean_joint_nll   se_joint per_dim_nll_1 per_dim_nll_2
+1      true       2.015435 0.03952443      1.315586     0.6998488
+2      trtf       1.773099 0.04477884      1.261374     0.5117247
+3       ttm       2.024118 0.03678561      1.313244     0.7108738
+4   ttm_sep       1.978473 0.04581926      1.315586     0.6628871
+5 ttm_cross       1.923089 0.04957322      1.307709     0.6153796
 
 Permutation order 1,2,3,4
 

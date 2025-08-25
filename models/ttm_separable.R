@@ -45,8 +45,8 @@ basis_g <- function(X, deg) {
 
 # Exportierte Funktionen -----------------------------------------------------
 
-trainSeparableMap <- function(X_or_path, degree_g = 2, lambda = 1e-3, eps = 1e-6) {
-  set.seed(42)
+trainSeparableMap <- function(X_or_path, degree_g = 2, lambda = 1e-3, eps = 1e-6, seed = 42) {
+  set.seed(seed)
   S_in <- if (is.character(X_or_path)) readRDS(X_or_path) else X_or_path
   stopifnot(is.list(S_in))
   X_tr <- S_in$X_tr
