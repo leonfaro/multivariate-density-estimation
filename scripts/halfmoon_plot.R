@@ -134,3 +134,71 @@ plot_halfmoon_models <- function(mods, S, grid_n = 200,
   invisible(TRUE)
 }
 
+plot_halfmoon_models_gg <- function(mods, S, grid_n = 200,
+                                    levels_policy = c("global_quantiles"),
+                                    save_png = TRUE, show_plot = TRUE) {
+  levels_policy <- match.arg(levels_policy)
+  lim <- compute_limits(S, pad = 0.05)
+  xseq <- seq(lim$xlim[1], lim$xlim[2], length.out = grid_n)
+  yseq <- seq(lim$ylim[1], lim$ylim[2], length.out = grid_n)
+  G <- as.matrix(expand.grid(xseq, yseq))
+  get_LDj_true <- function(mod_true) {
+    cbind(
+      .log_density_vec(G[, 1], "norm", mod_true$theta[[1]]),
+      .log_density_vec(G[, 2], "norm", mod_true$theta[[2]])
+    ) |> rowSums()
+  }
+  get_LDj <- function(name) {
+    if (name == "true") {
+      get_LDj_true(mods$true)
+    } else {
+      as.numeric(predict(mods[[name]], G, "logdensity"))
+    }
+  }
+  panels <- c("true", "trtf", "ttm", "ttm_sep", "ttm_cross")
+  LD_list <- setNames(lapply(panels, get_LDj), panels)
+  all_vals <- unlist(LD_list)
+  lev <- stats::quantile(all_vals[is.finite(all_vals)], c(0.9, 0.7, 0.5))
+  lev <- sort(lev)
+  message("Contour levels (global): ", paste(sprintf("%.3f", lev), collapse = ", "))
+  breaks <- c(-Inf, lev, Inf)
+  grid_df <- do.call(rbind, lapply(panels, function(nm) {
+    data.frame(x1 = G[, 1], x2 = G[, 2], ld = LD_list[[nm]], panel = nm)
+  }))
+  points_df <- rbind(
+    data.frame(x1 = S$X_tr[, 1], x2 = S$X_tr[, 2], y = S$y_tr, split = "train"),
+    data.frame(x1 = S$X_val[, 1], x2 = S$X_val[, 2], y = S$y_val, split = "val"),
+    data.frame(x1 = S$X_te[, 1], x2 = S$X_te[, 2], y = S$y_te, split = "test")
+  )
+  panels_all <- c("Data", panels)
+  point_panel_df <- do.call(rbind, lapply(panels_all, function(p)
+    cbind(points_df, panel = p)))
+  grid_df$panel <- factor(grid_df$panel, levels = panels_all)
+  point_panel_df$panel <- factor(point_panel_df$panel, levels = panels_all)
+  library(ggplot2)
+  p <- ggplot() +
+    stat_contour_filled(data = grid_df,
+                        aes(x1, x2, z = ld, fill = after_stat(level)),
+                        breaks = breaks) +
+    geom_point(data = point_panel_df,
+               aes(x1, x2, color = factor(y), shape = split),
+               alpha = 0.6, size = 1.5) +
+    scale_color_manual(values = c(`1` = "blue", `2` = "red"), name = "Mond") +
+    scale_shape_manual(values = c(train = 16, val = 17, test = 15), name = "Split") +
+    scale_fill_viridis_d(option = "plasma", name = "Logdichte", drop = FALSE) +
+    facet_wrap(~panel, nrow = 2) +
+    coord_fixed(xlim = lim$xlim, ylim = lim$ylim) +
+    theme_minimal()
+  if (save_png) {
+    dir.create("results", showWarnings = FALSE)
+    seed0 <- if (!is.null(S$meta$seed)) S$meta$seed else 0
+    f <- sprintf("results/halfmoon_panels_seed%03d.png", seed0)
+    ggsave(f, plot = p, width = 12, height = 8)
+    message("Saved: ", f)
+  }
+  if (show_plot && interactive()) {
+    print(p)
+  }
+  invisible(TRUE)
+}
+

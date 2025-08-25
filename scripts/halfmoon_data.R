@@ -8,7 +8,7 @@
 #' @param n Number of samples to generate
 #' @param noise Standard deviation of Gaussian noise added to the points
 #' @param seed Random seed for reproducibility
-#' @return Numeric matrix with columns x1 and x2
+#' @return List with matrix `X` and integer vector `y`\n#'     (1 = upper, 2 = lower moon)
 #' @export
 #' @examples
 #' X <- generate_two_moons(100, 0.1, 1)
@@ -23,10 +23,12 @@ generate_two_moons <- function(n, noise, seed) {
   X1 <- cbind(cos(theta1), sin(theta1))
   X2 <- cbind(1 - cos(theta2), -sin(theta2) + 0.5)
   X <- rbind(X1, X2) + matrix(rnorm(2 * n, sd = noise), ncol = 2)
+  y <- c(rep(1L, n1), rep(2L, n2))
   idx <- sample.int(n)
   X <- X[idx, , drop = FALSE]
+  y <- y[idx]
   colnames(X) <- c("x1", "x2")
-  X
+  list(X = X, y = y)
 }
 
 #' Create train/validation/test splits for two-moons data
@@ -39,17 +41,22 @@ generate_two_moons <- function(n, noise, seed) {
 #' @return List with train, validation and test matrices and metadata
 #' @export
 make_halfmoon_splits <- function(n_train, n_test, noise, seed, val_frac = 0.2) {
-  Xtr <- generate_two_moons(n_train, noise, seed)
-  Xte <- generate_two_moons(n_test, noise, seed + 1)
+  tr <- generate_two_moons(n_train, noise, seed)
+  te <- generate_two_moons(n_test, noise, seed + 1)
   n_val <- max(10L, round(val_frac * n_train))
   set.seed(seed + 2)
   idx <- sample.int(n_train, n_val)
-  Xval <- Xtr[idx, , drop = FALSE]
-  Xtr <- Xtr[-idx, , drop = FALSE]
+  Xval <- tr$X[idx, , drop = FALSE]
+  yval <- tr$y[idx]
+  Xtr <- tr$X[-idx, , drop = FALSE]
+  ytr <- tr$y[-idx]
   S <- list(
     X_tr = Xtr,
+    y_tr = ytr,
     X_val = Xval,
-    X_te = Xte,
+    y_val = yval,
+    X_te = te$X,
+    y_te = te$y,
     K = 2L,
     meta = list(
       seed = seed,
@@ -69,7 +76,8 @@ make_halfmoon_splits <- function(n_train, n_test, noise, seed, val_frac = 0.2) {
 #' @return The input list if all checks pass
 #' @export
 check_halfmoon_splits <- function(S) {
-  stopifnot(is.list(S), all(c("X_tr", "X_val", "X_te", "K", "meta") %in% names(S)))
+  stopifnot(is.list(S),
+            all(c("X_tr", "X_val", "X_te", "y_tr", "y_val", "y_te", "K", "meta") %in% names(S)))
   mats <- c("X_tr", "X_val", "X_te")
   for (m in mats) {
     X <- S[[m]]
@@ -77,6 +85,11 @@ check_halfmoon_splits <- function(S) {
     if (!is.numeric(X)) stop(m, " must be numeric")
     if (any(is.na(X)) || any(is.infinite(X))) stop(m, " contains NA or Inf")
     if (is.null(colnames(X)) || any(colnames(X) != c("x1", "x2"))) stop(m, " has wrong column names")
+    y <- S[[sub("X_", "y_", m)]]
+    if (!is.integer(y)) stop("labels must be integer")
+    if (length(y) != nrow(X)) stop(m, " and labels length mismatch")
+    if (any(!is.finite(y))) stop("labels contain NA/Inf")
+    if (any(!(y %in% c(1L, 2L)))) stop("labels must be 1 or 2")
   }
   if (S$K != 2) stop("K must be 2")
   n_train <- S$meta$n_train
