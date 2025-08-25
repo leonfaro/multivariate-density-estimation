@@ -1,17 +1,6 @@
 
 ---
 
-# TTM vs TRTF — Algorithmic Specification (paper‑aligned)
-
-**Units:** nats
-**Shapes:** `predict(..., "logdensity_by_dim")` → $N\times K$; `predict(..., "logdensity")` → length $N$
-**Monotonicity:** each $S_k$ is strictly increasing in $x_k$
-**Log‑space policy (mandatory):** *all* training, prediction, and evaluation run in **log‑space**.
-No exponentiation of densities; sums of exponentials are computed via **log‑sum‑exp**.
-**Constants in LD:** per dimension add $-\tfrac12\log(2\pi)$ and the standardization offset $-\log\sigma_k$ (train‑only $\sigma_k$).
-
----
-
 ## Notation (consistent with the paper, color‑free)
 
 * Vectors/maps bold; scalars/components roman: $\mathbf{x}$, $\mathbf{z}$, $\mathbf{S}$ vs. $x_k$, $S_k$.
