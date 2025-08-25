@@ -34,25 +34,23 @@ config <- list(
 #' @export
 main <- function() {
   dataset <- Sys.getenv("DATASET", "config4d")
-  seed <- as.integer(Sys.getenv("SEED", 42))
-  set.seed(seed)
-
   if (dataset == "halfmoon2d") {
-    ntr <- pmin(as.integer(Sys.getenv("N_TRAIN", 250)), 250)
-    nte <- pmin(as.integer(Sys.getenv("N_TEST", 250)), 250)
-    noise <- as.numeric(Sys.getenv("NOISE", 0.15))
-    S <- make_halfmoon_splits(ntr, nte, noise, seed)
+    seed <- as.integer(Sys.getenv("SEED"))
+    set.seed(seed)
+    ntr <- as.integer(Sys.getenv("N_TRAIN"))
+    nte <- as.integer(Sys.getenv("N_TEST"))
+    noise <- as.numeric(Sys.getenv("NOISE"))
+    S <- make_halfmoon_splits(ntr, nte, noise, seed, val_frac = 0.2)
     S$meta$dataset <- dataset
     dir.create("results", showWarnings = FALSE)
     saveRDS(S, sprintf("results/splits_%s_seed%03d.rds", dataset, seed))
-    cat(sprintf("[DATASET %s] K=%d | n_tr=%d (val=%d) | n_te=%d | noise=%.3f | seed=%d\n",
-                dataset, ncol(S$X_tr), nrow(S$X_tr), nrow(S$X_val),
-                nrow(S$X_te), noise, seed))
     df <- eval_halfmoon(S = S)
-    assign("results_table", df, envir = .GlobalEnv)
+    results_table <<- df
     return(df)
   }
 
+  seed <- as.integer(Sys.getenv("SEED", 42))
+  set.seed(seed)
   prep <- prepare_data(n, config, seed = seed)
   S0 <- prep$S
   S <- list(
