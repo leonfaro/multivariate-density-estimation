@@ -30,8 +30,8 @@
 
 # exportierte Funktionen ----------------------------------------------------
 
-trainMarginalMap <- function(X_or_path) {
-  set.seed(42)
+trainMarginalMap <- function(X_or_path, seed = 42) {
+  set.seed(seed)
   S_in <- if (is.character(X_or_path)) readRDS(X_or_path) else X_or_path
   stopifnot(is.list(S_in))
   X_tr <- S_in$X_tr

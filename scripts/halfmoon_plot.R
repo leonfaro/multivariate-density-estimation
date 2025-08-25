@@ -10,69 +10,127 @@ fit_halfmoon_models <- function(S, seed = NULL) {
   list(
     true = fit_TRUE(S, cfg),
     trtf = fit_TRTF(S, cfg, seed = seed),
-    ttm = trainMarginalMap(S)$S,
-    ttm_sep = trainSeparableMap(S)$S,
-    ttm_cross = trainCrossTermMap(S)$S
+    ttm = trainMarginalMap(S, seed = seed)$S,
+    ttm_sep = trainSeparableMap(S, seed = seed)$S,
+    ttm_cross = trainCrossTermMap(S, seed = seed)$S
   )
 }
 
-plot_halfmoon_models <- function(mods, S, grid_n = 120,
-                                 levels = c(0.9, 0.7, 0.5),
-                                 save_png = TRUE, seed = NULL) {
-  if (!is.null(seed)) {
-    set.seed(seed)
-  } else if (!is.null(S$meta$seed)) {
-    set.seed(S$meta$seed)
-  }
+compute_limits <- function(S, pad = 0.05) {
   Xall <- rbind(S$X_tr, S$X_val, S$X_te)
   xr <- range(Xall[, 1])
   yr <- range(Xall[, 2])
-  dx <- 0.1 * diff(xr)
-  dy <- 0.1 * diff(yr)
-  xseq <- seq(xr[1] - dx, xr[2] + dx, length.out = grid_n)
-  yseq <- seq(yr[1] - dy, yr[2] + dy, length.out = grid_n)
+  dx <- pad * diff(xr)
+  dy <- pad * diff(yr)
+  list(xlim = xr + c(-dx, dx), ylim = yr + c(-dy, dy))
+}
+
+draw_points <- function(S, style = list()) {
+  n_all <- nrow(S$X_tr) + nrow(S$X_val) + nrow(S$X_te)
+  cex <- if (!is.null(style$cex)) style$cex else min(1.2, sqrt(800 / n_all))
+  cols <- if (!is.null(style$cols)) style$cols else c(
+    train = rgb(0.2, 0.4, 1, 0.65),
+    val = rgb(1, 0.6, 0, 0.5),
+    test = rgb(1, 0, 0, 0.7)
+  )
+  points(S$X_tr, pch = 16, cex = cex, col = cols["train"])
+  points(S$X_val, pch = 16, cex = cex, col = cols["val"])
+  points(S$X_te, pch = 16, cex = cex * 1.1, col = cols["test"])
+  invisible(n_all)
+}
+
+clip01 <- function(x) {
+  q <- stats::quantile(x, c(0.01, 0.99))
+  pmin(pmax(x, q[1]), q[2])
+}
+
+.draw_panels <- function(mods, S, grid_n, levels_policy = c("global_quantiles", "per_model")) {
+  levels_policy <- match.arg(levels_policy)
+  lim <- compute_limits(S, pad = 0.05)
+  xseq <- seq(lim$xlim[1], lim$xlim[2], length.out = grid_n)
+  yseq <- seq(lim$ylim[1], lim$ylim[2], length.out = grid_n)
   G <- as.matrix(expand.grid(xseq, yseq))
-  get_LDj_true <- function(mod_true, G) {
+  get_LDj_true <- function(mod_true) {
     cbind(
       .log_density_vec(G[, 1], "norm", mod_true$theta[[1]]),
       .log_density_vec(G[, 2], "norm", mod_true$theta[[2]])
     ) |> rowSums()
   }
-  eval_panel <- function(name) {
+  get_LDj <- function(name) {
     if (name == "true") {
-      LDj <- get_LDj_true(mods$true, G)
+      get_LDj_true(mods$true)
     } else {
-      LDj <- as.numeric(predict(mods[[name]], G, "logdensity"))
+      as.numeric(predict(mods[[name]], G, "logdensity"))
     }
-    list(LDj = LDj, lev = as.numeric(stats::quantile(LDj, probs = levels, na.rm = TRUE)))
   }
   panels <- c("true", "trtf", "ttm", "ttm_sep", "ttm_cross")
-  draw_panels <- function() {
-    op <- par(mfrow = c(2, 3), mar = c(3, 3, 2, 1))
-    plot(S$X_te, pch = 16, cex = 0.35, col = gray(0, 0.25),
-         xlab = "x1", ylab = "x2", main = "Data")
-    abline(h = 0, v = 0, lty = 3, col = "gray")
-    for (nm in panels) {
-      res <- eval_panel(nm)
-      Z <- matrix(res$LDj, nrow = length(xseq), ncol = length(yseq))
-      plot(S$X_te, pch = 16, cex = 0.35, col = gray(0, 0.25),
-           xlab = "x1", ylab = "x2", main = nm)
-      abline(h = 0, v = 0, lty = 3, col = "gray")
-      contour(xseq, yseq, Z, levels = res$lev, add = TRUE, drawlabels = FALSE)
-    }
-    par(op)
+  LD_list <- setNames(lapply(panels, get_LDj), panels)
+  all_finite <- all(sapply(LD_list, function(z) all(is.finite(z))))
+  probs <- c(0.9, 0.7, 0.5)
+  if (levels_policy == "global_quantiles") {
+    all_vals <- unlist(lapply(LD_list, function(z) clip01(z[is.finite(z)])))
+    lev <- stats::quantile(all_vals, probs)
+    message("Contour levels (global): ", paste(sprintf("%.3f", lev), collapse = ", "))
+    lev_list <- rep(list(lev), length(panels))
+    names(lev_list) <- panels
+    lev_ret <- lev
+  } else {
+    lev_list <- lapply(LD_list, function(z) {
+      stats::quantile(clip01(z[is.finite(z)]), probs)
+    })
+    message("Contour levels (per_model): ",
+            paste(names(lev_list),
+                  sapply(lev_list, function(v) paste(sprintf("%.3f", v), collapse = ", ")), collapse = " | "))
+    lev_ret <- lev_list
+  }
+  n_all <- nrow(S$X_tr) + nrow(S$X_val) + nrow(S$X_te)
+  style <- list(
+    cex = min(1.2, sqrt(800 / n_all)),
+    cols = c(train = rgb(0.2, 0.4, 1, 0.65),
+             val = rgb(1, 0.6, 0, 0.5),
+             test = rgb(1, 0, 0, 0.7))
+  )
+  op <- par(mfrow = c(2, 3), mar = c(3, 3, 2, 1))
+  plot(NA, xlim = lim$xlim, ylim = lim$ylim, xlab = "x1", ylab = "x2", main = "Data")
+  grid(col = "gray90", lty = 3)
+  draw_points(S, style)
+  legend("bottomright", legend = c("Train", "Val", "Test"), pch = 16,
+         col = style$cols, pt.cex = c(style$cex, style$cex, style$cex * 1.1), bty = "n")
+  for (nm in panels) {
+    Z <- matrix(LD_list[[nm]], nrow = length(xseq), ncol = length(yseq))
+    plot(NA, xlim = lim$xlim, ylim = lim$ylim, xlab = "x1", ylab = "x2", main = nm)
+    grid(col = "gray90", lty = 3)
+    contour(xseq, yseq, Z, levels = lev_list[[nm]], add = TRUE, drawlabels = FALSE)
+    draw_points(S, style)
+    legend("bottomright", legend = c("Train", "Val", "Test"), pch = 16,
+           col = style$cols, pt.cex = c(style$cex, style$cex, style$cex * 1.1), bty = "n")
+  }
+  par(op)
+  invisible(list(levels = lev_ret, grid_points = nrow(G), all_finite = all_finite))
+}
+
+plot_halfmoon_models <- function(mods, S, grid_n = 200,
+                                 levels_policy = c("global_quantiles", "per_model"),
+                                 save_png = TRUE, show_plot = TRUE,
+                                 seed = NULL) {
+  levels_policy <- match.arg(levels_policy)
+  if (!is.null(seed)) {
+    set.seed(seed)
+  } else if (!is.null(S$meta$seed)) {
+    set.seed(S$meta$seed)
   }
   if (save_png) {
     dir.create("results", showWarnings = FALSE)
     seed0 <- if (!is.null(S$meta$seed)) S$meta$seed else 0
     f <- sprintf("results/halfmoon_panels_seed%03d.png", seed0)
     png(f, width = 1200, height = 800)
-    draw_panels()
+    .draw_panels(mods, S, grid_n, levels_policy)
     dev.off()
     message("Saved: ", f)
-  } else {
-    draw_panels()
   }
-  invisible(NULL)
+  if (show_plot && interactive()) {
+    .draw_panels(mods, S, grid_n, levels_policy)
+  }
+  invisible(TRUE)
 }
 
