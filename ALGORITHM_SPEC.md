@@ -1,419 +1,423 @@
-# Algorithm Specification for Multivariate Density Estimation
-
-## 1. Notation
-- $d$: dimensionality of the random vector $x=(x_1,\ldots,x_d)^\top$.
-- $N$: number of observations.
-- $\pi(x)$: target density of $x$.
-- $\eta(z)$: density of the $d$-variate standard Gaussian.
-- $S: \mathbb R^d \to \mathbb R^d$: lower triangular transport map, $z = S(x)$.
-- $S_k$: $k$-th component of $S$ with arguments $x_{1:k}=(x_1,\ldots,x_k)$.
-- $R = S^{-1}$: inverse map, $x = R(z)$.
-- $\nabla S$: Jacobian matrix of $S$.
-- $\ell(x)=\sum_{k=1}^{d} \log\partial_k S_k(x)$.
-- $X \in \mathbb R^{N\times d}$: matrix of samples where column $j$ corresponds to $x_j$.
-- $\mathcal{N}(0,I_d)$: $d$-variate standard Gaussian distribution.
-
-All densities are evaluated in log-space. Strictly positive parameters are transformed via `softplus`.
-```
-########  TTM CORE (marginal)  ########
-trainMarginalMap(X_or_path)
-predict.ttm_marginal(S, X, type)
-forwardPass(S,x)
-logJacDiag(S,x)
-forwardKLLoss(S,X)
-inversePass(S,z)
-negativeLogLikelihood(S,X)
-natsPerDim(L,N,K)
-stderr(v)
-######################################
-```
-
-```
-########  TTM CORE (separable) ########
-trainSeparableMap(X_or_path)
-predict.ttm_separable(S, X, type)
-######################################
-```
-
-```
-########  TTM CORE (cross term) ########
-trainCrossTermMap(X_or_path, warmstart_from_separable=FALSE)
-predict.ttm_cross_term(S, X, type)
-forwardKLLoss_ct(S, X) = mean(-rowSums(predict(S,X,"logdensity_by_dim")) - 0.5*K*log(2*pi))
-- uses polynomial bases with cross terms t^r x_j^s (degrees deg_t_cross, deg_x_cross)
-- Gauss-Legendre quadrature on [0,1]
-- analytic derivative basis `.dpsi_dt_ct` for monotonicity checks
-- optimization of forward KL via L-BFGS-B
-- chunked training and prediction mit gewichteter log-sum-exp-Quadratur ohne Clipping, parallelisiert über Dimensionen
-- robuste Parallelisierung mit sequentiellem Retry und Null-Koeffizienten-Fallback
-- optionaler Warm-Start der g_k-Koeffizienten aus der separablen Map
-######################################
-```
-
-## 2. Top-Level Pipeline
-The overarching routine `main()` follows the composition
-$$\operatorname{mainPipeline} := f_7 \circ f_6 \circ \cdots \circ f_1,$$
-where
-1. $f_1 = \texttt{gen\_samples}$ – generate $X$ from configuration.
-2. $f_2 = \texttt{split\_data}$ – obtain $(X_{\text{tr}}, X_{\text{val}}, X_{\text{te}})$.
-   $f_{2a} =$ optional column permutation $S \mapsto S_{perm}$ with corresponding config reordering.
-3. $f_3 = \texttt{fit\_TRUE}$ – fit independent parametric marginals.
-   f_3b1 = fit_TTM_marginal
-   f_3b2 = fit_TTM_separable
-   f_3b3 = fit_TTM_cross  # train triangular transport maps via respective trainers
-   f_3b4 = fit_TRUE_JOINT    # evaluate oracle joint density
-4. $f_4 = \texttt{fit\_TRTF}$ – fit transformation forests.
-5. $f_5 = \texttt{logL\_\*\_dim}$ – compute dimension-wise log-likelihoods.
-6. $f_6 = \texttt{add\_sum\_row}$ – append totals to tables.
-7. $f_7 = \texttt{format\_loglik\_table}$ – present final evaluation table.
-Optional EDA helper functions are defined in `04_evaluation.R`.
-
-After presenting the negative log-likelihood table, the script prints a 6\u00d73 timing table with rows
-`True (marginal)`, `True (Joint)`, `Random Forest`, `Marginal Map`, `Separable Map`, `Cross-term Map` and columns
-`train_sec`, `test_sec`, and `total_sec` (sum of the first two). Finally, the permutation vector
-`perm` is echoed as `Permutation order a,b,c,d`.
-
-Environment variables allow selecting alternative toy datasets. Setting `DATASET=halfmoon2d`
-triggers generation of a two-moons sample via `make_halfmoon_splits` with
-parameters `N_TRAIN`, `N_TEST` (capped at 250), `NOISE` and `SEED`. The created
-splits contain matrices `X_*` and label vectors `y_*` (values 1 for the upper
-arc and 2 for the lower arc). These are stored as
-`results/splits_halfmoon2d_seedXXX.rds` and the RNG state is reset afterwards to
-keep subsequent model training comparable across datasets. Evaluation
-`eval_halfmoon` fits TRUE, TRTF and the three TTM variants on these splits and
-records per-dimension and joint negative log-likelihoods (in nats) to
-`results/nll_halfmoon_seedXXX.csv`. The script `main_moon.R` provides a small
-wrapper that sets these environment variables, invokes `main()`, refits the
-half-moon models and saves a ggplot-based panel figure via
-`plot_halfmoon_models_gg` as `results/halfmoon_panels_seedXXX.png` alongside the
-CSV.
-
-## 3. Module Specifications
-`gen_samples(G) : G \to X`
-- **Description:** sequentially draws $N=G.n$ samples from distributions specified in `G.config`.
-- **Pre:** each `config[[k]]$distr` matches an R sampling routine `r<distr>`.
-- **Post:** matrix $X \in \mathbb R^{N\times d}$ with column names $\{X1,\ldots,Xd\}$; invalid distribution parameters are clamped to $10^{-3}$.
-- **Randomness:** uses `set.seed(G.seed)` and draws via base R generators.
-- **Pseudocode:**
-```
-function gen_samples(G)
-    set seed to G.seed
-    for i in 1..G.n
-        for k in 1..d
-            args <- if config[k].parm is null then {} else config[k].parm(previous X_i)
-            replace non-finite or <=0 args by 1e-3
-            X[i,k] <- r<distr_k>(1, args)
-    return X
-```
-
-### split_data
-`split_data(X, seed) : (\mathbb R^{N\times d}, \mathbb N) \to (X_{\text{tr}}, X_{\text{val}}, X_{\text{te}})`
-- **Description:** shuffle once and split 80/10/10.
-- **Randomness:** `set.seed(seed)` for permutation.
-```
-function split_data(X, seed)
-    set seed to seed
-    idx <- random permutation of 1..N
-    n_tr  <- floor(0.8*N)
-    n_val <- floor(0.1*N)
-    return (X[idx[1:n_tr],], X[idx[n_tr+1:n_tr+n_val],], X[idx[(n_tr+n_val+1):N],])
-```
-### fit_TRUE
-`fit_TRUE(S, config) : S \to M_{TRUE}`
-- **Description:** independent maximum-likelihood estimation per dimension.
-- **Pre:** distributions in `config` supported by `neg_loglik_uni`.
-function fit_TRUE(S, config)
-    for k in 1..d
-        init <- moment_based_start(S.X_tr[,k], config[k].distr)
-        theta_k <- optimize neg_loglik_uni w.r.t. init
-    logL_te <- logL_TRUE((theta), S.X_te)
-    return (theta, logL_te)
-```
-
-### logL_TRUE
-`logL_TRUE(M_TRUE, X) : (M_{TRUE}, \mathbb R^{n\times d}) \to \mathbb R`
-- **Description:** evaluate Gesamt-NLL of `X` under the independent model.
-- **Pre:** fitted parameters in `M_TRUE` are valid.
-- **Post:** scalar value finite.
-- **Randomness:** none.
-- **Pseudocode:**
-```
-function logL_TRUE(M, X)
-    for k in 1..d
-        ll_k <- log_density_vec(X[,k], distr_k, M.theta[[k]])
-    return -sum(rowSums(ll_k))
-```
-
-
-### true_joint_logdensity_by_dim
-`true_joint_logdensity_by_dim(config, X) : (config, \mathbb R^{n\times d}) \to \mathbb R^{n\times d}`
-- **Description:** evaluates log $p(x_k \mid x_{1:k-1})$ row-wise using oracle parameters.
-- **Pre:** each `config[[k]]$parm` accepts data frame of previous columns.
-- **Post:** matrix with finite entries.
-- **Pseudocode:**
-```
-function true_joint_logdensity_by_dim(config, X)
-    for i in 1..n
-        for k in 1..d
-            prev <- X[i,1:(k-1)] as data.frame
-            args <- if config[k].parm null then {} else config[k].parm(prev)
-            sanitize positive args; map gamma shape1/shape2
-            xk <- clamp(X[i,k]) to support
-            ll[i,k] <- d<distr_k>(xk, args, log=TRUE)
-    return ll
-```
-
-### logL_TRUE_JOINT_dim
-`logL_TRUE_JOINT_dim(config, X) : (config, \mathbb R^{n\times d}) \to \mathbb R^d`
-- **Description:** average negative log-likelihood per dimension under true joint density.
-- **Pseudocode:** `return -colMeans(true_joint_logdensity_by_dim(config, X))`
-
-### logL_TRUE_JOINT
-`logL_TRUE_JOINT(config, X) : (config, \mathbb R^{n\times d}) \to \mathbb R`
-- **Description:** Gesamt-NLL under the oracle joint density.
-- **Pseudocode:** `return -mean(rowSums(true_joint_logdensity_by_dim(config, X)))`
-
-### fit_TRUE_JOINT
-`fit_TRUE_JOINT(S, config) : S \to M_{TRUE\_JOINT}`
-- **Description:** no training; evaluates test set under the known joint density.
-- **Pseudocode:**
-```
-function fit_TRUE_JOINT(S, config)
-    te_dim <- logL_TRUE_JOINT_dim(config, S.X_te)
-    return (config, te_dim, sum(te_dim))
-```
-
-
-
-### fit_TRTF
-`fit_TRTF(S, config, seed, cores) : S \to M_{TRTF}`
-- **Description:** one-shot fit of conditional transformation forest on train data, evaluation on test.
-- **Pre:** training and test matrices present in `S`.
-- **Post:** fitted forest with test log-likelihood.
-- **Randomness:** optional `set.seed(seed)` affects forest construction.
-- **Pseudocode:**
-```
-function fit_TRTF(S, config, seed, cores)
-    if seed is not NULL:
-        set seed to seed
-    X_tr <- S.X_tr
-    X_te <- S.X_te
-    mod <- mytrtf(X_tr, ntree = nrow(X_tr), minsplit, minbucket, maxdepth, seed, cores)
-    mod.logL_te <- logL_TRTF(mod, X_te, cores)
-    return mod
-```
-
-
-### logL_TRTF
-`logL_TRTF(model, X) : (M_{TRTF}, \mathbb R^{n\times d}) \to \mathbb R`
-- **Description:** Gesamt-NLL for the TRTF model.
-- **Pre:** forest predictions finite.
-- **Post:** scalar value.
-- **Pseudocode:**
-```
-function logL_TRTF(model, X)
-    ll <- predict.mytrtf(model, X, 'logdensity')
-    return -sum(ll)
-```
-
-
-### standardize_data
-`standardize_data(X) : \mathbb R^{N\times d} \to (\tilde X, \mu, \sigma)`
-- **Description:** zentriert und skaliert jede Spalte von `X`.
-- **Pseudocode:**
-```
-function standardize_data(X)
-    μ <- mean(X, axis=0)
-    σ <- std(X, axis=0) + ε
-    return (X-μ)/σ , μ , σ
-```
-
-### sample_reference
-`sample_reference(N, d, seed) : (\mathbb N, \mathbb N, \mathbb N) \to Z`
-- **Description:** erzeugt `N` Standardnormal-Samples der Dimension `d`.
-- **Pseudocode:**
-```
-function sample_reference(N, d, seed)
-    set seed to seed
-    return matrix of rnorm(N*d) reshaped (N,d)
-```
-
-
-
-### fit_TTM_marginal
-`fit_TTM_marginal(S) : S \to M_{TTM}`
-- **Description:** Closed-form marginal map using only training data for standardization.
-- **Pre:** `S` contains `X_tr`, `X_val`, `X_te`.
-- **Post:** returns parameters `(\mu, \sigma, coeffA, coeffB, coeffC=0_d)` and validation metrics.
-- **Pseudocode:**
-```
-function fit_TTM_marginal(S)
-    std <- standardize_data(S.X_tr)
-    X_tr <- std.X
-    \mu <- std.mu; \sigma <- std.sigma
-    X_val <- (S.X_val-\mu)/\sigma
-    X_te  <- (S.X_te-\mu)/\sigma
-    for k in 1..d
-        u <- rank_avg(X_tr[,k])/(n_tr+1)
-        u <- clamp(u, [1/(n_tr+1), n_tr/(n_tr+1)])
-        z <- qnorm(u)
-        b_k <- max(0, cov(X_tr[,k], z)/(var(X_tr[,k])+1e-12))
-        a_k <- mean(z) - b_k*mean(X_tr[,k])
-        coeffA_k <- log(b_k+1e-12)
-        coeffB_k <- a_k
-    return (\mu, \sigma, coeffA, coeffB, 0_d)
-```
-
-### MapStruct
-`MapStruct(type, coeffA, coeffB, coeffC, basisF, basisG, basisH)`
-- **BasisF API:** Each `basisF_k` must implement two callables: `value(x,\theta)` and `deriv(x,\theta) > 0`.
-- *basisH_k muss die Signatur **h_k(t , x_{1:k-1},\,\theta)** besitzen.*
-- **Description:** Container-Objekt für Koeffizienten und Basisfunktionen einer triangularen Map.
-- **Pseudocode:**
-```
-struct MapStruct:
-    type           # string
-    coeffA[k]      # α-Vektor für f_k
-    coeffB[k]      # β-Vektor für g_k
-    coeffC[k]      # γ-Vektor für h_k
-    basisF[k], basisG[k], basisH[k]   # callable handles
-```
-`add_sum_row(tab, label) : (data.frame, string) \to data.frame`
-- **Description:** append a row with columnwise sums for numeric columns while ignoring `NA` values.
-- **Pseudocode:**
-```
-function add_sum_row(tab, label)
-    for each column in tab:
-        if column == "dim": set to label
-        else if numeric: sum column with na.rm = TRUE
-        else: NA
-    return rbind(tab, sum_row)
-```
-
-### calc_loglik_tables
-`calc_loglik_tables(models, config, X_te) : (list, list, matrix) \to data.frame`
-- **Description:** compute mean and standard error of negative log-likelihoods per dimension and return formatted table.
-- **Pseudocode:**
-```
-function calc_loglik_tables(models, config, X_te)
-    ll_true <- -predict_TRUE(models.true, X_te)
-    ll_trtf <- -predict(models.trtf, X_te)
-    ll_true_joint <- -true_joint_logdensity_by_dim(config, X_te)
-    if models.ttm exists:
-        ll_ttm <- -predict(models.ttm$S, X_te)
-        mean_ttm <- colMeans(ll_ttm)
-        se_ttm   <- apply(ll_ttm, 2, stderr)
-        se_sum_ttm <- sd(rowSums(ll_ttm)) / sqrt(nrow(ll_ttm))
-    else:
-        mean_ttm <- rep(NA, K); se_ttm <- rep(NA, K); se_sum_ttm <- NA
-    if models.ttm_sep exists:
-        ll_sep <- -predict(models.ttm_sep$S, X_te)
-        mean_sep <- colMeans(ll_sep)
-        se_sep   <- apply(ll_sep, 2, stderr)
-        se_sum_sep <- sd(rowSums(ll_sep)) / sqrt(nrow(ll_sep))
-    else:
-        mean_sep <- rep(NA, K); se_sep <- rep(NA, K); se_sum_sep <- NA
-    if models.ttm_cross exists:
-        ll_cross <- -predict(models.ttm_cross$S, X_te)
-        mean_cross <- colMeans(ll_cross)
-        se_cross   <- apply(ll_cross, 2, stderr)
-        se_sum_cross <- sd(rowSums(ll_cross)) / sqrt(nrow(ll_cross))
-    else:
-        mean_cross <- rep(NA, K); se_cross <- rep(NA, K); se_sum_cross <- NA
-    mean_true <- colMeans(ll_true); se_true <- apply(ll_true,2,stderr)
-    se_sum_true <- sd(rowSums(ll_true)) / sqrt(nrow(ll_true))
-    mean_true_joint <- colMeans(ll_true_joint)
-    se_true_joint <- apply(ll_true_joint,2,stderr)
-    se_sum_true_joint <- sd(rowSums(ll_true_joint)) / sqrt(nrow(ll_true_joint))
-    mean_trtf <- colMeans(ll_trtf); se_trtf <- apply(ll_trtf,2,stderr)
-    fmt(x,se) = sprintf("%.2f ± %.2f", round(x,2), round(2*se,2))
-    tab <- data.frame(dim, distribution,
-                      true = fmt(mean_true, se_true),
-                      true_joint = fmt(mean_true_joint, se_true_joint),
-                      trtf = fmt(mean_trtf, se_trtf),
-                      ttm  = fmt(mean_ttm,  se_ttm),
-                      ttm_sep = fmt(mean_sep, se_sep),
-                      ttm_cross = fmt(mean_cross, se_cross))
-    sum_row <- data.frame(dim="k", distribution="SUM",
-                          true=fmt(sum(mean_true), se_sum_true),
-                          true_joint=fmt(sum(mean_true_joint), se_sum_true_joint),
-                          trtf=fmt(sum(mean_trtf), se_sum_trtf),
-                          ttm =fmt(sum(mean_ttm),  se_sum_ttm),
-                          ttm_sep=fmt(sum(mean_sep), se_sum_sep),
-                          ttm_cross=fmt(sum(mean_cross), se_sum_cross))
-    rename columns: true->"True (marginal)", true_joint->"True (Joint)",
-                    trtf->"Random Forest", ttm->"Marginal Map",
-                    ttm_sep->"Separable Map",
-                    ttm_cross->"Cross-term Map"
-    return rbind(tab, sum_row)
-```
-
-
-### create_EDA_report
-`create_EDA_report(X, cfg, scatter_data, table_kbl, param_list)`
-- **Description:** erzeugt optional Histogramme und Streuplots der Log-Dichten
-  und gibt eine Liste mit `plots`, `param_plots` und `table` zurück.
-- **Location:** definiert in `04_evaluation.R`.
-- **Pre/Post:** keine Seiteneffekte auf Dateien.
-
-## 4. Randomness & Reproducibility
-Each module drawing random numbers sets the RNG via `set.seed` with an integer seed. Seeds are derived from the global seed (`G.seed`) with deterministic offsets. Random variables are sampled from base R distributions (`rnorm`, `rexp`, `rbeta`, `rgamma`) or via transformation forests. All optimization routines are deterministic given these seeds. To reproduce results, record `G.seed` and any hyperparameter grid.
-
-## 5. Complexity Notes
-- `gen_samples`: $\\Theta(Nd)$.
-- `split_data`: $\\Theta(N)$ for shuffling.
-- `fit_TRUE`: dominated by optimization per dimension; roughly $\\Theta(d n_{tr} I)$ with iteration count $I$.
-- `fit_TRTF` complexity hängt von der Tiefe der Bäume ab und ist datengesteuert.
-
-- Marginal-TTM:  \\Theta(N d)
-- Separable-TTM: \\Theta(N d) + LS-Solves
-- Cross-term-TTM: \\Theta(N d B) pro SGD-Batch
-## 6. Appendix A – Data Schemas
-- **Configuration Entry**: list with fields
-  - `distr`: string naming the distribution family.
-  - `parm`: optional function returning a list of parameters given previous columns.
-- **Sample Matrix** `X`: numeric matrix with columns `X1` … `Xd`.
-- **Model Objects**:
-  - `M_TRUE`: list `theta` (per-dimension parameter vectors), `config`, `logL_te`.
-  - `mytrtf`: list `ymod`, `forests`, `seed`, `varimp`, `config`, `logL_te`.
-  - `ttm_model`: functions implementing triangular transport maps.
-  - `logJacDiag(S,x)` → returns vector of log partial derivatives.
-  - `logDetJacobian(logDiag)` → sum of log-diagonal entries.
-  - `forwardKLLoss(S,X)` → mean forward-KL objective.
-  - `negativeLogLikelihood(S,X)` → total NLL of dataset.
-  - `natsPerDim(L,N,d)=L/(N·d)` → normalized NLL per dimension.
-  - `results_table`: matrix of mean NLL per dimension for each model.
-
-Kurzfassung:
-
-**Wie viele vollständige TTM‑Algorithmen?**
-→ **Zwei**: *Maps from samples* (Target→Reference, $S$) und *Maps from densities* (Reference→Target, $R$).&#x20;
 
 ---
 
-### 1) *Maps from samples* (Target→Reference, $S$)
+## Notation (consistent with the paper, color‑free)
 
-* **Idee/Objective:** Minimiere $D_{\mathrm{KL}}(\pi \,\|\, S^{\sharp}\eta)$ ≡ maximiere die Log‑Likelihood der Pullback‑Dichte auf Fix‑Samples $x\sim\pi$.
-  **Gleichungen:** (31)–(39).
-  **Seiten im PDF:** p. 26 (31–34), p. 27 (35–38), p. 28 (39).&#x20;
-* **Kernformeln:** Zerlegung $\log\det\nabla S(x)=\sum_k \log \partial_{x_k} S_k(x)$ und Monte‑Carlo‑Kostenfunktion $\mathcal{J}(S)=\sum_{i,k}\big(\tfrac12 S_k(X_i)^2-\log\partial_{x_k}S_k(X_i)\big)$.&#x20;
-
-### 2) *Maps from densities* (Reference→Target, $R$)
-
-* **Idee/Objective:** Minimiere $D_{\mathrm{KL}}(\eta \,\|\, R^{\sharp}\tilde{\pi})$ (reverse KL) bei nur bis auf Konstante bekannter Zieldichte $\tilde{\pi}$; maximiere Log‑Likelihood der Pullback‑Dichte auf Referenz‑Samples $z\sim\eta$.
-  **Gleichungen:** (40)–(48).
-  **Seiten im PDF:** p. 28 (40–44), p. 29 (45–48).&#x20;
-* **Kernformeln:** $\log\det\nabla R(z)=\sum_k \log \partial_{z_k} R_k(z)$ und MC‑Ziel $\mathcal{J}(R)=\sum_i\big(-\log \tilde{\pi}(R(Z_i))-\sum_k \log\partial_{z_k}R_k(Z_i)\big)$.&#x20;
+* Vectors/maps bold; scalars/components roman: $\mathbf{x}$, $\mathbf{z}$, $\mathbf{S}$ vs. $x_k$, $S_k$.
+* $\pi$ is the target distribution; $\eta=\mathcal{N}(\mathbf{0},I_K)$ is the reference.
+* $\mathbf{x}\sim\pi$, $\mathbf{z}\sim\eta$; $\mathbf{z}=\mathbf{S}(\mathbf{x})$ is the target‑to‑reference transform.
+* $\mathbf{R}=\mathbf{S}^{-1}$ maps reference to target (not used for training here).
+* $\partial_k S_k=\frac{\partial}{\partial x_k}S_k$ is the monotone derivative in the last argument;
+  $\ell(\mathbf{x})=\sum_{k=1}^K \log \partial_k S_k(\mathbf{x})$ is the log‑Jacobian.
+* Train‑only standardization: $\tilde x_k=(x_k-\mu_k)/\sigma_k$. The Jacobian includes $-\log\sigma_k$ for every $k$.
+* Ranks use `ties.average`. Normal‑scores use $u\in[\frac1{n+1},\frac{n}{n+1}]$ and $z^\star=\Phi^{-1}(u)$.
+* Seeds are deterministic and shared across models; Half‑Moon uses seed, seed+1, seed+2 for train, test, val‑split.
 
 ---
 
-## Welche davon sind im Repo umgesetzt?
+## Objective (“maps‑from‑samples”, paper Eq. 36–39)
 
-* **Umgesetzt:** *Maps from samples* (Target→Reference, $S$) mit Maximierung der (negativen) Log‑Likelihood via BFGS. Das README beschreibt explizit den **lower‑triangular** Transport $z=S(x)$ und die Optimierung „on the negative log‑likelihood“. Das entspricht genau dem Objective (31)–(39) oben. ([GitHub][1])
-* **Nicht umgesetzt (derzeit ersichtlich):** *Maps from densities* (Reference→Target, $R$) mit reverse‑KL‑Objective (40)–(48) – im Repo finde ich keinen Hinweis auf das Ziehen von $z\sim\eta$ und ein Training gegen $\tilde{\pi}$. ([GitHub][1])
+We learn a lower‑triangular, strictly monotone $\mathbf{S}$ such that $\mathbf{z}=\mathbf{S}(\mathbf{x})\sim\eta$.
+The per‑sample **log‑density** under the learned model is
 
-> **Kurzantwort:** 2 vollständige TTM‑Algorithmen im Paper. *Maps from samples* (Eq. 31–39, p. 26–28) und *Maps from densities* (Eq. 40–48, p. 28–29). In eurem Repo ist der erste umgesetzt; der zweite scheint (noch) zu fehlen. ([GitHub][1])
+$$
+\log \hat p(\mathbf{x})
+=
+\sum_{k=1}^K\big(-\tfrac12 z_k(\mathbf{x})^2 - \tfrac12\log(2\pi) + \log \partial_k S_k(\mathbf{x})\big),
+\quad \mathbf{z}=\mathbf{S}(\mathbf{x}).
+$$
 
+Training minimizes the forward‑KL surrogate (up to a constant)
 
+$$
+\mathcal{J}(\mathbf{S})
+=
+\mathbb{E}_{\mathbf{x}\sim\pi}\Big[\tfrac12\|\mathbf{S}(\mathbf{x})\|^2 - \sum_{k=1}^K \log \partial_k S_k(\mathbf{x})\Big],
+$$
 
+with Monte‑Carlo approximation over the train set
+
+$$
+\widehat{\mathcal{J}}
+=
+\frac1{n_{\mathrm{tr}}}\sum_{i=1}^{n_{\mathrm{tr}}}
+\Big(\tfrac12\|\mathbf{S}(\mathbf{X}^i)\|^2 - \sum_{k=1}^K \log \partial_k S_k(\mathbf{X}^i)\Big).
+$$
+
+For the separable and cross‑term parameterizations this decomposes per dimension (paper Eq. 39), enabling $K$ independent 1‑D optimizations conditional on $x_{1:k-1}$.
+
+---
+
+## TTM parameterizations (paper Eq. 20 / Eq. 21 / Eq. 22)
+
+### Marginal (Eq. 20)
+
+**Form**
+$S_k(\mathbf{x}) = a_k + b_k\,\tilde x_k,\quad \tilde x_k=(x_k-\mu_k)/\sigma_k,\quad b_k>0.$
+
+**Training (closed‑form normal‑scores)**
+
+* Compute train‑only $\mu_k,\sigma_k$.
+* Map ranks of $x_k$ to $u$, then $z^\star=\Phi^{-1}(u)$.
+* Fit $z^\star \approx a_k + b_k\,\tilde x_k$ in least‑squares; clamp $b_k\ge0$.
+* Store $\{\mu_k,\sigma_k,a_k,\log b_k\}$.
+
+**Prediction and log‑density**
+
+* $z_k=a_k+b_k\tilde x_k$.
+* $\log\partial_k S_k = \log b_k - \log\sigma_k$ (constant in $x$).
+* $L_k = -\tfrac12 z_k^2 - \tfrac12\log(2\pi) + \log b_k - \log\sigma_k.$
+
+**Notes**
+Very fast baseline; cannot model conditionals $x_{1:k-1}$.
+
+---
+
+### Separable (Eq. 21)
+
+**Form**
+$S_k(\mathbf{x}) = g_k(\mathbf{x}_{1:k-1}) + f_k(x_k)$, with $f_k'(x_k)>0$.
+
+**Bases**
+
+* $g_k$: polynomial features in $x_{1:k-1}$ (degrees 1–3).
+* $f_k$: monotone 1‑D basis in $x_k$; derivative basis $B=\partial_{x_k}\text{basis}_f$.
+
+**Orthogonalization (Appendix‑style)**
+
+* Let $P_{\mathrm{non}}$ be the design for $g_k$ and $P_{\mathrm{mon}}$ for $f_k$.
+* Define $M=(P_{\mathrm{non}}^\top P_{\mathrm{non}}+\lambda I)^{-1}P_{\mathrm{non}}^\top$.
+* Set $A=(I-P_{\mathrm{non}}M)P_{\mathrm{mon}}$ and $D=MP_{\mathrm{mon}}$.
+
+**Per‑k convex objective (paper Eq. 39)**
+
+$$
+J_k(c)=\tfrac12\|A c\|^2 - \sum_{i}\log(Bc)_i + \tfrac{\lambda}{2}(\|D c\|^2+\|c\|^2),
+\qquad (Bc)_i>\varepsilon.
+$$
+
+**Gradient (analytic)**
+
+$$
+\nabla J_k(c) = A^\top(Ac) - \sum_i \frac{B^\top e_i}{(B c)_i} + \lambda(D^\top D c + c).
+$$
+
+**Prediction and log‑density**
+
+* $z_k=g_k+f_k$.
+* $\log\partial_k S_k=\log(Bc) - \log\sigma_k$.
+* Per‑dimensional LD as in the universal formula above.
+
+**Notes**
+Adds conditional shifts via $g_k$ and preserves strict monotonicity via $f_k' > 0$. No cross‑interactions $x_k\cdot x_j$ inside the derivative beyond the monotone channel.
+
+---
+
+### Cross‑term (Eq. 22)
+
+**Form**
+$S_k(\mathbf{x}) = g_k(\mathbf{x}_{1:k-1}) + \int_0^{x_k} \exp(h_k(t,\mathbf{x}_{1:k-1}))\,dt.$
+
+**Monotonicity**
+$\partial_k S_k = \exp(h_k) > 0$ by construction.
+
+**Bases and quadrature**
+
+* $g_k$ as in separable.
+* $h_k(t,\mathbf{x}_{1:k-1}) = \sum_\alpha \beta_\alpha \,\psi_\alpha(t,\mathbf{x}_{1:k-1})$ with cross terms $t^r x_j^s$.
+* Integrate via Gauss–Legendre on $[0,x_k]$; accumulate $\log\int\exp(h)$ by **log‑sum‑exp** of $\log w_q + h_q$.
+
+**Per‑k objective (forward‑KL component)**
+Mean of $0.5\,S_k^2 - h_k(x_k,\mathbf{x}_{1:k-1})$ plus regularizers.
+
+**Prediction and log‑density**
+
+* $z_k=g_k + \int_0^{x_k}\exp(h_k)\,dt$.
+* $\log\partial_k S_k = h_k(x_k,\mathbf{x}_{1:k-1}) - \log\sigma_k$.
+* Per‑dimensional LD as in the universal formula.
+
+**Notes**
+Most expressive; computationally heavier due to the 1‑D integral and stabilization of $\exp(h_k)$.
+
+---
+
+## TRTF as conditional $S_k$ in spirit
+
+* TRTF fits the conditionals $p(x_k\mid x_{1:k-1})$ with transformation forests.
+* The learned conditional transformation gives a monotone map in $x_k$, effectively $z_k=\Phi^{-1}(F_k(x_k\mid x_{1:k-1}))$.
+* This mirrors TTM’s idea: a triangular, monotone transform from $x$ to a Gaussianized $z$.
+* Evaluation is directly comparable: sum conditional log‑densities across $k$ to get joint LD for each sample.
+
+---
+
+## Data‑generating processes (for evaluation)
+
+### Config‑4D (triangular, heterogeneous marginals)
+
+* Sequential sampling:
+  $X_1\sim \mathrm{Norm}(0,1)$;
+  $X_2\mid X_1\sim \mathrm{Exp}(\text{rate}=\mathrm{softplus}(X_1))$;
+  $X_3\mid X_{1:2}\sim \mathrm{Beta}(\alpha=\mathrm{softplus}(X_2),\ \beta=\mathrm{softplus}(X_1))$;
+  $X_4\mid X_{1:3}\sim \mathrm{Gamma}(\text{shape}=\mathrm{softplus}(X_3),\ \text{scale}=\mathrm{softplus}(X_2))$.
+* Optional column permutation with corresponding config re‑indexing.
+* “True (Joint)” evaluates the oracle conditional log‑densities; “True (marginal)” fits independent MLEs.
+
+### Half‑Moon‑2D (toy, controlled by $N$ and $\sigma$)
+
+* Curves before noise: $(\cos t,\ \sin t)$ and $(1-\cos t,\ -\sin t + 0.5)$ with $t\sim\mathcal{U}[0,\pi]$.
+* Add i.i.d. $N(0,\sigma^2 I_2)$; shuffle.
+* Train/Test generated with seeds `seed` and `seed+1`; validation split from train with `seed+2` and `val_frac=0.2`.
+* Splits saved as `results/splits_halfmoon2d_seedXXX.rds`.
+
+---
+
+## Predict‑API contract (shared across models)
+
+* `predict(M, X, "logdensity_by_dim")` returns $L\in\mathbb{R}^{N\times K}$ with $L_{ik}=\log p(x_k^{(i)}\mid x_{1:k-1}^{(i)})$.
+  For TTM this uses the universal per‑dim formula with $z_k$ and $\log\partial_k S_k$.
+* `predict(M, X, "logdensity")` returns $L^{\mathrm{joint}}\in\mathbb{R}^N$ with $L^{\mathrm{joint}}_i=\sum_{k=1}^K L_{ik}$.
+* **Invariant:** `rowSums(logdensity_by_dim) == logdensity` up to $10^{-10}$.
+* **No NA/Inf:** out‑of‑support values are mapped to large negative logs; never return NA/Inf.
+
+---
+
+## Evaluation tables (nats)
+
+* For each model, compute `by_dim` on $X_{\mathrm{te}}$, sum to `joint`.
+* Per‑dim mean NLL is $-$colMeans(`by_dim`); SE per dim is `stderr(-by_dim[,k])`.
+* SUM row reports sums of means; SE computed as `sd(rowSums(-by_dim))/sqrt(N)`.
+* Columns: **True (marginal)**, **True (Joint)**, **Random Forest**, **Marginal Map**, **Separable Map**, **Cross‑term Map**.
+* Formatting: `"%.2f ± %.2f"` where the ± part is **2·SE**.
+
+---
+
+## Half‑Moon panels
+
+* Build a single grid $[x_{\min},x_{\max}]\times[y_{\min},y_{\max}]$ from all splits with \~5 % padding.
+* Evaluate **joint** log‑density on the same grid for all models.
+* Use **global contour levels** (e.g. pooled quantiles $\{0.90,0.70,0.50\}$) to ensure comparability.
+* Draw data points last so they are visible above contours; use identical axes in all panels.
+* Save `results/halfmoon_panels_seedXXX.png`; optionally show on screen.
+
+---
+
+## Numerical stability rules (hard constraints)
+
+* Work in **log‑space** everywhere; never exponentiate densities during training or evaluation.
+* Use **log‑sum‑exp** for all $\log\sum_i e^{u_i}$ aggregates (e.g. cross‑term integrals).
+* Include $-\tfrac12\log(2\pi)$ per dimension in every TTM LD; include $-\log\sigma_k$ from train‑only standardization in each dimension’s log‑Jacobian.
+* For separable, maintain $(B c)_i>\varepsilon$ (e.g. $10^{-6}$) to avoid $\log 0$.
+* For marginal, ensure $\sigma_k>0$ with an $\varepsilon$ floor and clamp $b_k\ge0$.
+* Support clamping for Beta/Gamma/Exp in log‑space; return large negative logs instead of NA/Inf.
+* Cross‑term integrals: accumulate $\log\int \exp(h)$ via LSE of `log w + h`; never sum raw exponentials.
+* Double precision throughout; avoid mixing float types.
+
+---
+
+## Gradients, Hessians, and fast updates
+
+* Separable per‑k objective is strictly convex over $(B c)>0$; gradient is analytic:
+  $\nabla J_k(c) = A^\top(Ac) - \sum_i \frac{B^\top e_i}{(B c)_i} + \lambda(D^\top D c + c).$
+* Hessian is $A^\top A + \sum_i \frac{B^\top e_i e_i^\top B}{(B c)_i^2} + \lambda(D^\top D + I)$ and positive definite on the feasible set.
+* Cross‑term gradients backprop through LSE: if $s=\mathrm{LSE}(\{a_q\})$ then $\partial a_q = \mathrm{softmax}(a)_q$; hence
+  $\partial_\beta \log\int e^{h} \approx \sum_q \omega_q\,\psi_q$ with $\omega_q \propto e^{\log w_q + h_q}$.
+* For “real‑time” calibration, warm‑start from previous parameters and take a few L‑BFGS steps; use diagonal preconditioning from $\mathrm{diag}(A^\top A)+\lambda$.
+
+---
+
+## Complexity (big‑O, high level)
+
+* TTM‑marginal: $O(NK)$ time, $O(K)$ parameters.
+* TTM‑separable: $O(N p_k)$ per dimension to build designs, plus quasi‑Newton iterations; memory $O(p_k^2)$.
+* TTM‑cross: $O(N Q)$ per dimension, with $Q$ quadrature nodes; LSE dominates.
+* TRTF: roughly $O(\text{ntree}\,N\log N)$ training; prediction $O(\text{ntree}\cdot\text{depth})$.
+
+---
+
+## Repository mapping (spec → code)
+
+* Eq. (20) → `trainMarginalMap`, `predict.ttm_marginal`: normal‑scores, constant log‑Jacobian.
+* Eq. (21) → `trainSeparableMap`, `predict.ttm_separable`: per‑k convex objective, $A,B,D$.
+* Eq. (22) → `trainCrossTermMap`, `predict.ttm_cross_term`: $g_k+\int\exp(h_k)$, Gauss–Legendre + LSE.
+* TRTF → `fit_TRTF`, `predict.mytrtf`: conditional transformation forests per $k$.
+* TRUE (marginal) → `fit_TRUE`, `predict_TRUE`; TRUE (joint) → `true_joint_logdensity_by_dim`.
+* Evaluation & formatting → `04_evaluation.R` and helpers.
+* Half‑Moon splits and panels → `scripts/halfmoon_data.R`, `scripts/halfmoon_plot.R`.
+* Top‑level orchestration → `main.R` and `main_moon.R`.
+
+---
+
+## Determinism and splits
+
+* One global `SEED` governs all randomness; TRTF receives the same seed.
+* Config‑4D shuffles once for split; optional permutation applied consistently to data and config.
+* Half‑Moon: train uses `seed`, test uses `seed+1`, val‑split uses `seed+2`.
+* Persist splits as `results/splits_halfmoon2d_seed%03d.rds` for exact reproducibility.
+* Re‑running with the same seed reproduces tables and PNGs (modulo floating‑point roundoff).
+
+---
+
+## Acceptance tests (deterministic)
+
+* `predict(..., "logdensity_by_dim")` is $N\times K$ for every model; `predict(..., "logdensity")` is length $N$.
+* `rowSums(by_dim) == joint` within $10^{-10}$.
+* No NA/Inf anywhere in predictions.
+* TTM constants present: $-\tfrac12\log(2\pi)$ per dimension; $-\log\sigma_k$ per dimension.
+* Half‑Moon: `nrow(X_tr)+nrow(X_val)==N_TRAIN` and `nrow(X_te)==N_TEST`.
+* Timing table `total_sec = train_sec + test_sec` for each model.
+* Permutation sanity (Config‑4D): if marginals are independent, SUM‑NLL invariant under column permutation.
+* Repro test: same seed → identical CSV/PNG; different seed → different but stable metrics.
+
+---
+
+## Debugging cribsheet
+
+* SUM row inflated across TTM variants → missing $-\tfrac12\log(2\pi)$.
+* TTM off by a constant → missing $-\log\sigma_k$ in the log‑Jacobian.
+* NA/Inf in separable → some $(B c)_i\le 0$; increase ε, add barrier, regularize.
+* Exploding cross‑term gradients → not using LSE for the integral; reduce nodes; add β‑penalty.
+* TRTF variance across runs → seed not propagated; fix once at entry.
+* Half‑Moon panels incomparable → levels per model; switch to pooled global levels.
+* RowSums mismatch → two different code paths for by‑dim vs joint; unify through the same aggregator.
+
+---
+
+## Pseudocode blueprints (non‑executable, repo‑aligned)
+
+### TTM‑marginal (Eq. 20)
+
+```
+TRAIN:
+  input: S with X_tr, X_val, X_te; seed
+  compute μ,σ on X_tr
+  for k=1..K:
+    u <- rank_avg(X_tr[,k])/(n_tr+1); clamp endpoints
+    z* <- qnorm(u)
+    fit z* = a_k + b_k * ((X_tr[,k]-μ_k)/σ_k) with b_k >= 0
+    store μ_k, σ_k, a_k, log b_k
+  return model with stored params and timing
+
+PREDICT:
+  input: model, X, type
+  x_std <- (X-μ)/σ
+  for k: z_k = a_k + b_k * x_std[,k]
+         L_k = -0.5*z_k^2 - 0.5*log(2π) + log b_k - log σ_k
+  return L (by-dim) or rowSums(L)
+```
+
+### TTM‑separable (Eq. 21)
+
+```
+TRAIN:
+  standardize train-only -> μ,σ
+  for k=1..K:
+    P_non <- features(x_{1:k-1})  # degree 1–3
+    P_mon <- monotone basis in x_k
+    B     <- derivative basis of P_mon
+    M <- solve(P_non^T P_non + λI) P_non^T
+    A <- (I - P_non M) P_mon
+    D <- M P_mon
+    minimize J_k(c) = 0.5||A c||^2 - sum log(B c) + 0.5 λ (||D c||^2 + ||c||^2)
+         subject to (B c) > ε
+    store coeffs_k
+  return model
+
+PREDICT:
+  X_std <- (X-μ)/σ
+  for k: g_k <- P_non(X_std_{1:(k-1)})·coef_non
+         f_k <- P_mon(X_std_k)·coef_mon
+         z_k <- g_k + f_k
+         L_k <- -0.5*z_k^2 - 0.5*log(2π) + log(B(X_std_k)·coef_mon) - log σ_k
+  return L or rowSums(L)
+```
+
+### TTM‑cross (Eq. 22)
+
+```
+TRAIN:
+  standardize train-only -> μ,σ
+  choose basis ψ(t, x_prev) with cross terms; choose nodes t_q and weights w_q
+  for k=1..K:
+    param: h_k(t, x_prev) = ψ(t, x_prev)·β_k, and g_k(x_prev) with α_k
+    objective ≈ mean[ 0.5 * (g_k + ∫ exp(h_k))^2 - h_k(x_k, x_prev) ] + regs
+    integral: log_int = LSE_q( log w_q(x_k) + h_k(t_q(x_k), x_prev) )
+    optimize α_k, β_k with L-BFGS-B in log-space; warm-start from separable if available
+    store α_k, β_k
+  return model
+
+PREDICT:
+  X_std <- (X-μ)/σ
+  for k: g_k <- g(X_prev; α_k)
+         h*  <- h(x_k, X_prev; β_k)
+         log_int <- LSE_q( log w_q(x_k) + h_k(t_q(x_k), X_prev) )
+         z_k <- g_k + exp(log_int)   # computed via log-space
+         L_k <- -0.5*z_k^2 - 0.5*log(2π) + h* - log σ_k
+  return L or rowSums(L)
+```
+
+### TRTF
+
+```
+TRAIN:
+  fit marginal transformation model for k=1
+  for k=2..K: fit transformation forest for x_k | x_{1:k-1}
+PREDICT:
+  by-dim L: log p(x_1), log p(x_2|x_1), ..., log p(x_K|x_{1:K-1})
+  joint L: rowSums(by-dim)
+```
+
+---
+
+## Expected outcomes (qualitative)
+
+* Config‑4D: True (Joint) best; TRTF and TTM‑cross close; TTM‑separable next; TTM‑marginal worst on strong conditional structure.
+* Half‑Moon: TTM‑cross best captures the arcs; TRTF shows piecewise shapes; TTM‑separable yields smooth tilted contours; marginal shows near‑circular levels.
+* SUM‑row SE is computed from rowwise sums; differences beyond ±2·SE are practically meaningful.
+
+---
+
+## Hyperparameter ranges (practical)
+
+* Separable: degree $g$ ∈ {1,2,3}; $\lambda\in\{10^{-6},10^{-5},10^{-4},10^{-3},10^{-2}\}$; $\varepsilon=10^{-6}$.
+* Cross‑term: quadrature nodes $Q\in\{8,16,32\}$; small L2 on β.
+* TRTF: `ntree ≈ n_tr`, `minsplit∈[20,100]`, `maxdepth∈[2,5]`, `minbucket∈[5,30]`.
+* Panels: `grid_n ≥ 200`; `levels_policy = "global"`.
+
+---
+
+## Short thesis paragraph (ready to paste)
+
+We train lower‑triangular, strictly monotone target‑to‑reference maps $\mathbf{S}$ in the forward‑KL formulation (paper Eq. 36–39). We instantiate three parameterizations—marginal (Eq. 20), separable (Eq. 21), and cross‑term (Eq. 22)—and evaluate them against conditional transformation forests (TRTF). All computations, both training and test, run in **log‑space** with explicit Gaussian constants and train‑only standardization offsets. The per‑sample joint log‑density equals the sum over dimensions of $-\tfrac12 z_k^2 - \tfrac12\log(2\pi) + \log\partial_k S_k$. We report mean NLL (nats) with ±2·SE per dimension and in a SUM row, and we visualize Half‑Moon density shapes on a shared grid with global contour levels.
+
+---
+
+## Copy‑ready identities for code comments
+
+```
+# Universal per-dimension LD for TTM:
+#   LD_k(x) = -0.5 * z_k(x)^2 - 0.5*log(2*pi) + log(∂_k S_k(x))
+# Marginal (Eq. 20): log(∂_k S_k) = log b_k - log σ_k   # constant in x
+# Separable (Eq. 21): log(∂_k S_k) = log( B(x_k) · c ) - log σ_k
+# Cross-term (Eq. 22): log(∂_k S_k) = h_k(x_k, x_{1:k-1}) - log σ_k
+# Joint LD: LD(x) = Σ_k LD_k(x)
+# NLL(X):   -Σ_i LD(x^i)              # reported in nats
+# SE (SUM row): sd(rowSums(-LD_by_dim)) / sqrt(N)
+# Invariant: rowSums(LD_by_dim) ≡ LD_joint (|Δ| ≤ 1e-10)
+# POLICY: training AND testing strictly in log-space; use log-sum-exp where needed.
+```
+
+---
+
+## Final checklist
+
+* All models produce `by_dim` of shape $N\times K$ and `joint` of length $N$.
+* `rowSums(by_dim) == joint` (tolerance $10^{-10}$).
+* TTM includes $-\tfrac12\log(2\pi)$ per dimension and $-\log\sigma_k$ per dimension.
+* No NA/Inf anywhere in predictions.
+* Seeds consistent across models; Half‑Moon uses seed, seed+1, seed+2.
+* CSV and PNG written with seed in filenames.
+* Panels use global levels and identical axes; points visible above contours.
+* Report mean NLL in nats with ±2·SE and a timing table.
+* Narrative explains why marginal < separable < cross on conditional DGPs and how TRTF compares.
+* If it’s not in **log‑space**, it’s a bug.
 
