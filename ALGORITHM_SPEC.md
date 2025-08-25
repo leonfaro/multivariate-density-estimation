@@ -76,14 +76,17 @@ After presenting the negative log-likelihood table, the script prints a 6\u00d73
 Environment variables allow selecting alternative toy datasets. Setting `DATASET=halfmoon2d`
 triggers generation of a two-moons sample via `make_halfmoon_splits` with
 parameters `N_TRAIN`, `N_TEST` (capped at 250), `NOISE` and `SEED`. The created
-splits are stored as `results/splits_halfmoon2d_seedXXX.rds` and the RNG state is
-reset afterwards to keep subsequent model training comparable across datasets.
-Evaluation `eval_halfmoon` fits TRUE, TRTF and the three TTM variants on these
-splits and records per-dimension and joint negative log-likelihoods (in nats)
-to `results/nll_halfmoon_seedXXX.csv`.
-The script `main_moon.R` provides a small wrapper that sets these environment variables,
-invokes `main()`, refits the half-moon models and saves the panel plot
-`results/halfmoon_panels_seedXXX.png` alongside the CSV.
+splits contain matrices `X_*` and label vectors `y_*` (values 1 for the upper
+arc and 2 for the lower arc). These are stored as
+`results/splits_halfmoon2d_seedXXX.rds` and the RNG state is reset afterwards to
+keep subsequent model training comparable across datasets. Evaluation
+`eval_halfmoon` fits TRUE, TRTF and the three TTM variants on these splits and
+records per-dimension and joint negative log-likelihoods (in nats) to
+`results/nll_halfmoon_seedXXX.csv`. The script `main_moon.R` provides a small
+wrapper that sets these environment variables, invokes `main()`, refits the
+half-moon models and saves a ggplot-based panel figure via
+`plot_halfmoon_models_gg` as `results/halfmoon_panels_seedXXX.png` alongside the
+CSV.
 
 ## 3. Module Specifications
 `gen_samples(G) : G \to X`
