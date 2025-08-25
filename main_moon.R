@@ -1,23 +1,18 @@
-seed  <- 7L
-ntr   <- 80L
-nte   <- 80L
-noise <- 0.15
+SEED <- 7L; N <- 50L; NOISE <- 0.15
 Sys.setenv(
   DATASET = "halfmoon2d",
-  N_TRAIN = as.character(ntr),
-  N_TEST  = as.character(nte),
-  NOISE   = as.character(noise),
-  SEED    = as.character(seed)
+  SEED = as.character(SEED),
+  N_TRAIN = as.character(N),
+  N_TEST = as.character(N),
+  NOISE = as.character(NOISE)
 )
-source("main.R")
-tab <- main()
-csv <- sprintf("results/nll_halfmoon_seed%03d.csv", seed)
+source("main.R"); tab <- main()
+csv <- sprintf("results/nll_halfmoon_seed%03d.csv", SEED)
 stopifnot(file.exists(csv))
-S <- readRDS(sprintf("results/splits_halfmoon2d_seed%03d.rds", seed))
-source("scripts/halfmoon_plot.R")
-mods <- fit_halfmoon_models(S, seed = seed)
+S <- readRDS(sprintf("results/splits_halfmoon2d_seed%03d.rds", SEED))
+source("scripts/halfmoon_plot.R"); mods <- fit_halfmoon_models(S, seed = SEED)
 plot_halfmoon_models(mods, S, save_png = TRUE, show_plot = FALSE)
-png_file <- sprintf("results/halfmoon_panels_seed%03d.png", seed)
+png_file <- sprintf("results/halfmoon_panels_seed%03d.png", SEED)
 stopifnot(file.exists(png_file))
 stopifnot(identical(tab, results_table))
 print(tab)
