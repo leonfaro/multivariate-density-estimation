@@ -1357,23 +1357,25 @@ scale = softplus(d$X2)))
 )
 main <- function() {
 dataset <- Sys.getenv("DATASET", "config4d")
-seed <- as.integer(Sys.getenv("SEED", 42))
-set.seed(seed)
 if (dataset == "halfmoon2d") {
-ntr <- pmin(as.integer(Sys.getenv("N_TRAIN", 250)), 250)
-nte <- pmin(as.integer(Sys.getenv("N_TEST", 250)), 250)
-noise <- as.numeric(Sys.getenv("NOISE", 0.15))
-S <- make_halfmoon_splits(ntr, nte, noise, seed)
+seed <- as.integer(Sys.getenv("SEED"))
+set.seed(seed)
+ntr <- as.integer(Sys.getenv("N_TRAIN"))
+nte <- as.integer(Sys.getenv("N_TEST"))
+noise <- as.numeric(Sys.getenv("NOISE"))
+S <- make_halfmoon_splits(ntr, nte, noise, seed, val_frac = 0.2)
 S$meta$dataset <- dataset
 dir.create("results", showWarnings = FALSE)
 saveRDS(S, sprintf("results/splits_%s_seed%03d.rds", dataset, seed))
 cat(sprintf("[DATASET %s] K=%d | n_tr=%d (val=%d) | n_te=%d | noise=%.3f | seed=%d\n",
 dataset, ncol(S$X_tr), nrow(S$X_tr), nrow(S$X_val),
 nrow(S$X_te), noise, seed))
-df <- eval_halfmoon(S = S)
-assign("results_table", df, envir = .GlobalEnv)
+df <- eval_halfmoon(S = S, out_csv_path = NULL)
+results_table <<- df
 return(df)
 }
+seed <- as.integer(Sys.getenv("SEED", 42))
+set.seed(seed)
 prep <- prepare_data(n, config, seed = seed)
 S0 <- prep$S
 S <- list(
@@ -1433,11 +1435,11 @@ replicate_code_scripts("main.R", "replicated_code.txt", env = globalenv())
 
 ### Final results table ###
       model mean_joint_nll   se_joint per_dim_nll_1 per_dim_nll_2
-1      true       2.015435 0.03952443      1.315586     0.6998488
-2      trtf       1.773099 0.04477884      1.261374     0.5117247
-3       ttm       2.024118 0.03678561      1.313244     0.7108738
-4   ttm_sep       1.978473 0.04581926      1.315586     0.6628871
-5 ttm_cross       1.923089 0.04957322      1.307709     0.6153796
+1      true       2.083290 0.07908386      1.333200     0.7500904
+2      trtf       1.982258 0.07484248      1.328902     0.6533560
+3       ttm       2.095283 0.06608218      1.333491     0.7617927
+4   ttm_sep       1.992933 0.07724669      1.333199     0.6597342
+5 ttm_cross       1.983214 0.09385822      1.340925     0.6422892
 
 Permutation order 1,2,3,4
 
