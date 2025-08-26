@@ -195,7 +195,7 @@ Most expressive; computationally heavier due to the 1‑D integral and stabiliza
 
 * Build a single grid $[x_{\min},x_{\max}]\times[y_{\min},y_{\max}]$ from all splits with \~5 % padding.
 * Evaluate **joint** log‑density on the same grid for all models.
-* Use **global contour levels** (e.g. pooled quantiles $\{0.90,0.70,0.50\}$) to ensure comparability.
+* Use **iso-mass contour levels** (e.g. pooled quantiles $\{0.90,0.70,0.50\}$) to ensure comparability.
 * Draw data points last so they are visible above contours; use identical axes in all panels.
 * Save `results/halfmoon_panels_seedXXX.png`; optionally show on screen.
 
@@ -381,13 +381,15 @@ PREDICT:
 * Separable: degree $g$ ∈ {1,2,3}; $\lambda\in\{10^{-6},10^{-5},10^{-4},10^{-3},10^{-2}\}$; $\varepsilon=10^{-6}$.
 * Cross‑term: quadrature nodes $Q\in\{8,16,32\}$; small L2 on β.
 * TRTF: `ntree ≈ n_tr`, `minsplit∈[20,100]`, `maxdepth∈[2,5]`, `minbucket∈[5,30]`.
-* Panels: `grid_n ≥ 200`; `levels_policy = "global"`.
+* Half‑Moon panels: `grid_side = clamp(⌊√(100·N_tr)⌋,80,200)` unless overridden;
+  contour levels from iso‑mass thresholds {0.5,0.7,0.9};
+  grid evaluations cached under `results/cache/moon_<digest>.rds`.
 
 ---
 
 ## Short thesis paragraph (ready to paste)
 
-We train lower‑triangular, strictly monotone target‑to‑reference maps $\mathbf{S}$ in the forward‑KL formulation (paper Eq. 36–39). We instantiate three parameterizations—marginal (Eq. 20), separable (Eq. 21), and cross‑term (Eq. 22)—and evaluate them against conditional transformation forests (TRTF). All computations, both training and test, run in **log‑space** with explicit Gaussian constants and train‑only standardization offsets. The per‑sample joint log‑density equals the sum over dimensions of $-\tfrac12 z_k^2 - \tfrac12\log(2\pi) + \log\partial_k S_k$. We report mean NLL (nats) with ±2·SE per dimension and in a SUM row, and we visualize Half‑Moon density shapes on a shared grid with global contour levels.
+We train lower‑triangular, strictly monotone target‑to‑reference maps $\mathbf{S}$ in the forward‑KL formulation (paper Eq. 36–39). We instantiate three parameterizations—marginal (Eq. 20), separable (Eq. 21), and cross‑term (Eq. 22)—and evaluate them against conditional transformation forests (TRTF). All computations, both training and test, run in **log‑space** with explicit Gaussian constants and train‑only standardization offsets. The per‑sample joint log‑density equals the sum over dimensions of $-\tfrac12 z_k^2 - \tfrac12\log(2\pi) + \log\partial_k S_k$. We report mean NLL (nats) with ±2·SE per dimension and in a SUM row, and we visualize Half‑Moon density shapes on a shared grid with iso-mass contour levels.
 
 ---
 
