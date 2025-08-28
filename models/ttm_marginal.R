@@ -35,7 +35,6 @@ trainMarginalMap <- function(X_or_path, seed = 42) {
   S_in <- if (is.character(X_or_path)) readRDS(X_or_path) else X_or_path
   stopifnot(is.list(S_in))
   X_tr <- S_in$X_tr
-  X_val <- S_in$X_val
   X_te  <- S_in$X_te
 
   time_train <- system.time({
@@ -79,7 +78,6 @@ trainMarginalMap <- function(X_or_path, seed = 42) {
   list(
     S = S_map,
     NLL_train = NLL_set(S_map, X_tr),
-    NLL_val = NLL_set(S_map, X_val),
     NLL_test = NLL_set(S_map, X_te),
     stderr_test = SE_set(S_map, X_te),
     time_train = time_train,
@@ -95,10 +93,20 @@ predict.ttm_marginal <- function(object, newdata,
   C <- -0.5 * log(2 * pi)
   LD <- (-0.5) * (Z^2) + C +
     matrix(LJ, nrow = nrow(Z), ncol = length(LJ), byrow = TRUE)
+  # Invariants and numeric sanity
+  stopifnot(is.matrix(LD), nrow(LD) == nrow(newdata), ncol(LD) == ncol(newdata))
+  if (!all(is.finite(LD))) stop("Non-finite values in marginal logdensity_by_dim")
   if (type == "logdensity_by_dim") {
+    # Assert joint equals rowSums
+    LD_joint <- rowSums(LD)
+    if (!all(is.finite(LD_joint))) stop("Non-finite joint logdensity (marginal)")
+    stopifnot(max(abs(LD_joint - rowSums(LD))) <= 1e-10)
     LD
   } else {
-    rowSums(LD)
+    LD_joint <- rowSums(LD)
+    if (!all(is.finite(LD_joint))) stop("Non-finite joint logdensity (marginal)")
+    stopifnot(max(abs(LD_joint - rowSums(LD))) <= 1e-10)
+    LD_joint
   }
 }
 

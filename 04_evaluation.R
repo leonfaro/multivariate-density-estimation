@@ -152,6 +152,7 @@ calc_loglik_tables <- function(models, config, X_te) {
     ttm  = fmt(mean_ttm, se_ttm),
     ttm_sep = fmt(mean_sep, se_sep),
     ttm_cross = fmt(mean_cross, se_cross),
+    train_test_policy = rep("train_test_only", K),
     stringsAsFactors = FALSE
   )
 
@@ -164,6 +165,7 @@ calc_loglik_tables <- function(models, config, X_te) {
     ttm  = fmt(sum(mean_ttm),  se_sum_ttm),
     ttm_sep = fmt(sum(mean_sep),  se_sum_sep),
     ttm_cross = fmt(sum(mean_cross), se_sum_cross),
+    train_test_policy = "train_test_only",
     stringsAsFactors = FALSE
   )
   tab <- rbind(tab, sum_row)
@@ -177,7 +179,7 @@ calc_loglik_tables <- function(models, config, X_te) {
   nm[nm == "ttm_sep"] <- "Separable Map"
   nm[nm == "ttm_cross"] <- "Cross-term Map"
   names(tab) <- nm
-  message("Ergebnis (NLL in nats; lower is better)")
+  message("Ergebnis (NLL in nats; lower is better) [train/test only]")
   tab
 }
 
@@ -234,7 +236,8 @@ eval_halfmoon <- function(mods, S, out_csv_path = NULL) {
     per <- -colMeans(LD)
     se <- stats::sd(nllj) / sqrt(N)
     rows[[length(rows) + 1]] <- c(
-      list(model = m, mean_joint_nll = mean(nllj), se_joint = se),
+      list(model = m, mean_joint_nll = mean(nllj), se_joint = se,
+           train_test_policy = "train_test_only"),
       setNames(as.list(per), paste0("per_dim_nll_", 1:K))
     )
   }

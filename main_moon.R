@@ -32,11 +32,12 @@ default_cores <- tryCatch(min(10L, parallel::detectCores()), error = function(e)
 cores <- if (!is.na(cores_arg) && cores_arg >= 1L) cores_arg else default_cores
 timeout_sec <- if (!is.na(timeout_sec_arg) && timeout_sec_arg > 0L) timeout_sec_arg else NA_integer_
 if (!is.na(cores)) cat(sprintf("Using %d workers\n", cores))
-source("scripts/halfmoon_plot.R"); mods <- fit_halfmoon_models(S, seed = SEED)
+source("scripts/halfmoon_plot.R"); mods <- fit_halfmoon_models(S, seed = SEED,
+                                                                order_mode = if (!is.na(order_arg)) order_arg else "as-is")
 res <- plot_halfmoon_models(mods, S, grid_side = grid_side, save_png = TRUE,
                             show_plot = FALSE, no_cache = no_cache, cores = cores,
                             timeout_sec = timeout_sec, abort_file = abort_file,
-                            order_mode = if (!is.na(order_arg)) order_arg else "auto")
+                            order_mode = if (!is.na(order_arg)) order_arg else "as-is")
 png_file <- res$png
 stopifnot(file.exists(png_file))
 stopifnot(identical(tab, results_table))

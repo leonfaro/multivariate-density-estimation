@@ -7,7 +7,7 @@ output: html_document
 
 ## Notation & Setup
 
-Let $\pi(x)$ denote the target log density and $\eta(z)$ the base log density. The triangular transport map $S: \mathbb{R}^K \to \mathbb{R}^K$ has components $S_k(x_1,\ldots,x_k)$ for $k=1,\ldots,K$. Here $N$ is the number of observations and $K$ the dimension of $x$. The change of variables states, in words, that the log density of $x$ under $\pi$ equals the log density of $S(x)$ under $\eta$ plus the log determinant of the Jacobian, which reduces to a sum of log partial derivatives because $S$ is triangular. The pipeline main() -> TRUE/TRTF/TTM marginal governs all experiments. Model artifacts are TRTF and the Marginal Map (diagonal). All log densities are measured in nats, and sums over dimensions yield the joint log density.
+Let $\pi(x)$ denote the target log density and $\eta(z)$ the base log density. The triangular transport map $S: \mathbb{R}^K \to \mathbb{R}^K$ has components $S_k(x_1,\ldots,x_k)$ for $k=1,\ldots,K$. Here $N$ is the number of observations and $K$ the dimension of $x$. The change of variables states, in words, that the log density of $x$ under $\pi$ equals the log density of $S(x)$ under $\eta$ plus the log determinant of the Jacobian, which reduces to a sum of log partial derivatives because $S$ is triangular. The pipeline main() -> TRUE/TRTF/TTM marginal governs all experiments. Model artifacts are TRTF and the Marginal Map (diagonal). All log densities are measured in nats, and sums over dimensions yield the joint log density. For the cross‑term map (Eq. 22), training uses only train/test splits (no validation/CV); L2 ridge weights and quadrature nodes are configured via R options (`mde.ctm.*`) or environment variables (`MDE_CTM_*`).
 
 ## TRTF Pseudocode
 ### fit\_TRTF($S$, seed)
@@ -75,4 +75,3 @@ The following checklist must hold for accepting results and ensuring reproducibi
 8. **Summenregel:** Summing over $K$ dimensions of `logdensity_by_dim` reproduces the joint log density.
 9. **Repro:** Two runs with the same seed yield identical negative log-likelihood tables (nats).
 10. **Dokument:** `docs/trtf_ttm_pseudocode.Rmd` consists solely of text and LaTeX without R code chunks.
-

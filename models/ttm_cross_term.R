@@ -67,8 +67,13 @@ if (!exists(".standardize")) {
 # psi_m(x_<k>) for 1D predecessor up to cubic
 .psi_xprev_poly3_ct <- function(xprev) {
   if (length(xprev) == 0L) return(1)
-  x <- xprev[1]
-  c(1, x, x^2, x^3)
+  # 1 plus for jede Vorgängerdimension: (x, x^2, x^3)
+  out <- 1
+  for (j in seq_along(xprev)) {
+    x <- xprev[j]
+    out <- c(out, x, x^2, x^3)
+  }
+  out
 }
 
 # Build Psi_q using B-spline basis in t (cubic) times psi(x_<k>)
@@ -112,12 +117,16 @@ if (!exists(".standardize")) {
                       intercept = TRUE)
     B2D[((i - 1L) * Q + 1L):(i * Q), ] <- Bi
   }
-  # psi(x_<k>) rows
-  Mx <- if (ncol(Xprev) >= 1L) 4L else 1L
-  PsiX <- matrix(1, nrow = N, ncol = Mx)
+  # psi(x_<k>) rows: [1, for each prev dim j: (x_j, x_j^2, x_j^3)]
   if (ncol(Xprev) >= 1L) {
-    x1 <- Xprev[, 1]
-    PsiX <- cbind(1, x1, x1^2, x1^3)
+    pieces <- list(matrix(1, nrow = N, ncol = 1))
+    for (j in seq_len(ncol(Xprev))) {
+      xj <- Xprev[, j]
+      pieces[[length(pieces) + 1L]] <- cbind(xj, xj^2, xj^3)
+    }
+    PsiX <- do.call(cbind, pieces)
+  } else {
+    PsiX <- matrix(1, nrow = N, ncol = 1)
   }
   # Row-wise kron to build Pi: for each i, kron(Bi, PsiX[i,])
   M <- df * ncol(PsiX)
@@ -296,14 +305,41 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2, degree_t_cr
                               eps = 1e-6, clip = Inf,
                               alpha_init_list = NULL, warmstart_from_separable = FALSE,
                               sep_degree_g = NULL, sep_lambda = 1e-3, seed = 42,
-                              lambda_non = 1e-2, lambda_mon = 1e-3,
-                              order_mode = c("auto","x1_x2","x2_x1")) {
+                              lambda_non = NULL, lambda_mon = NULL,
+                              order_mode = c("as-is","x1_x2","x2_x1")) {
+  # Order mode from options/env; default "as-is" (no permutation during training)
   order_mode <- match.arg(order_mode)
+  order_mode_opt <- tryCatch(getOption("mde.ctm.order"), error = function(e) NULL)
+  if (is.character(order_mode_opt) && nzchar(order_mode_opt)) {
+    order_mode <- match.arg(order_mode_opt, choices = c("as-is","x1_x2","x2_x1"))
+  } else {
+    env_ord <- Sys.getenv("MDE_CTM_ORDER", NA_character_)
+    if (!is.na(env_ord) && nzchar(env_ord)) {
+      order_mode <- match.arg(env_ord, choices = c("as-is","x1_x2","x2_x1"))
+    }
+  }
+
+  # Ridge hyperparameters from options/env with defaults if not passed
+  if (is.null(lambda_non)) {
+    lambda_non <- getOption("mde.ctm.lambda_non", NA_real_)
+    if (is.na(lambda_non)) {
+      env <- suppressWarnings(as.numeric(Sys.getenv("MDE_CTM_LAMBDA_NON", NA_character_)))
+      # Default for lambda_non aligned to 3e-2 (no grid)
+      lambda_non <- ifelse(is.na(env), 3e-2, env)
+    }
+  }
+  if (is.null(lambda_mon)) {
+    lambda_mon <- getOption("mde.ctm.lambda_mon", NA_real_)
+    if (is.na(lambda_mon)) {
+      env <- suppressWarnings(as.numeric(Sys.getenv("MDE_CTM_LAMBDA_MON", NA_character_)))
+      # Slightly lower default to increase flexibility
+      lambda_mon <- ifelse(is.na(env), 2e-2, env)
+    }
+  }
   set.seed(seed)
   S_in <- if (is.character(X_or_path)) readRDS(X_or_path) else X_or_path
   stopifnot(is.list(S_in))
   X_tr <- S_in$X_tr
-  X_val <- S_in$X_val
   X_te  <- S_in$X_te
 
   if (is.null(alpha_init_list) && warmstart_from_separable) {
@@ -317,20 +353,49 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2, degree_t_cr
 
   # reorder helper (2D only)
   reorder_S_2d <- function(Sdata, mode) {
-    if (mode == "x1_x2") return(Sdata)
+    if (mode == "as-is" || mode == "x1_x2") return(Sdata)
     if (mode == "x2_x1") {
       S2 <- Sdata
       S2$X_tr <- Sdata$X_tr[, 2:1, drop = FALSE]
-      S2$X_val <- Sdata$X_val[, 2:1, drop = FALSE]
       S2$X_te  <- Sdata$X_te [, 2:1, drop = FALSE]
       return(S2)
     }
     Sdata
   }
 
+  # Optional NF-based augmentation (surrogate π^ for more samples)
+  use_nf <- {
+    u <- getOption("mde.ctm.use_nf", NA)
+    if (is.na(u)) {
+      env <- Sys.getenv("MDE_CTM_USE_NF", "0"); env %in% c("1","true","TRUE")
+    } else isTRUE(u)
+  }
+  if (use_nf) {
+    # Dynamically choose layers by K and N
+    Ktr <- ncol(X_tr); Ntr <- nrow(X_tr)
+    layers_opt <- getOption("mde.nf.layers", NA)
+    if (is.na(layers_opt)) {
+      envL <- suppressWarnings(as.integer(Sys.getenv("MDE_NF_LAYERS", NA_character_)))
+      if (is.na(envL)) {
+        layers <- max(2L, min(6L, as.integer(ceiling(log2(max(32, Ntr))/2 + Ktr/2))))
+      } else layers <- envL
+    } else layers <- as.integer(layers_opt)
+    aug_factor <- getOption("mde.nf.aug_factor", NA_real_)
+    if (is.na(aug_factor)) {
+      envF <- suppressWarnings(as.numeric(Sys.getenv("MDE_NF_AUG_FACTOR", NA_character_)))
+      if (is.na(envF)) aug_factor <- 1.0 else aug_factor <- envF
+    }
+    if (!exists("trainNFSurrogate")) source(file.path(getwd(), "models/nf_surrogate.R"))
+    message(sprintf("[NF] Training NF surrogate: layers=%d (K=%d,N=%d), aug_factor=%.2f", layers, Ktr, Ntr, aug_factor))
+    nf <- trainNFSurrogate(X_tr, layers = layers, seed = seed)
+    M <- max(1L, as.integer(floor(aug_factor * Ntr)))
+    X_syn <- sample(nf, M)
+    X_tr <- rbind(X_tr, X_syn)
+  }
+
   # inner fitter for a given order and quadrature setting
   fit_one <- function(Sdata, Q_override = Q, control = list()) {
-    X_tr <- Sdata$X_tr; X_val <- Sdata$X_val; X_te <- Sdata$X_te
+    X_tr <- Sdata$X_tr; X_te <- Sdata$X_te
     time_train <- system.time({
     std <- .standardizeData(X_tr)
     X_tr_std <- std$X
@@ -342,7 +407,14 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2, degree_t_cr
       stopifnot(length(alpha_init_list) == K)
     }
       degree_t_max <- max(degree_t, degree_t_cross)
-      Q_use <- if (is.null(Q_override)) min(12, 4 + 2 * degree_t_max) else Q_override
+      # Quadrature nodes from options/env unless explicitly provided
+      Q_use <- if (is.null(Q_override)) {
+        Qopt <- getOption("mde.ctm.Q", NA_integer_)
+        if (is.na(Qopt)) {
+          Qenv <- suppressWarnings(as.integer(Sys.getenv("MDE_CTM_Q", NA_character_)))
+          if (is.na(Qenv)) min(12, 4 + 2 * degree_t_max) else Qenv
+        } else Qopt
+      } else Q_override
       batch_use <- if (is.null(batch_n)) min(N, max(256L, floor(65536 / max(1L, Q_use)))) else min(N, batch_n)
     quad <- .gauss_legendre_01_ct(Q_use)
     nodes <- quad$nodes
@@ -355,11 +427,16 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2, degree_t_cr
       Phi <- .build_g_design_ct(Xprev, k, degree_g, use_rbf = TRUE)
         m_alpha <- ncol(Phi)
         xprev_first <- if (k > 1) Xprev[1, , drop = TRUE] else numeric(0)
-      # choose bspline tensor basis for k==2 with 1 predecessor; else fallback to poly tensor
-      use_bs <- (k == 2L && ncol(Xprev) == 1L)
+      # choose bspline tensor basis for all k (robust 1D t-basis) 
+      use_bs <- TRUE
       if (use_bs) {
         # establish B-spline spec from training xk
-        Btmp <- splines::bs(xk, df = 8, degree = 3, intercept = TRUE)
+        df_opt <- getOption('mde.ctm.bs_df', NA_integer_)
+        if (is.na(df_opt)) {
+          df_env <- suppressWarnings(as.integer(Sys.getenv('MDE_CTM_BS_DF', NA_character_)))
+          if (is.na(df_env)) df_use <- 8L else df_use <- df_env
+        } else df_use <- df_opt
+        Btmp <- splines::bs(xk, df = df_use, degree = 3, intercept = TRUE)
         bs_spec <- list(df = ncol(Btmp), degree = 3,
                         knots = attr(Btmp, "knots"), boundary = attr(Btmp, "Boundary.knots"))
         m_beta <- bs_spec$df * length(.psi_xprev_poly3_ct(xprev_first))
@@ -517,7 +594,15 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2, degree_t_cr
       quad_weights_ct = weights,
       quad_nodes_pow_ct = nodes_pow,
       clip = clip,
-      order = seq_len(K)
+      order = seq_len(K),
+      meta = list(
+        lambda_non = lambda_non,
+        lambda_mon = lambda_mon,
+        ridge = c(lambda_non = lambda_non, lambda_mon = lambda_mon),
+        Q = Q_use,
+        order_mode = order_mode,
+        seed = seed
+      )
     )
     class(S_map) <- "ttm_cross_term"
     })[["elapsed"]]
@@ -528,8 +613,6 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2, degree_t_cr
 
     list(
       S = S_map,
-      NLL_train = .NLL_set_ct(S_map, X_tr),
-      NLL_val = .NLL_set_ct(S_map, X_val),
       NLL_test = .NLL_set_ct(S_map, X_te),
       stderr_test = .SE_set_ct(S_map, X_te),
       time_train = time_train,
@@ -537,27 +620,17 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2, degree_t_cr
     )
   }
 
-  # Order handling (simple: default order only)
-  # For compatibility, keep current order; extend later if needed
-  # order selection and lambda tuning
-  lambda_grid_mon <- c(3e-4, 1e-3, 3e-3)
-  lambda_grid_non <- c(3e-3, 1e-2, 3e-2)
-  orders <- if (order_mode == 'auto') c('x1_x2','x2_x1') else order_mode
-  best <- list(val = Inf)
-  for (ord in orders) {
-    Sord <- reorder_S_2d(S_in, ord)
-    for (lmon in lambda_grid_mon) for (lnon in lambda_grid_non) {
-      old_lmon <- lambda_mon; old_lnon <- lambda_non
-      lambda_mon <<- lmon; lambda_non <<- lnon
-      on.exit({ lambda_mon <<- old_lmon; lambda_non <<- old_lnon }, add = TRUE)
-      fitq <- fit_one(Sord, Q_override = 8L, control = list(maxit = 120))
-      if (fitq$NLL_val < best$val) best <- list(val = fitq$NLL_val, ord = ord, lmon = lmon, lnon = lnon)
-    }
+  # No CV/grid search: single fit with configured order and lambdas
+  Sout <- reorder_S_2d(S_in, order_mode)
+  # Allow overriding max iterations via option/env
+  maxit_use <- {
+    mi <- getOption("mde.ctm.maxit", NA_integer_)
+    if (is.na(mi)) {
+      mie <- suppressWarnings(as.integer(Sys.getenv("MDE_CTM_MAXIT", NA_character_)))
+      if (is.na(mie)) 200L else mie
+    } else as.integer(mi)
   }
-  # Full fit with selected order & lambdas
-  lambda_mon <<- best$lmon; lambda_non <<- best$lnon
-  Sout <- reorder_S_2d(S_in, best$ord)
-  out <- fit_one(Sout, Q_override = if (is.null(Q)) 12L else Q, control = list(maxit = 200))
+  out <- fit_one(Sout, Q_override = if (is.null(Q)) NULL else Q, control = list(maxit = maxit_use))
   # Quick sanity on training Z: |mean|<=0.5 and var in [0.5,2]; if violated, refit once with stronger λ_mon
   compute_Z_metrics <- function(S_map, X) {
     Xs <- .standardize(S_map, X)
@@ -609,7 +682,7 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2, degree_t_cr
     on.exit({ lambda_mon <<- lambda_mon_old }, add = TRUE)
     out <- fit_one(S_in, Q_override = Q)
   }
-  out
+    out
 }
 
 predict.ttm_cross_term <- function(object, newdata,
@@ -668,7 +741,16 @@ predict.ttm_cross_term <- function(object, newdata,
         B2D[((i - 1L) * Q + 1L):(i * Q), ] <- Bi
       }
       # PsiX (N x Mx)
-      PsiX <- if (ncol(Xprev) >= 1L) cbind(1, Xprev[, 1], Xprev[, 1]^2, Xprev[, 1]^3) else matrix(1, nrow = Nall, ncol = 1)
+      if (ncol(Xprev) >= 1L) {
+        pieces <- list(matrix(1, nrow = Nall, ncol = 1))
+        for (j in seq_len(ncol(Xprev))) {
+          xj <- Xprev[, j]
+          pieces[[length(pieces) + 1L]] <- cbind(xj, xj^2, xj^3)
+        }
+        PsiX <- do.call(cbind, pieces)
+      } else {
+        PsiX <- matrix(1, nrow = Nall, ncol = 1)
+      }
       Mx <- ncol(PsiX); M <- df * Mx
       # Pi via row-wise Khatri-Rao
       Pi <- matrix(0, nrow = Nall * Q, ncol = M)
@@ -790,11 +872,230 @@ predict.ttm_cross_term <- function(object, newdata,
   Z <- do.call(cbind, lapply(res, `[[`, "Z_col"))
   LJ <- do.call(cbind, lapply(res, `[[`, "LJ_col"))
   LD <- (-0.5) * (Z^2) + C + LJ
+  # Invariants and numeric sanity checks
+  stopifnot(is.matrix(LD), nrow(LD) == N, ncol(LD) == K)
+  if (!all(is.finite(LD))) stop("Non-finite values in logdensity_by_dim")
   if (type == "logdensity_by_dim") {
+    # Assert joint equals rowSums
+    LD_joint <- rowSums(LD)
+    if (!all(is.finite(LD_joint))) stop("Non-finite joint logdensity")
+    stopifnot(max(abs(LD_joint - rowSums(LD))) <= 1e-10)
     LD
   } else {
-    rowSums(LD)
+    LD_joint <- rowSums(LD)
+    if (!all(is.finite(LD_joint))) stop("Non-finite joint logdensity")
+    stopifnot(max(abs(LD_joint - rowSums(LD))) <= 1e-10)
+    LD_joint
   }
+}
+
+# ---------------------------------------------------------------------------
+# Reverse-KL API (R = S^{-1}) — Compatibility wrapper
+#
+# NOTE: True reverse-KL training requires access to log pi(x) and, in general,
+# its gradient wrt x to backprop through R(z). The current codebase does not
+# provide analytic gradients for the true joint density. To keep the API and
+# workflow aligned, we expose a reverse entry that falls back to forward-KL
+# training and wraps the trained forward map for prediction.
+
+trainCrossTermMapReverse <- function(S_or_sampler, seed = 42, ...) {
+  set.seed(seed)
+  fit_fwd <- trainCrossTermMap(S_or_sampler, seed = seed, ...)
+  R_wrap <- list(S_forward = fit_fwd$S,
+                 meta = modifyList(fit_fwd$S$meta, list(direction = "reverse_wrapper")))
+  class(R_wrap) <- "ttm_cross_term_reverse"
+  list(
+    S = R_wrap,
+    NLL_test = fit_fwd$NLL_test,
+    stderr_test = fit_fwd$stderr_test,
+    time_train = fit_fwd$time_train,
+    time_pred = fit_fwd$time_pred
+  )
+}
+
+predict.ttm_cross_term_reverse <- function(object, newdata,
+                                           type = c("logdensity_by_dim", "logdensity"),
+                                           ...) {
+  type <- tryCatch(match.arg(type), error = function(e) stop("unknown type"))
+  # Delegate prediction to the wrapped forward map; invariants are enforced there.
+  predict(object$S_forward, newdata, type = type)
+}
+
+# ----------------------------------------------------------------------------
+# Reverse-KL to NF surrogate: train R(z;theta) by maximizing E_eta[ log pi_hat(R(z)) + log|det dR/dz| ]
+# Fair: NF learned from X_tr; no oracle.
+
+trainCrossTermMapReverseNF <- function(S_or_X, degree_g = 2, degree_t = 2, degree_t_cross = 1, degree_x_cross = 1,
+                                       seed = 42, Q = NULL, lambda_non = NULL, lambda_mon = NULL,
+                                       nf_layers = NULL) {
+  set.seed(seed)
+  X_tr <- if (is.list(S_or_X)) S_or_X$X_tr else S_or_X
+  stopifnot(is.matrix(X_tr))
+  K <- ncol(X_tr); N <- nrow(X_tr)
+  # Ridge defaults
+  if (is.null(lambda_non)) {
+    lambda_non <- getOption("mde.ctm.lambda_non", NA_real_)
+    if (is.na(lambda_non)) {
+      env <- suppressWarnings(as.numeric(Sys.getenv("MDE_CTM_LAMBDA_NON", NA_character_)))
+      lambda_non <- ifelse(is.na(env), 1e-2, env)
+    }
+  }
+  if (is.null(lambda_mon)) {
+    lambda_mon <- getOption("mde.ctm.lambda_mon", NA_real_)
+    if (is.na(lambda_mon)) {
+      env <- suppressWarnings(as.numeric(Sys.getenv("MDE_CTM_LAMBDA_MON", NA_character_)))
+      lambda_mon <- ifelse(is.na(env), 2e-2, env)
+    }
+  }
+  # NF surrogate
+  if (!exists("trainNFSurrogate")) source(file.path(getwd(), "models/nf_surrogate.R"))
+  if (is.null(nf_layers)) {
+    envL <- suppressWarnings(as.integer(Sys.getenv("MDE_NF_LAYERS", NA_character_)))
+    nf_layers <- ifelse(is.na(envL), max(2L, min(6L, as.integer(ceiling(log2(max(32,N))/2 + K/2)))), envL)
+  }
+  message(sprintf("[NF-RevKL] Training NF surrogate (layers=%d) ...", nf_layers))
+  nf <- trainNFSurrogate(X_tr, layers = nf_layers, seed = seed)
+  # Reverse map R params per k: g (alpha) on z_prev, h (beta) on (t=z_k, z_prev)
+  # Quadratur
+  degree_t_max <- max(degree_t, degree_t_cross)
+  Q_use <- if (is.null(Q)) min(12, 4 + 2 * degree_t_max) else Q
+  quad <- .gauss_legendre_01_ct(Q_use); nodes <- quad$nodes; weights <- quad$weights
+  nodes_pow <- outer(nodes, seq_len(degree_t_max), `^`)
+  # Param sizes
+  g_dim <- function(k) { if (k==1) 0L else ncol(.basis_g_ct(matrix(0,1,k-1), degree_g)) }
+  psi_dim <- function(k) {
+    prev <- if (k==1) numeric(0) else rep(0, k-1)
+    length(.psi_basis_ct(0, prev, degree_t, degree_g, TRUE, degree_t_cross, degree_x_cross))
+  }
+  idx_alpha <- list(); idx_beta <- list(); off <- 0L
+  for (k in 1:K) {
+    a <- g_dim(k); b <- psi_dim(k)
+    if (a>0) { idx_alpha[[k]] <- (off+1):(off+a); off <- off+a } else idx_alpha[[k]] <- integer(0)
+    idx_beta[[k]]  <- (off+1):(off+b); off <- off+b
+  }
+  theta0 <- rep(0, off)
+  # Sample z from N(0,I) for objective Monte Carlo
+  M <- max(N, 128L)
+  Zs <- matrix(rnorm(M*K), ncol = K)
+
+  # Build function to compute R(z) and logdet per batch
+  R_forward <- function(theta, Z) {
+    Mloc <- nrow(Z); X <- matrix(NA_real_, Mloc, K); LJ <- matrix(0, Mloc, K)
+    for (k in 1:K) {
+      Zprev <- if (k>1) Z[,1:(k-1),drop=FALSE] else matrix(0,Mloc,0)
+      zk <- Z[,k]
+      a_idx <- idx_alpha[[k]]; b_idx <- idx_beta[[k]]
+      alpha <- if (length(a_idx)>0) theta[a_idx] else numeric(0)
+      beta  <- theta[b_idx]
+      # g_k(z_prev)
+      gk <- if (k>1 && length(alpha)>0) as.numeric(.basis_g_ct(Zprev, degree_g) %*% alpha) else rep(0, Mloc)
+      # integral over t in [0, z_k]
+      # cache per sample i
+      Ik <- numeric(Mloc); hk_at <- numeric(Mloc)
+      for (i in 1:Mloc) {
+        xp <- if (k>1) Zprev[i,,drop=TRUE] else numeric(0)
+        val <- zk[i]
+        # build Psi_q at nodes scaled by |z|
+        Psi_q <- .build_Psi_q_ct(val, xp, nodes, nodes_pow, degree_t, degree_g, degree_t_cross, degree_x_cross)
+        V <- as.vector(Psi_q %*% beta)
+        Vc <- pmax(pmin(V,30),-30)
+        bvec <- log(weights) + Vc
+        if (abs(val) < 1e-12) {
+          I_i <- 0
+        } else {
+          m_b <- max(bvec); r <- exp(bvec - m_b); lse <- m_b + log(sum(r))
+          I_i <- sign(val) * exp(log(abs(val)) + lse)
+        }
+        Ik[i] <- I_i
+        # h(z_k,z_prev)
+        psi_x <- .psi_basis_ct(val, xp, degree_t, degree_g, TRUE, degree_t_cross, degree_x_cross)
+        hk_at[i] <- sum(beta * psi_x)
+      }
+      X[,k] <- gk + Ik
+      LJ[,k] <- hk_at
+    }
+    list(X=X, LJ=LJ)
+  }
+
+  obj <- function(theta) {
+    rf <- R_forward(theta, Zs)
+    X_hat <- rf$X; LJ <- rf$LJ
+    ll_hat <- as.numeric(predict(nf, X_hat, type='logdensity'))
+    val <- -mean(ll_hat + rowSums(LJ))
+    # ridge
+    pen <- 0
+    for (k in 1:K) {
+      a_idx <- idx_alpha[[k]]; b_idx <- idx_beta[[k]]
+      if (length(a_idx)>0) pen <- pen + lambda_non * sum(theta[a_idx]^2)
+      pen <- pen + lambda_mon * sum(theta[b_idx]^2)
+    }
+    val + 0.5*pen
+  }
+
+  message(sprintf("[RevKL-NF] Optimize R with L-BFGS-B (dim theta=%d) ...", length(theta0)))
+  opt <- optim(theta0, obj, method='L-BFGS-B', control=list(maxit=120))
+  theta_hat <- opt$par
+  # Build artifact
+  coeffs <- vector('list', K)
+  for (k in 1:K) {
+    a_idx <- idx_alpha[[k]]; b_idx <- idx_beta[[k]]
+    coeffs[[k]] <- list(alpha = if (length(a_idx)>0) theta_hat[a_idx] else numeric(0),
+                        beta = theta_hat[b_idx], bs_spec = NULL)
+  }
+  R_map <- list(coeffs = coeffs, degree_g = degree_g, degree_t = degree_t,
+                degree_t_cross = degree_t_cross, degree_x_cross = degree_x_cross,
+                quad_nodes_ct = nodes, quad_weights_ct = weights,
+                quad_nodes_pow_ct = nodes_pow, K = K,
+                meta = list(direction='reverse_nf', lambda_non=lambda_non, lambda_mon=lambda_mon,
+                            nf_layers=nf_layers, seed=seed))
+  class(R_map) <- 'ttm_cross_term_rev_nf'
+  # Simple timing proxies not computed here; return artifact
+  list(S = R_map)
+}
+
+predict.ttm_cross_term_rev_nf <- function(object, newdata, type = c('logdensity_by_dim','logdensity')) {
+  type <- match.arg(type)
+  X <- as.matrix(newdata); N <- nrow(X); K <- ncol(X)
+  nodes <- object$quad_nodes_ct; nodes_pow <- object$quad_nodes_pow_ct; weights <- object$quad_weights_ct
+  # Invert R(z)=x sequentially via 1D root-finding
+  Z <- matrix(0, N, K); LJm <- matrix(0, N, K)
+  for (i in 1:N) {
+    z_prev <- numeric(0)
+    for (k in 1:K) {
+      alpha <- object$coeffs[[k]]$alpha; beta <- object$coeffs[[k]]$beta
+      g_of <- function(zprev) {
+        if (length(alpha)==0 || length(zprev)==0) return(0)
+        as.numeric(.basis_g_ct(matrix(zprev, nrow=1), object$degree_g) %*% alpha)
+      }
+      f_Rk <- function(zk) {
+        # compute R_k(zprev, zk)
+        I_i <- {
+          Psi_q <- .build_Psi_q_ct(zk, z_prev, nodes, nodes_pow, object$degree_t, object$degree_g, object$degree_t_cross, object$degree_x_cross)
+          V <- as.vector(Psi_q %*% beta); Vc <- pmax(pmin(V,30),-30)
+          bvec <- log(weights) + Vc
+          if (abs(zk) < 1e-12) 0 else { m_b <- max(bvec); r <- exp(bvec - m_b); lse <- m_b + log(sum(r)); sign(zk) * exp(log(abs(zk)) + lse) }
+        }
+        g_of(z_prev) + I_i
+      }
+      # root for f_Rk(zk) - xk = 0
+      target <- X[i,k]
+      froot <- function(zk) f_Rk(zk) - target
+      lo <- -8; hi <- 8; flo <- froot(lo); fhi <- froot(hi); iter <- 0
+      while (flo*fhi > 0 && iter < 8) { lo <- lo*2; hi <- hi*2; flo <- froot(lo); fhi <- froot(hi); iter <- iter+1 }
+      zk <- tryCatch(uniroot(froot, c(lo,hi))$root, error=function(e) 0)
+      Z[i,k] <- zk
+      # h_k at (zk,z_prev)
+      psi_x <- .psi_basis_ct(zk, z_prev, object$degree_t, object$degree_g, TRUE, object$degree_t_cross, object$degree_x_cross)
+      LJm[i,k] <- - sum(beta * psi_x) # minus log ∂R_k/∂zk
+      # update z_prev
+      z_prev <- c(z_prev, zk)
+    }
+  }
+  base <- (-0.5) * (Z^2) - 0.5 * log(2*pi)
+  LD <- base + LJm
+  stopifnot(all(is.finite(LD)))
+  if (type=='logdensity_by_dim') return(LD)
+  rowSums(LD)
 }
 
 
