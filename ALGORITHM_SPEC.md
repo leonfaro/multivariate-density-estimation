@@ -193,11 +193,11 @@ Most expressive; computationally heavier due to the 1‑D integral and stabiliza
 
 ## Half‑Moon panels
 
-* Build a single grid $[x_{\min},x_{\max}]\times[y_{\min},y_{\max}]$ from all splits with \~5 % padding.
-* Evaluate **joint** log‑density on the same grid for all models.
-* Use **iso-mass contour levels** (e.g. pooled quantiles $\{0.90,0.70,0.50\}$) to ensure comparability.
-* Draw data points last so they are visible above contours; use identical axes in all panels.
-* Save `results/halfmoon_panels_seedXXX.png`; optionally show on screen.
+* Grid: Achsen per Trainingssatz $\mu \pm 3\,\sigma$ je Dimension erzeugen (seed‑spezifische Splits), dann ein reguläres Gitter aufspannen.
+* Auswertung: **joint** Log‑Dichte aller Modelle auf demselben Gitter berechnen (Chunking + parallel, mit Cache).
+* Konturen: **Iso‑Massen‑Level** mit Massen $\{0.50,0.70,0.90\}$ pro Modell; gemeinsame Achsen in allen Panels.
+* Darstellung: Datenpunkte zuletzt zeichnen (sichtbar über Konturen).
+* Ausgabe: `results/moon/<timestamp>/panels_seedXXX.png` und begleitende `meta.rds` (Gitter‑ und Cache‑Metadaten).
 
 ---
 
@@ -422,4 +422,3 @@ We train lower‑triangular, strictly monotone target‑to‑reference maps $\ma
 * Report mean NLL in nats with ±2·SE and a timing table.
 * Narrative explains why marginal < separable < cross on conditional DGPs and how TRTF compares.
 * If it’s not in **log‑space**, it’s a bug.
-

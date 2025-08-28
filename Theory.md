@@ -1,5 +1,5 @@
 # Triangular Transport Methods (TTM) - Core Concepts and Implementation
-Read `Theory.md` and 'roadmap.md' before starting any task.
+Read `Theory.md` before starting any task.
 ## I. Introduction and Goal
 
 **Primary Goal:** To characterize, approximate, and manipulate complex, high-dimensional target probability distributions (`pi`) by learning an invertible transformation (`S` or `S^-1`) that couples `pi` to a simple, user-defined reference distribution (`eta`), typically a standard K-dimensional Gaussian.

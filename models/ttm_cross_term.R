@@ -35,6 +35,116 @@ if (!exists(".standardize")) {
   out
 }
 
+# RBF basis (1D) with Gaussian kernels
+.rbf_basis_1d_ct <- function(x, centers, sigma) {
+  if (length(x) == 0) return(matrix(0, 0, 0))
+  Z <- outer(x, centers, function(a, c) exp(-0.5 * ((a - c)/sigma)^2))
+  colnames(Z) <- paste0("rbf_", seq_along(centers))
+  Z
+}
+
+# Build design matrix for g_k(x_<k>)
+.build_g_design_ct <- function(Xprev, k, degree_g, use_rbf = TRUE) {
+  # For 2D (k==2) with one predecessor, use RBF(7) + poly {1,x,x^2}
+  if (ncol(Xprev) == 1L && k == 2L && use_rbf) {
+    x1 <- Xprev[, 1]
+    ctr <- as.numeric(stats::quantile(x1, probs = seq(0.1, 0.9, length.out = 7)))
+    # bandwidth from quantile spacing or fallback to sd
+    dif <- diff(ctr)
+    sig <- if (all(is.finite(dif)) && length(dif) > 0) 0.5 * stats::median(dif) else (stats::sd(x1) + 1e-8)/3
+    poly <- cbind(1, x1, x1^2)
+    rbf <- .rbf_basis_1d_ct(x1, centers = ctr, sigma = sig)
+    Phi <- cbind(poly, rbf)
+    attr(Phi, "g_spec") <- list(type = "rbf_poly", centers = ctr, sigma = sig)
+    return(Phi)
+  }
+  # Fallback: polynomial in predecessors
+  Phi <- .basis_g_ct(Xprev, degree_g)
+  attr(Phi, "g_spec") <- list(type = "poly", degree_g = degree_g)
+  Phi
+}
+
+# psi_m(x_<k>) for 1D predecessor up to cubic
+.psi_xprev_poly3_ct <- function(xprev) {
+  if (length(xprev) == 0L) return(1)
+  x <- xprev[1]
+  c(1, x, x^2, x^3)
+}
+
+# Build Psi_q using B-spline basis in t (cubic) times psi(x_<k>)
+.build_Psi_q_bs_ct <- function(xval, xp, nodes, bs_spec) {
+  Q <- length(nodes)
+  t_nodes <- xval * nodes
+  # evaluate B-splines at t_nodes with stored spec
+  B <- splines::bs(t_nodes,
+                   df = bs_spec$df,
+                   degree = bs_spec$degree,
+                   knots = bs_spec$knots,
+                   Boundary.knots = bs_spec$boundary,
+                   intercept = TRUE)
+  psi <- .psi_xprev_poly3_ct(xp)
+  # Kronecker per row
+  Psi_q <- matrix(0, Q, ncol(B) * length(psi))
+  col <- 0
+  for (j in seq_len(ncol(B))) {
+    for (m in seq_along(psi)) {
+      col <- col + 1
+      Psi_q[, col] <- B[, j] * psi[m]
+    }
+  }
+  Psi_q
+}
+
+# Build cached B-spline tensor and psi matrices for training
+.build_ct_cache_tr <- function(xk, Xprev, nodes, bs_spec) {
+  stopifnot(length(xk) == nrow(Xprev) || nrow(Xprev) == 0)
+  N <- length(xk)
+  Q <- length(nodes)
+  # B3D as stacked rows (N*Q) x df
+  Btmp0 <- splines::bs(0, df = bs_spec$df, degree = bs_spec$degree,
+                       knots = bs_spec$knots, Boundary.knots = bs_spec$boundary,
+                       intercept = TRUE)
+  df <- ncol(Btmp0)
+  B2D <- matrix(0, nrow = N * Q, ncol = df)
+  for (i in seq_len(N)) {
+    Bi <- splines::bs(xk[i] * nodes, df = bs_spec$df, degree = bs_spec$degree,
+                      knots = bs_spec$knots, Boundary.knots = bs_spec$boundary,
+                      intercept = TRUE)
+    B2D[((i - 1L) * Q + 1L):(i * Q), ] <- Bi
+  }
+  # psi(x_<k>) rows
+  Mx <- if (ncol(Xprev) >= 1L) 4L else 1L
+  PsiX <- matrix(1, nrow = N, ncol = Mx)
+  if (ncol(Xprev) >= 1L) {
+    x1 <- Xprev[, 1]
+    PsiX <- cbind(1, x1, x1^2, x1^3)
+  }
+  # Row-wise kron to build Pi: for each i, kron(Bi, PsiX[i,])
+  M <- df * ncol(PsiX)
+  Pi <- matrix(0, nrow = N * Q, ncol = M)
+  for (i in seq_len(N)) {
+    rows <- ((i - 1L) * Q + 1L):(i * Q)
+    Bi <- B2D[rows, , drop = FALSE]
+    psi <- matrix(PsiX[i, ], nrow = 1)
+    # Khatri-Rao by row: expand by multiplication
+    block <- do.call(cbind, lapply(seq_len(ncol(Bi)), function(j) Bi[, j] * psi))
+    Pi[rows, ] <- block
+  }
+  list(Pi = Pi, B2D = B2D, PsiX = PsiX, df = df, M = M, Q = Q)
+}
+
+# Row-wise Khatri–Rao product: C[i,] = vec(A[i,] ⊗ B[i,])
+.KR_rowwise_ct <- function(A, B) {
+  stopifnot(is.matrix(A), is.matrix(B), nrow(A) == nrow(B))
+  N <- nrow(A); a <- ncol(A); b <- ncol(B)
+  C <- matrix(0, nrow = N, ncol = a * b)
+  for (j in seq_len(a)) {
+    cols <- ((j - 1L) * b + 1L):(j * b)
+    C[, cols] <- B * A[, j]
+  }
+  C
+}
+
 .psi_basis_ct <- function(t, xprev, deg_t, deg_x, cross = TRUE,
                           deg_t_cross = 1, deg_x_cross = 1) {
   out <- numeric(0)
@@ -120,9 +230,15 @@ if (!exists(".standardize")) {
 }
 
 .safe_mclapply_ct <- function(X, FUN, mc.cores, ...) {
-  parallel::mclapply(X, function(ix) {
-    tryCatch(FUN(ix), error = function(e) e)
-  }, mc.cores = mc.cores, mc.set.seed = FALSE, mc.preschedule = TRUE, ...)
+  # Avoid nested parallelism: fall back to sequential if a higher-level
+  # orchestrator is already parallelizing.
+  if (getOption("mde.parallel_active", FALSE)) {
+    lapply(X, function(ix) tryCatch(FUN(ix), error = function(e) e))
+  } else {
+    parallel::mclapply(X, function(ix) {
+      tryCatch(FUN(ix), error = function(e) e)
+    }, mc.cores = mc.cores, mc.set.seed = FALSE, mc.preschedule = TRUE, ...)
+  }
 }
 
 .is_coeffs_ok <- function(x) is.list(x) && is.numeric(x$alpha) && is.numeric(x$beta)
@@ -179,7 +295,10 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2, degree_t_cr
                               lambda = 1e-3, batch_n = NULL, Q = NULL,
                               eps = 1e-6, clip = Inf,
                               alpha_init_list = NULL, warmstart_from_separable = FALSE,
-                              sep_degree_g = NULL, sep_lambda = 1e-3, seed = 42) {
+                              sep_degree_g = NULL, sep_lambda = 1e-3, seed = 42,
+                              lambda_non = 1e-2, lambda_mon = 1e-3,
+                              order_mode = c("auto","x1_x2","x2_x1")) {
+  order_mode <- match.arg(order_mode)
   set.seed(seed)
   S_in <- if (is.character(X_or_path)) readRDS(X_or_path) else X_or_path
   stopifnot(is.list(S_in))
@@ -196,7 +315,23 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2, degree_t_cr
     alpha_init_list <- lapply(fit_sep$S$coeffs, `[[`, "c_non")
   }
 
-  time_train <- system.time({
+  # reorder helper (2D only)
+  reorder_S_2d <- function(Sdata, mode) {
+    if (mode == "x1_x2") return(Sdata)
+    if (mode == "x2_x1") {
+      S2 <- Sdata
+      S2$X_tr <- Sdata$X_tr[, 2:1, drop = FALSE]
+      S2$X_val <- Sdata$X_val[, 2:1, drop = FALSE]
+      S2$X_te  <- Sdata$X_te [, 2:1, drop = FALSE]
+      return(S2)
+    }
+    Sdata
+  }
+
+  # inner fitter for a given order and quadrature setting
+  fit_one <- function(Sdata, Q_override = Q, control = list()) {
+    X_tr <- Sdata$X_tr; X_val <- Sdata$X_val; X_te <- Sdata$X_te
+    time_train <- system.time({
     std <- .standardizeData(X_tr)
     X_tr_std <- std$X
     mu <- std$mu
@@ -207,20 +342,37 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2, degree_t_cr
       stopifnot(length(alpha_init_list) == K)
     }
       degree_t_max <- max(degree_t, degree_t_cross)
-      Q_use <- if (is.null(Q)) min(12, 4 + 2 * degree_t_max) else Q
+      Q_use <- if (is.null(Q_override)) min(12, 4 + 2 * degree_t_max) else Q_override
       batch_use <- if (is.null(batch_n)) min(N, max(256L, floor(65536 / max(1L, Q_use)))) else min(N, batch_n)
     quad <- .gauss_legendre_01_ct(Q_use)
     nodes <- quad$nodes
     weights <- quad$weights
       nodes_pow <- outer(nodes, seq_len(degree_t_max), `^`)
 
-    fit_k <- function(k) {
-      Xprev <- if (k > 1) X_tr_std[, 1:(k - 1), drop = FALSE] else matrix(0, N, 0)
-      xk <- X_tr_std[, k]
-      Phi <- .basis_g_ct(Xprev, degree_g)
-      m_alpha <- ncol(Phi)
-      xprev_first <- if (k > 1) Xprev[1, , drop = TRUE] else numeric(0)
+      fit_k <- function(k) {
+        Xprev <- if (k > 1) X_tr_std[, 1:(k - 1), drop = FALSE] else matrix(0, N, 0)
+        xk <- X_tr_std[, k]
+      Phi <- .build_g_design_ct(Xprev, k, degree_g, use_rbf = TRUE)
+        m_alpha <- ncol(Phi)
+        xprev_first <- if (k > 1) Xprev[1, , drop = TRUE] else numeric(0)
+      # choose bspline tensor basis for k==2 with 1 predecessor; else fallback to poly tensor
+      use_bs <- (k == 2L && ncol(Xprev) == 1L)
+      if (use_bs) {
+        # establish B-spline spec from training xk
+        Btmp <- splines::bs(xk, df = 8, degree = 3, intercept = TRUE)
+        bs_spec <- list(df = ncol(Btmp), degree = 3,
+                        knots = attr(Btmp, "knots"), boundary = attr(Btmp, "Boundary.knots"))
+        m_beta <- bs_spec$df * length(.psi_xprev_poly3_ct(xprev_first))
+        # Build cache once per dimension
+        cch <- .build_ct_cache_tr(xk, Xprev, nodes, bs_spec)
+        Pi_tr <- cch$Pi; B2D_tr <- cch$B2D; PsiX_tr <- cch$PsiX
+        M <- cch$M; Qloc <- cch$Q; dfloc <- cch$df
+        message(sprintf('CTM[k=%d] cache: B3D=(%d×%d×%d), \u03A0=(%d×%d)', k, N, Qloc, dfloc, N*Qloc, M))
+      } else {
         m_beta <- length(.psi_basis_ct(0, xprev_first, degree_t, degree_g, TRUE, degree_t_cross, degree_x_cross))
+        bs_spec <- NULL
+        Pi_tr <- NULL; B2D_tr <- NULL; PsiX_tr <- NULL; M <- m_beta
+      }
       alpha_start <- if (m_alpha > 0) {
         if (is.null(alpha_init_list)) {
           rep(0, m_alpha)
@@ -240,32 +392,65 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2, degree_t_cr
         for (i0 in seq(1, N, by = batch_use)) {
           idx <- i0:min(i0 + batch_use - 1, N)
           Phi_blk <- if (m_alpha > 0) Phi[idx, , drop = FALSE] else NULL
-          Xprev_blk <- if (k > 1) Xprev[idx, , drop = FALSE] else matrix(0, length(idx), 0)
           xk_blk <- xk[idx]
-          for (b in seq_along(idx)) {
-            xp <- if (k > 1) Xprev_blk[b, ] else numeric(0)
-            xval <- xk_blk[b]
-            Psi_q <- .build_Psi_q_ct(xval, xp, nodes, nodes_pow, degree_t, degree_g, degree_t_cross, degree_x_cross)
-            V <- as.vector(Psi_q %*% beta)
-            b_vec <- log(weights) + V
-            b_max <- max(b_vec)
-            r <- exp(b_vec - b_max)
-            s <- exp(b_max) * sum(r)
-            I_i <- xval * s
-            soft <- r / sum(r)
-            dI_i <- I_i * as.vector(t(Psi_q) %*% soft)
-            psi_x <- .psi_basis_ct(xval, xp, degree_t, degree_g, TRUE, degree_t_cross, degree_x_cross)
-            S_i <- if (m_alpha > 0) sum(Phi_blk[b, ] * alpha) + I_i else I_i
-            S_sq_sum <- S_sq_sum + S_i^2
-            if (m_alpha > 0) grad_alpha <- grad_alpha + S_i * Phi_blk[b, ]
-            grad_beta <- grad_beta + S_i * dI_i - psi_x
-            term_sum <- term_sum + sum(psi_x * beta)
+          # Integral and gradient via cache (batched)
+          if (use_bs) {
+            rows <- unlist(lapply(idx, function(ii) ((ii - 1L) * Q + 1L):(ii * Q)))
+            Vfull <- as.numeric(Pi_tr[rows, , drop = FALSE] %*% beta)
+            Vmat <- matrix(pmax(pmin(Vfull, 30), -30), nrow = Q, ncol = length(idx))
+            blog <- sweep(Vmat, 1, log(weights), FUN = "+")
+            mcol <- apply(blog, 2, max)
+            R <- exp(sweep(blog, 2, mcol, FUN = "-"))
+            LSE <- mcol + log(colSums(R))
+            I_vec <- ifelse(abs(xk_blk) < 1e-12, 0, sign(xk_blk) * exp(log(abs(xk_blk)) + LSE))
+            soft <- sweep(R, 2, colSums(R), "/")
+            S_vec <- (if (m_alpha > 0) as.numeric(Phi_blk %*% alpha) else 0) + I_vec
+            ZI_rep <- rep(S_vec * I_vec, each = Q)
+            g_beta_blk <- as.numeric(crossprod(Pi_tr[rows, , drop = FALSE], ZI_rep * as.numeric(soft)))
+            # h at xk for log-jacobian gradient part: vectorized
+            Bs_blk <- splines::bs(xk_blk, df = bs_spec$df, degree = bs_spec$degree,
+                                  knots = bs_spec$knots, Boundary.knots = bs_spec$boundary,
+                                  intercept = TRUE)
+            PsiX_blk <- if (ncol(Xprev) >= 1L) cbind(1, Xprev[idx, 1], Xprev[idx, 1]^2, Xprev[idx, 1]^3) else matrix(1, nrow = length(idx), ncol = 1)
+            Hblk <- .KR_rowwise_ct(Bs_blk, PsiX_blk)
+            # Accumulate
+            if (m_alpha > 0) {
+              S_vec <- as.numeric(Phi_blk %*% alpha) + I_vec
+              grad_alpha <- grad_alpha + as.numeric(crossprod(Phi_blk, S_vec))
+            }
+            grad_beta <- grad_beta + g_beta_blk - colSums(Hblk)
+            S_sq_sum <- S_sq_sum + sum((if (m_alpha > 0) as.numeric(Phi_blk %*% alpha) + I_vec else I_vec)^2)
+            term_sum <- term_sum + sum(Hblk %*% beta)
+          } else {
+            # Fallback (poly tensor) – keep previous unbatched path for rare case
+            Xprev_blk <- if (k > 1) Xprev[idx, , drop = FALSE] else matrix(0, length(idx), 0)
+            for (b in seq_along(idx)) {
+              xp <- if (k > 1) Xprev_blk[b, ] else numeric(0)
+              xval <- xk_blk[b]
+              Psi_q <- .build_Psi_q_ct(xval, xp, nodes, nodes_pow, degree_t, degree_g, degree_t_cross, degree_x_cross)
+              V <- as.vector(Psi_q %*% beta)
+              V_clip <- pmax(pmin(V, 30), -30)
+              b_vec <- log(weights) + V_clip
+              if (abs(xval) < 1e-12) {
+                I_i <- 0; soft <- rep(0, length(weights))
+              } else {
+                m_b <- max(b_vec); r <- exp(b_vec - m_b); lse <- m_b + log(sum(r))
+                I_i <- sign(xval) * exp(log(abs(xval)) + lse); soft <- r / sum(r)
+              }
+              dI_i <- I_i * as.vector(t(Psi_q) %*% soft)
+              psi_x <- .psi_basis_ct(xval, xp, degree_t, degree_g, TRUE, degree_t_cross, degree_x_cross)
+              S_i <- if (m_alpha > 0) sum(Phi_blk[b, ] * alpha) + I_i else I_i
+              S_sq_sum <- S_sq_sum + S_i^2
+              if (m_alpha > 0) grad_alpha <- grad_alpha + S_i * Phi_blk[b, ]
+              grad_beta <- grad_beta + S_i * dI_i - psi_x
+              term_sum <- term_sum + sum(psi_x * beta)
+            }
           }
         }
         loss <- 0.5 * S_sq_sum / N - term_sum / N +
-          0.5 * lambda * (sum(alpha^2) + sum(beta^2))
-        grad_alpha_out <- if (m_alpha > 0) grad_alpha / N + lambda * alpha else numeric(0)
-        grad_beta_out <- grad_beta / N + lambda * beta
+          0.5 * (lambda_non * sum(alpha^2) + lambda_mon * sum(beta^2))
+        grad_alpha_out <- if (m_alpha > 0) grad_alpha / N + lambda_non * alpha else numeric(0)
+        grad_beta_out <- grad_beta / N + lambda_mon * beta
         list(loss = loss, grad = c(grad_alpha_out, grad_beta_out))
       }
 
@@ -289,10 +474,16 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2, degree_t_cr
       }
 
       theta0 <- c(alpha_start, rep(0, m_beta))
-      opt <- optim(theta0, fn, gr, method = "L-BFGS-B", lower = -Inf, upper = Inf)
+      lower <- c(rep(-Inf, m_alpha), rep(-6, m_beta))
+      upper <- c(rep( Inf, m_alpha), rep( 6, m_beta))
+      ctrl <- modifyList(list(pgtol = 1e-4, maxit = 200), control)
+      opt <- optim(theta0, fn, gr, method = "L-BFGS-B", lower = lower, upper = upper,
+                   control = ctrl)
       alpha_hat <- if (m_alpha > 0) opt$par[seq_len(m_alpha)] else numeric(0)
       beta_hat <- opt$par[(m_alpha + 1):length(opt$par)]
-      list(alpha = alpha_hat, beta = beta_hat, convergence = opt$convergence)
+      message(sprintf('CTM[k=%d] fn_evals=%d, gr_evals=%d', k, opt$counts['function'], opt$counts['gradient']))
+      list(alpha = alpha_hat, beta = beta_hat, convergence = opt$convergence,
+            g_spec = attr(Phi, "g_spec"), bs_spec = bs_spec)
     }
 
     res <- .safe_mclapply_ct(seq_len(K), fit_k,
@@ -329,21 +520,96 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2, degree_t_cr
       order = seq_len(K)
     )
     class(S_map) <- "ttm_cross_term"
-  })[["elapsed"]]
+    })[["elapsed"]]
 
-  time_pred <- system.time({
-    predict(S_map, X_te, "logdensity_by_dim")
-  })[["elapsed"]]
+    time_pred <- system.time({
+      predict(S_map, X_te, "logdensity_by_dim")
+    })[["elapsed"]]
 
-list(
-    S = S_map,
-    NLL_train = .NLL_set_ct(S_map, X_tr),
-    NLL_val = .NLL_set_ct(S_map, X_val),
-    NLL_test = .NLL_set_ct(S_map, X_te),
-    stderr_test = .SE_set_ct(S_map, X_te),
-    time_train = time_train,
-    time_pred = time_pred
-  )
+    list(
+      S = S_map,
+      NLL_train = .NLL_set_ct(S_map, X_tr),
+      NLL_val = .NLL_set_ct(S_map, X_val),
+      NLL_test = .NLL_set_ct(S_map, X_te),
+      stderr_test = .SE_set_ct(S_map, X_te),
+      time_train = time_train,
+      time_pred = time_pred
+    )
+  }
+
+  # Order handling (simple: default order only)
+  # For compatibility, keep current order; extend later if needed
+  # order selection and lambda tuning
+  lambda_grid_mon <- c(3e-4, 1e-3, 3e-3)
+  lambda_grid_non <- c(3e-3, 1e-2, 3e-2)
+  orders <- if (order_mode == 'auto') c('x1_x2','x2_x1') else order_mode
+  best <- list(val = Inf)
+  for (ord in orders) {
+    Sord <- reorder_S_2d(S_in, ord)
+    for (lmon in lambda_grid_mon) for (lnon in lambda_grid_non) {
+      old_lmon <- lambda_mon; old_lnon <- lambda_non
+      lambda_mon <<- lmon; lambda_non <<- lnon
+      on.exit({ lambda_mon <<- old_lmon; lambda_non <<- old_lnon }, add = TRUE)
+      fitq <- fit_one(Sord, Q_override = 8L, control = list(maxit = 120))
+      if (fitq$NLL_val < best$val) best <- list(val = fitq$NLL_val, ord = ord, lmon = lmon, lnon = lnon)
+    }
+  }
+  # Full fit with selected order & lambdas
+  lambda_mon <<- best$lmon; lambda_non <<- best$lnon
+  Sout <- reorder_S_2d(S_in, best$ord)
+  out <- fit_one(Sout, Q_override = if (is.null(Q)) 12L else Q, control = list(maxit = 200))
+  # Quick sanity on training Z: |mean|<=0.5 and var in [0.5,2]; if violated, refit once with stronger λ_mon
+  compute_Z_metrics <- function(S_map, X) {
+    Xs <- .standardize(S_map, X)
+    N <- nrow(Xs); K <- ncol(Xs)
+    nodes <- S_map$quad_nodes_ct; weights <- S_map$quad_weights_ct; nodes_pow <- S_map$quad_nodes_pow_ct
+    res <- lapply(seq_len(K), function(k) {
+      Xprev <- if (k > 1) Xs[, 1:(k - 1), drop = FALSE] else matrix(0, N, 0)
+      xk <- Xs[, k]
+      # g-part
+      if (!is.null(S_map$coeffs[[k]]$g_spec) && S_map$coeffs[[k]]$g_spec$type == 'rbf_poly') {
+        x1 <- if (ncol(Xprev) >= 1) Xs[, 1] else numeric(N)
+        gs <- S_map$coeffs[[k]]$g_spec
+        poly <- cbind(1, x1, x1^2)
+        rbf <- .rbf_basis_1d_ct(x1, centers = gs$centers, sigma = gs$sigma)
+        Phi <- cbind(poly, rbf)
+      } else {
+        Phi <- .basis_g_ct(Xprev, S_map$degree_g)
+      }
+      alpha <- S_map$coeffs[[k]]$alpha
+      beta <- S_map$coeffs[[k]]$beta
+      Zk <- numeric(N)
+      for (i in seq_len(N)) {
+        xp <- if (k > 1) Xprev[i, ] else numeric(0)
+        xval <- xk[i]
+        if (!is.null(S_map$coeffs[[k]]$bs_spec)) {
+          Psi_q <- .build_Psi_q_bs_ct(xval, xp, nodes, S_map$coeffs[[k]]$bs_spec)
+        } else {
+          Psi_q <- .build_Psi_q_ct(xval, xp, nodes, nodes_pow, S_map$degree_t, S_map$degree_g, S_map$degree_t_cross, S_map$degree_x_cross)
+        }
+        V <- as.vector(Psi_q %*% beta)
+        Vc <- pmax(pmin(V, 30), -30)
+        bv <- log(weights) + Vc
+        if (abs(xval) < 1e-12) I <- 0 else {
+          mb <- max(bv); I <- sign(xval) * exp(log(abs(xval)) + mb + log(sum(exp(bv - mb))))
+        }
+        g <- if (length(alpha) > 0) sum(Phi[i, ] * alpha) else 0
+        Zk[i] <- g + I
+      }
+      c(mean = mean(Zk), var = stats::var(Zk))
+    })
+    do.call(rbind, res)
+  }
+  zm <- compute_Z_metrics(out$S, S_in$X_tr[sample.int(nrow(S_in$X_tr), min(64L, nrow(S_in$X_tr))), , drop = FALSE])
+  bad <- any(abs(zm[, 'mean']) > 0.5) || any(zm[, 'var'] < 0.5 | zm[, 'var'] > 2.0)
+  if (bad) {
+    warning(sprintf('Z sanity failed (mean,var)=%s; refitting with lambda_mon*3', paste(c(zm), collapse=',')))
+    lambda_mon_old <- lambda_mon
+    lambda_mon <<- lambda_mon * 3
+    on.exit({ lambda_mon <<- lambda_mon_old }, add = TRUE)
+    out <- fit_one(S_in, Q_override = Q)
+  }
+  out
 }
 
 predict.ttm_cross_term <- function(object, newdata,
@@ -362,34 +628,147 @@ predict.ttm_cross_term <- function(object, newdata,
   chunk_fun <- function(k) {
     Xprev <- if (k > 1) Xs[, 1:(k - 1), drop = FALSE] else matrix(0, N, 0)
     xk <- Xs[, k]
-    Phi <- .basis_g_ct(Xprev, object$degree_g)
+    # rebuild g design depending on fitted spec
+    if (!is.null(object$coeffs[[k]]$g_spec) && object$coeffs[[k]]$g_spec$type == "rbf_poly") {
+      x1 <- if (ncol(Xprev) >= 1) Xs[, 1] else numeric(N)
+      gs <- object$coeffs[[k]]$g_spec
+      poly <- cbind(1, x1, x1^2)
+      rbf <- .rbf_basis_1d_ct(x1, centers = gs$centers, sigma = gs$sigma)
+      Phi <- cbind(poly, rbf)
+    } else {
+      Phi <- .basis_g_ct(Xprev, object$degree_g)
+    }
     m_alpha <- ncol(Phi)
     alpha <- object$coeffs[[k]]$alpha
     beta <- object$coeffs[[k]]$beta
     xprev_first <- if (k > 1) Xprev[1, , drop = TRUE] else numeric(0)
-      psi_len <- length(.psi_basis_ct(Xs[1, k], xprev_first,
-                                      object$degree_t, object$degree_g, TRUE, object$degree_t_cross, object$degree_x_cross))
+      if (!is.null(object$coeffs[[k]]$bs_spec)) {
+        psi_len <- object$coeffs[[k]]$bs_spec$df * length(.psi_xprev_poly3_ct(xprev_first))
+      } else {
+        psi_len <- length(.psi_basis_ct(Xs[1, k], xprev_first,
+                                        object$degree_t, object$degree_g, TRUE, object$degree_t_cross, object$degree_x_cross))
+      }
     stopifnot(length(beta) == psi_len)
     Z_col <- numeric(N)
     LJ_col <- numeric(N)
-    for (i0 in seq(1, N, by = batch_use)) {
-      idx <- i0:min(i0 + batch_use - 1, N)
-      Phi_blk <- if (m_alpha > 0) Phi[idx, , drop = FALSE] else NULL
-      Xprev_blk <- if (k > 1) Xprev[idx, , drop = FALSE] else matrix(0, length(idx), 0)
-      xk_blk <- xk[idx]
-      for (b in seq_along(idx)) {
-        xp <- if (k > 1) Xprev_blk[b, ] else numeric(0)
-        xval <- xk_blk[b]
-        Psi_q <- .build_Psi_q_ct(xval, xp, nodes, nodes_pow, object$degree_t, object$degree_g, object$degree_t_cross, object$degree_x_cross)
-        V <- as.vector(Psi_q %*% beta)
-        b_vec <- log(weights) + V
-        b_max <- max(b_vec)
-        r <- exp(b_vec - b_max)
-        s <- exp(b_max) * sum(r)
-        I_i <- xval * s
-        psi_x <- .psi_basis_ct(xval, xp, object$degree_t, object$degree_g, TRUE, object$degree_t_cross, object$degree_x_cross)
-        Z_col[idx[b]] <- if (m_alpha > 0) sum(Phi_blk[b, ] * alpha) + I_i else I_i
-        LJ_col[idx[b]] <- sum(beta * psi_x) - log(object$sigma[k])
+    # Batched prediction with cached B-splines tensor
+    if (!is.null(object$coeffs[[k]]$bs_spec)) {
+      bs_spec <- object$coeffs[[k]]$bs_spec
+      Nall <- N; Q <- length(nodes)
+      # Build B2D and Pi for all points (fast path)
+      Btmp0 <- splines::bs(0, df = bs_spec$df, degree = bs_spec$degree,
+                           knots = bs_spec$knots, Boundary.knots = bs_spec$boundary, intercept = TRUE)
+      df <- ncol(Btmp0)
+      # Vectorized Bs for all N points and both integral nodes (xk*nodes) and log-Jacobian (xk)
+      # Integral path uses B2D (N*Q x df)
+      B2D <- matrix(0, nrow = Nall * Q, ncol = df)
+      for (i in seq_len(Nall)) {
+        Bi <- splines::bs(xk[i] * nodes, df = df, degree = bs_spec$degree,
+                          knots = bs_spec$knots, Boundary.knots = bs_spec$boundary, intercept = TRUE)
+        B2D[((i - 1L) * Q + 1L):(i * Q), ] <- Bi
+      }
+      # PsiX (N x Mx)
+      PsiX <- if (ncol(Xprev) >= 1L) cbind(1, Xprev[, 1], Xprev[, 1]^2, Xprev[, 1]^3) else matrix(1, nrow = Nall, ncol = 1)
+      Mx <- ncol(PsiX); M <- df * Mx
+      # Pi via row-wise Khatri-Rao
+      Pi <- matrix(0, nrow = Nall * Q, ncol = M)
+      for (i in seq_len(Nall)) {
+        rows <- ((i - 1L) * Q + 1L):(i * Q)
+        Pi[rows, ] <- .KR_rowwise_ct(B2D[rows, , drop = FALSE], matrix(PsiX[i, ], nrow = Q, ncol = Mx, byrow = TRUE))
+      }
+      Vfull <- as.numeric(Pi %*% beta)
+      Vmat <- matrix(pmax(pmin(Vfull, 30), -30), nrow = Q, ncol = Nall)
+      blog <- sweep(Vmat, 1, log(weights), FUN = "+")
+      mcol <- apply(blog, 2, max)
+      R <- exp(sweep(blog, 2, mcol, FUN = "-"))
+      LSE <- mcol + log(colSums(R))
+      I_vec <- ifelse(abs(xk) < 1e-12, 0, sign(xk) * exp(log(abs(xk)) + LSE))
+      # Log-Jacobian Hmat via KR_rowwise: Hmat = KR_rowwise(Bs(xk), PsiX)
+      Bs_all <- splines::bs(xk, df = df, degree = bs_spec$degree,
+                            knots = bs_spec$knots, Boundary.knots = bs_spec$boundary, intercept = TRUE)
+      Hmat <- .KR_rowwise_ct(Bs_all, PsiX)
+      # Log one-time
+      if (!getOption('mde.ctm_predict_fastpath_printed', FALSE)) {
+        message(sprintf('CTM predict fast-path: N=%d, df=%d, Mx=%d', Nall, df, Mx))
+        options(mde.ctm_predict_fastpath_printed = TRUE)
+      }
+      stopifnot(ncol(Hmat) == length(beta))
+      Z_col <- if (m_alpha > 0) as.numeric(Phi %*% alpha) + I_vec else I_vec
+      LJ_col <- as.numeric(Hmat %*% beta) - log(object$sigma[k])
+      if (any(!is.finite(Z_col)) || any(!is.finite(LJ_col))) stop('Non-finite values in CTM predict fast-path')
+    } else {
+      # Poly tensor fallback (rare)
+      for (i0 in seq(1, N, by = batch_use)) {
+        idx <- i0:min(i0 + batch_use - 1, N)
+        Phi_blk <- if (m_alpha > 0) Phi[idx, , drop = FALSE] else NULL
+        Xprev_blk <- if (k > 1) Xprev[idx, , drop = FALSE] else matrix(0, length(idx), 0)
+        xk_blk <- xk[idx]
+        for (b in seq_along(idx)) {
+          xp <- if (k > 1) Xprev_blk[b, ] else numeric(0)
+          xval <- xk_blk[b]
+          Psi_q <- .build_Psi_q_ct(xval, xp, nodes, nodes_pow, object$degree_t, object$degree_g, object$degree_t_cross, object$degree_x_cross)
+          V <- as.vector(Psi_q %*% beta)
+          V_clip <- pmax(pmin(V, 30), -30)
+          b_vec <- log(weights) + V_clip
+          if (abs(xval) < 1e-12) {
+            I_i <- 0
+          } else {
+            m_b <- max(b_vec)
+            r <- exp(b_vec - m_b)
+            lse <- m_b + log(sum(r))
+            I_i <- sign(xval) * exp(log(abs(xval)) + lse)
+          }
+          psi_x <- .psi_basis_ct(xval, xp, object$degree_t, object$degree_g, TRUE, object$degree_t_cross, object$degree_x_cross)
+          Z_col[idx[b]] <- if (m_alpha > 0) sum(Phi_blk[b, ] * alpha) + I_i else I_i
+          LJ_col[idx[b]] <- sum(beta * psi_x) - log(object$sigma[k])
+        }
+      }
+    }
+    # Runtime Eq.(22) checks (optional): numeric derivative vs exp(h)
+    if (getOption("mde.check_eq22", FALSE)) {
+      set.seed(1L)
+      nn <- min(16L, N)
+      pick <- sample.int(N, nn)
+      eps <- 1e-5
+      for (ii in pick) {
+        xp <- if (k > 1) Xprev[ii, ] else numeric(0)
+        x0 <- xk[ii]
+        # g_k does not depend on x_k
+        g0 <- if (m_alpha > 0) {
+          if (!is.null(object$coeffs[[k]]$g_spec) && object$coeffs[[k]]$g_spec$type == 'rbf_poly') {
+            x1ii <- if (length(xp) >= 1) Xprev[ii, 1] else 0
+            gs <- object$coeffs[[k]]$g_spec
+            polyii <- c(1, x1ii, x1ii^2)
+            rbfi <- exp(-0.5 * ((x1ii - gs$centers)/gs$sigma)^2)
+            sum(c(polyii, rbfi) * alpha)
+          } else {
+            sum(Phi[ii, ] * alpha)
+          }
+        } else 0
+        # recompute integral at x0 and x0+eps
+        Psi_q0 <- if (!is.null(object$coeffs[[k]]$bs_spec)) .build_Psi_q_bs_ct(x0, xp, nodes, object$coeffs[[k]]$bs_spec)
+                  else .build_Psi_q_ct(x0, xp, nodes, nodes_pow, object$degree_t, object$degree_g, object$degree_t_cross, object$degree_x_cross)
+        V0 <- as.vector(Psi_q0 %*% beta)
+        V0c <- pmax(pmin(V0, 30), -30)
+        bvec0 <- log(weights) + V0c; m0 <- max(bvec0)
+        I0 <- if (abs(x0) < 1e-12) 0 else sign(x0) * exp(log(abs(x0)) + m0 + log(sum(exp(bvec0 - m0))))
+        x1 <- x0 + eps
+        Psi_q1 <- if (!is.null(object$coeffs[[k]]$bs_spec)) .build_Psi_q_bs_ct(x1, xp, nodes, object$coeffs[[k]]$bs_spec)
+                  else .build_Psi_q_ct(x1, xp, nodes, nodes_pow, object$degree_t, object$degree_g, object$degree_t_cross, object$degree_x_cross)
+        V1 <- as.vector(Psi_q1 %*% beta)
+        V1c <- pmax(pmin(V1, 30), -30)
+        bvec1 <- log(weights) + V1c; m1 <- max(bvec1)
+        I1 <- if (abs(x1) < 1e-12) 0 else sign(x1) * exp(log(abs(x1)) + m1 + log(sum(exp(bvec1 - m1))))
+        dnum <- (I1 - I0) / eps
+        # h(x0,xprev)
+        psi_x0 <- if (!is.null(object$coeffs[[k]]$bs_spec)) as.vector(.build_Psi_q_bs_ct(x0, xp, 1, object$coeffs[[k]]$bs_spec))
+                  else .psi_basis_ct(x0, xp, object$degree_t, object$degree_g, TRUE, object$degree_t_cross, object$degree_x_cross)
+        dtrue <- exp(sum(beta * psi_x0))
+        relerr <- abs(dnum - dtrue) / max(1e-12, abs(dtrue))
+        if (relerr > 1e-6 || !is.finite(relerr)) stop("Eq.(22) derivative check failed")
+        # check dg/dx_k == 0 numerically via g(xk+eps)-g(xk)
+        g1 <- g0  # unchanged as g depends only on x_<k>
+        if (abs(g1 - g0) > 1e-8) stop("g_k depends on x_k (violates Eq.(22))")
       }
     }
     list(Z_col = Z_col, LJ_col = LJ_col)

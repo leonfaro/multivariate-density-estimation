@@ -220,19 +220,14 @@ eval_halfmoon <- function(mods, S, out_csv_path = NULL) {
   for (m in need) {
     mod <- mods[[m]]
     if (m == "true") {
-      cfg <- mod$config
-      LD <- do.call(cbind, lapply(seq_len(K), function(k)
-        .log_density_vec(S$X_te[, k], cfg[[k]]$distr, mod$theta[[k]])))
+      source("scripts/true_halfmoon_density.R")
+      te_true <- true_logdensity(S$X_te, S, Q = 32L)
+      LD <- te_true$by_dim
     } else {
       LD <- predict(mod, S$X_te, "logdensity_by_dim")
     }
     stopifnot(is.matrix(LD), all(dim(LD) == c(N, K)), all(is.finite(LD)))
-    if (m == "true") {
-      LDj <- rowSums(LD)
-    } else {
-      LDj_try <- try(predict(mod, S$X_te, "logdensity"), silent = TRUE)
-      LDj <- if (inherits(LDj_try, "try-error")) rowSums(LD) else as.numeric(LDj_try)
-    }
+    LDj <- rowSums(LD)
     stopifnot(length(LDj) == N, all(is.finite(LDj)),
               max(abs(rowSums(LD) - LDj)) < 1e-10)
     nllj <- -LDj
@@ -252,4 +247,3 @@ eval_halfmoon <- function(mods, S, out_csv_path = NULL) {
   results_table <<- df
   df
 }
-

@@ -63,12 +63,25 @@ make_halfmoon_splits <- function(n_train, n_test, noise, seed, val_frac = 0.2) {
     meta = list(
       seed = seed,
       noise = noise,
+      sigma = noise,
+      gap = 0.5,
+      radius = 1.0,
       n_train = n_train,
       n_test = n_test,
       n_val = n_val,
       val_frac = val_frac
     )
   )
+  # Zusatzzusammenführungen
+  S$X_all <- rbind(S$X_tr, S$X_val, S$X_te)
+  S$Y_all <- c(S$y_tr, S$y_val, S$y_te)
+  # Relabel, sodass 1 = oben (größeres y-Mittel), 2 = unten (kleineres y-Mittel)
+  S <- relabel_halfmoon(S)
+  # Bequeme Ansicht (nur für Plot/Export)
+  S$X_tr_lab  <- cbind(S$X_tr,  label = S$y_tr)
+  S$X_val_lab <- cbind(S$X_val, label = S$y_val)
+  S$X_te_lab  <- cbind(S$X_te,  label = S$y_te)
+  S$X_all_lab <- cbind(S$X_all, label = S$Y_all)
   check_halfmoon_splits(S)
 }
 
@@ -97,5 +110,37 @@ check_halfmoon_splits <- function(S) {
   n_val <- S$meta$n_val
   if (nrow(S$X_tr) + nrow(S$X_val) != n_train) stop("Training and validation sizes inconsistent")
   if (nrow(S$X_te) != n_test) stop("Test size inconsistent")
+  # Orientierung: 1 oben, 2 unten
+  if (!is.null(S$X_all) && !is.null(S$Y_all)) {
+    mu1 <- mean(S$X_all[S$Y_all == 1L, 2])
+    mu2 <- mean(S$X_all[S$Y_all == 2L, 2])
+    if (!(mu1 > mu2)) stop("Orientation check failed: expected mean_y(label=1) > mean_y(label=2)")
+  }
+  S
+}
+
+#' Relabel Half‑Moon so that label 1 is the UPPER moon
+#' @param S split list
+#' @return relabeled S with S$meta$label_map and updated y_* and Y_all
+relabel_halfmoon <- function(S) {
+  stopifnot(!is.null(S$X_all), !is.null(S$Y_all))
+  y_all <- as.integer(S$Y_all)
+  mu1 <- mean(S$X_all[y_all == 1L, 2])
+  mu2 <- mean(S$X_all[y_all == 2L, 2])
+  swapped <- FALSE
+  if (mu1 < mu2) {
+    swap <- function(v) ifelse(v == 1L, 2L, 1L)
+    S$y_tr <- swap(S$y_tr)
+    S$y_val <- swap(S$y_val)
+    S$y_te <- swap(S$y_te)
+    S$Y_all <- swap(S$Y_all)
+    swapped <- TRUE
+  }
+  S$meta$label_map <- if (swapped) c(`1` = 2L, `2` = 1L) else c(`1` = 1L, `2` = 2L)
+  msg <- sprintf("Orientation: mean_y(label=1)=%.3f, mean_y(label=2)=%.3f%s",
+                 mean(S$X_all[S$Y_all == 1L, 2]),
+                 mean(S$X_all[S$Y_all == 2L, 2]),
+                 if (swapped) " (swapped)" else "")
+  message(msg)
   S
 }
