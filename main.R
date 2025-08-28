@@ -2,7 +2,6 @@ source("00_globals.R")
 if (!exists("%||%")) "%||%" <- function(a, b) if (is.null(a)) b else a
 source("01_data_generation.R")
 source("02_split.R")
-source("scripts/halfmoon_data.R")
 source("models/true_model.R")
 source("models/trtf_model.R")
 source("models/ttm_marginal.R")
@@ -33,29 +32,12 @@ config <- list(
 #' 
 #' @export
 main <- function() {
-  dataset <- Sys.getenv("DATASET", "config4d")
-  if (dataset == "halfmoon2d") {
-    seed <- as.integer(Sys.getenv("SEED"))
-    set.seed(seed)
-    ntr <- as.integer(Sys.getenv("N_TRAIN"))
-    nte <- as.integer(Sys.getenv("N_TEST"))
-    noise <- as.numeric(Sys.getenv("NOISE"))
-    S <- make_halfmoon_splits(ntr, nte, noise, seed, val_frac = 0.2)
-    S$meta$dataset <- dataset
-    dir.create("results", showWarnings = FALSE)
-    saveRDS(S, sprintf("results/splits_%s_seed%03d.rds", dataset, seed))
-    df <- eval_halfmoon(S = S)
-    results_table <<- df
-    return(df)
-  }
-
   seed <- as.integer(Sys.getenv("SEED", 42))
   set.seed(seed)
   prep <- prepare_data(n, config, seed = seed)
   S0 <- prep$S
   S <- list(
     X_tr  = S0$X_tr[, perm, drop = FALSE],
-    X_val = S0$X_val[, perm, drop = FALSE],
     X_te  = S0$X_te[, perm, drop = FALSE]
   )
   cfg <- config[perm]
@@ -64,9 +46,16 @@ main <- function() {
   t_joint_tr <- 0
   mod_true_joint <- fit_TRUE_JOINT(S, cfg)
   t_trtf_tr  <- system.time(mod_trtf      <- fit_TRTF(S, cfg, seed = seed))[['elapsed']]
-  mod_ttm     <- trainMarginalMap(S, seed = seed);  t_ttm_tr <- mod_ttm$time_train
-  mod_ttm_sep <- trainSeparableMap(S, seed = seed); t_sep_tr <- mod_ttm_sep$time_train
-  mod_ttm_cross <- trainCrossTermMap(S, seed = seed); t_ct_tr <- mod_ttm_cross$time_train
+  mod_ttm     <- trainMarginalMap(S, seed = seed);   t_ttm_tr <- mod_ttm$time_train
+  mod_ttm_sep <- trainSeparableMap(S, seed = seed);  t_sep_tr <- mod_ttm_sep$time_train
+  mod_ttm_cross <- trainCrossTermMap(S, degree_g = 3, seed = seed, warmstart_from_separable = TRUE); t_ct_tr <- mod_ttm_cross$time_train
+  # Log ridge configuration for TTM-Cross
+  if (!is.null(mod_ttm_cross$S$meta$ridge)) {
+    rr <- mod_ttm_cross$S$meta$ridge
+    cat(sprintf("[RIDGE] lambda_non=%.3g, lambda_mon=%.3g\n", rr[["lambda_non"]], rr[["lambda_mon"]]))
+  } else if (!is.null(mod_ttm_cross$S$meta$lambda_non) && !is.null(mod_ttm_cross$S$meta$lambda_mon)) {
+    cat(sprintf("[RIDGE] lambda_non=%.3g, lambda_mon=%.3g\n", mod_ttm_cross$S$meta$lambda_non, mod_ttm_cross$S$meta$lambda_mon))
+  }
 
   t_true_te  <- system.time(logL_TRUE(mod_true, S$X_te))[['elapsed']]
   t_joint_te <- system.time(true_joint_logdensity_by_dim(cfg, S$X_te))[['elapsed']]
@@ -86,7 +75,7 @@ main <- function() {
   tab <- calc_loglik_tables(mods, cfg, S$X_te)
   cat(sprintf("n=%d\n", n))
   print(tab)
-  cat(sprintf("Permutation order %s\n", paste(perm, collapse = ",")))
+  cat(sprintf("Permutation order %s (train/test only)\n", paste(perm, collapse = ",")))
   time_tab <- data.frame(
     model = c("True (marginal)", "True (Joint)", "Random Forest",
               "Marginal Map", "Separable Map", "Cross-term Map"),
@@ -110,4 +99,3 @@ if (sys.nframe() == 0L) {
   main()
   replicate_code_scripts("main.R", "replicated_code.txt", env = globalenv())
 }
-

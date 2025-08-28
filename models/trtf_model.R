@@ -74,16 +74,21 @@ predict.mytrtf <- function(object, newdata,
   ld_rest <- do.call(cbind, ld_rest)
   ll <- cbind(ld1, ld_rest)
 
+  # Invariants and numeric sanity
+  stopifnot(is.matrix(ll), nrow(ll) == N, ncol(ll) == K)
+  if (!all(is.finite(ll))) stop("Non-finite values in TRTF logdensity_by_dim")
   if (type == "logdensity_by_dim") return(ll)
-
-  rowSums(ll)
+  joint <- rowSums(ll)
+  if (!all(is.finite(joint))) stop("Non-finite values in TRTF joint logdensity")
+  stopifnot(max(abs(joint - rowSums(ll))) <= 1e-10)
+  joint
 }
 
 logL_TRTF <- function(model, X, cores = NC) {
-  val <- -mean(predict(model, X, type = "logdensity",
-                       cores = cores, trace = TRUE))
-  if (!is.finite(val)) stop("log-likelihood not finite")
-  val
+  nll_value <- -mean(predict(model, X, type = "logdensity",
+                             cores = cores, trace = TRUE))
+  if (!is.finite(nll_value)) stop("log-likelihood not finite")
+  nll_value
 }
 
 logL_TRTF_dim <- function(model, X, cores = NC) {
@@ -111,10 +116,19 @@ fit_TRTF <- function(S, config, seed = NULL, cores = NC) {
                 cores = cores)
   
   mod$config  <- config
-  
-  logL_te_dim <- logL_TRTF_dim(mod, S$X_te, cores = cores)
-  mod$logL_te_dim <- logL_te_dim
-  mod$logL_te <- sum(logL_te_dim)
+  # Metrics (train/test only)
+  nll_tr <- logL_TRTF(mod, X_tr, cores = cores)
+  nll_te_dim <- logL_TRTF_dim(mod, X_te, cores = cores)
+  nll_te <- sum(nll_te_dim)
+  se_te <- {
+    v <- rowSums(-predict(mod, X_te, type = "logdensity_by_dim", cores = cores, trace = TRUE))
+    stats::sd(v) / sqrt(length(v))
+  }
+  mod$NLL_train <- nll_tr
+  mod$NLL_test <- nll_te
+  mod$stderr_test <- se_te
+  mod$logL_te_dim <- nll_te_dim
+  mod$logL_te <- nll_te
   
   mod
 }

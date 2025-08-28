@@ -11,7 +11,7 @@
   $\ell(\mathbf{x})=\sum_{k=1}^K \log \partial_k S_k(\mathbf{x})$ is the log‑Jacobian.
 * Train‑only standardization: $\tilde x_k=(x_k-\mu_k)/\sigma_k$. The Jacobian includes $-\log\sigma_k$ for every $k$.
 * Ranks use `ties.average`. Normal‑scores use $u\in[\frac1{n+1},\frac{n}{n+1}]$ and $z^\star=\Phi^{-1}(u)$.
-* Seeds are deterministic and shared across models; Half‑Moon uses seed, seed+1, seed+2 for train, test, val‑split.
+* Seeds are deterministic and shared across models; Half‑Moon uses seed, seed+1, seed+2 for train, test, val‑split. The main Config‑4D pipeline runs Train/Test only.
 
 ---
 
@@ -186,7 +186,7 @@ Most expressive; computationally heavier due to the 1‑D integral and stabiliza
 * For each model, compute `by_dim` on $X_{\mathrm{te}}$, sum to `joint`.
 * Per‑dim mean NLL is $-$colMeans(`by_dim`); SE per dim is `stderr(-by_dim[,k])`.
 * SUM row reports sums of means; SE computed as `sd(rowSums(-by_dim))/sqrt(N)`.
-* Columns: **True (marginal)**, **True (Joint)**, **Random Forest**, **Marginal Map**, **Separable Map**, **Cross‑term Map**.
+* Columns: **True (marginal)**, **True (Joint)**, **Random Forest**, **Marginal Map**, **Separable Map**, **Cross‑term Map**, and `train_test_policy` (set to `train_test_only`).
 * Formatting: `"%.2f ± %.2f"` where the ± part is **2·SE**.
 
 ---
@@ -354,6 +354,13 @@ PREDICT:
          L_k <- -0.5*z_k^2 - 0.5*log(2π) + h* - log σ_k
   return L or rowSums(L)
 ```
+
+Implementation policy (TTM‑Cross, this repo):
+- Train/Test only: no validation split is used (no CV/grid or automatic order selection).
+- Hyperparameters via config: ridge weights from `getOption("mde.ctm.lambda_non")` and `getOption("mde.ctm.lambda_mon")` (fallback env `MDE_CTM_LAMBDA_NON`/`MDE_CTM_LAMBDA_MON`). Defaults: `lambda_non=3e-2`, `lambda_mon=3e-2`.
+- Quadrature via config: nodes `Q` from `getOption("mde.ctm.Q")` or env `MDE_CTM_Q`; else adaptive default `min(12, 4+2·max(degree_t, degree_t_cross))`.
+- Variable order: fixed by `getOption("mde.ctm.order")`/env `MDE_CTM_ORDER` ∈ {`as-is`,`x1_x2`,`x2_x1`} (2D only).
+- Logging: main.R prints `[RIDGE] lambda_non=..., lambda_mon=...` after fitting TTM‑Cross.
 
 ### TRTF
 

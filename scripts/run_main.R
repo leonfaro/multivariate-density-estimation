@@ -9,6 +9,7 @@ assign("n", n_override, envir = .GlobalEnv)
 
 tab <- main()
 print(tab)
+cat("[INFO] Pipeline executed (train/test only)\n")
 
 if (!dir.exists("results")) dir.create("results", recursive = TRUE)
 tryCatch({

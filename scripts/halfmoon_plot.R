@@ -3,7 +3,7 @@
 #' Provides two helper functions for working with the two-moons data
 #' splits.
 
-fit_halfmoon_models <- function(S, seed = NULL, order_mode = "auto") {
+fit_halfmoon_models <- function(S, seed = NULL, order_mode = "as-is") {
   seed <- if (!is.null(seed)) as.integer(seed) else if (!is.null(S$meta$seed)) S$meta$seed else 42L
   set.seed(seed)
   cfg <- list(list(distr = "norm"), list(distr = "norm"))
@@ -20,7 +20,7 @@ fit_halfmoon_models <- function(S, seed = NULL, order_mode = "auto") {
 }
 
 compute_limits <- function(S, pad = 0.05) {
-  Xall <- rbind(S$X_tr, S$X_val, S$X_te)
+  Xall <- rbind(S$X_tr, S$X_te)
   xr <- range(Xall[, 1])
   yr <- range(Xall[, 2])
   dx <- pad * diff(xr)
@@ -50,23 +50,19 @@ predict.true_marginal_model <- function(object, newdata,
 
 draw_points <- function(S, style = list(), color_by = c("label", "split")) {
   color_by <- match.arg(color_by)
-  n_all <- nrow(S$X_tr) + nrow(S$X_val) + nrow(S$X_te)
+  n_all <- nrow(S$X_tr) + nrow(S$X_te)
   cex <- if (!is.null(style$cex)) style$cex else min(1.2, sqrt(800 / n_all))
   if (color_by == "label") {
     col_tr <- ifelse(S$y_tr == 1L, "blue", "red")
-    col_val <- ifelse(S$y_val == 1L, "blue", "red")
     col_te <- ifelse(S$y_te == 1L, "blue", "red")
     points(S$X_tr, pch = 16, cex = cex, col = adjustcolor(col_tr, alpha.f = 0.65))
-    points(S$X_val, pch = 16, cex = cex, col = adjustcolor(col_val, alpha.f = 0.65))
     points(S$X_te, pch = 16, cex = cex * 1.1, col = adjustcolor(col_te, alpha.f = 0.8))
   } else {
     cols <- if (!is.null(style$cols)) style$cols else c(
       train = rgb(0.2, 0.4, 1, 0.65),
-      val = rgb(1, 0.6, 0, 0.5),
       test = rgb(1, 0, 0, 0.7)
     )
     points(S$X_tr, pch = 16, cex = cex, col = cols["train"])
-    points(S$X_val, pch = 16, cex = cex, col = cols["val"])
     points(S$X_te, pch = 16, cex = cex * 1.1, col = cols["test"])
   }
   invisible(n_all)
@@ -262,7 +258,7 @@ plot_halfmoon_models <- function(mods, S, grid_side,
                                  cores = min(10L, parallel::detectCores() - 2L),
                                  save_png = TRUE, show_plot = TRUE,
                                  no_cache = FALSE, timeout_sec = NA_integer_, abort_file = NULL,
-                                 order_mode = "auto") {
+                                 order_mode = "as-is") {
   if (!is.numeric(cores) || length(cores) != 1L || !is.finite(cores) || cores < 1L) cores <- 1L
   seed <- if (!is.null(S$meta$seed)) S$meta$seed else 0L
   Xtr <- S$X_tr
@@ -286,11 +282,10 @@ plot_halfmoon_models <- function(mods, S, grid_side,
   LD_list <- lapply(evals, `[[`, "joint")
   lev_list <- lapply(LD_list, hdr_levels, xlim = xlim, ylim = ylim,
                      grid_side = grid_side, masses = c(0.5, 0.7, 0.9))
-  n_all <- nrow(S$X_tr) + nrow(S$X_val) + nrow(S$X_te)
+  n_all <- nrow(S$X_tr) + nrow(S$X_te)
   style <- list(
     cex = min(1.2, sqrt(800 / n_all)),
     cols = c(train = rgb(0.2, 0.4, 1, 0.65),
-             val = rgb(1, 0.6, 0, 0.5),
              test = rgb(1, 0, 0, 0.7))
   )
   op <- par(mfrow = c(1, 3), mar = c(3, 3, 2, 1))
