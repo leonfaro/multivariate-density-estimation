@@ -1,6 +1,6 @@
 #' Generate conditional samples
 #'
-#' This function implements conditional sampling via triangular transport mapping as described in `roadmap.md`.
+#' This function implements conditional sampling via triangular transport mapping as described in `Theory.md`.
 #' It sequentially draws samples from the distributions specified in
 #' `config`, potentially conditioning on previously generated columns.
 #'
@@ -63,4 +63,3 @@ Generate_iid_from_config <- function(N, cfg, return_params = FALSE) {
 gen_samples <- function(G, return_params = FALSE) {
   Generate_iid_from_config(G$n, G$config, return_params = return_params)
 }
-
