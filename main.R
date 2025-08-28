@@ -9,7 +9,6 @@ source("models/ttm_separable.R")
 source("models/ttm_cross_term.R")
 source("models/true_joint_model.R")
 source("04_evaluation.R")
-source("replicate_code.R")
 
 perm <- c(1, 2, 3, 4)
 n <- 50
@@ -48,7 +47,14 @@ main <- function() {
   t_trtf_tr  <- system.time(mod_trtf      <- fit_TRTF(S, cfg, seed = seed))[['elapsed']]
   mod_ttm     <- trainMarginalMap(S, seed = seed);   t_ttm_tr <- mod_ttm$time_train
   mod_ttm_sep <- trainSeparableMap(S, seed = seed);  t_sep_tr <- mod_ttm_sep$time_train
-  mod_ttm_cross <- trainCrossTermMap(S, degree_g = 3, seed = seed, warmstart_from_separable = TRUE); t_ct_tr <- mod_ttm_cross$time_train
+  # Choose reverse-KL to NF if enabled, else forward-KL
+  use_rev_nf <- Sys.getenv('MDE_CTM_USE_REV_NF','0') %in% c('1','true','TRUE')
+  if (use_rev_nf) {
+    mod_ttm_cross <- trainCrossTermMapReverseNF(S, degree_g = 2, degree_t = 2, seed = seed)
+    t_ct_tr <- NA_real_
+  } else {
+    mod_ttm_cross <- trainCrossTermMap(S, degree_g = 3, seed = seed, warmstart_from_separable = TRUE); t_ct_tr <- mod_ttm_cross$time_train
+  }
   # Log ridge configuration for TTM-Cross
   if (!is.null(mod_ttm_cross$S$meta$ridge)) {
     rr <- mod_ttm_cross$S$meta$ridge
@@ -97,5 +103,4 @@ main <- function() {
 
 if (sys.nframe() == 0L) {
   main()
-  replicate_code_scripts("main.R", "replicated_code.txt", env = globalenv())
 }

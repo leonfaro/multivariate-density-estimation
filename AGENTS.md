@@ -2,7 +2,7 @@
 
 This repository collects the R notebooks and scripts used in the associated thesis.  All experiments are run directly in R to study multivariate conditional densities with mathematical rigour.
 
-**Important:** Read `Theory.md` before starting any task. Always analyzing outputs for numerical numerical validation. You must always stay within the algorithmic workflow of `Theory.md`. If that is not possible, tell where there might be conflicts.
+**Important:** Read `a_friendly_introduction_to_triangular_transport.md` before starting any task. Always analyzing outputs for numerical numerical validation. You must always stay within the algorithmic workflow of `Theory.md`. If that is not possible, tell where there might be conflicts.
 
 ## Scientific approach
 This repository is a research notebook rather than a software project. All scripts are executed directly in R to study problems in mathematical statistics and probability theory. The focus is on precise and reproducible experiments with **Mathematical Rigour**, not on standard software engineering workflows or packaging. The choice of R reflects the statistical setting; Python is intentionally avoided. The triangular transport methodology is described in `Theory.md`. Our \(S_k(x_1,\ldots,x_k)\) functions are simply transformation forests for the regression \(x_k \sim x_1,\ldots,x_{k-1}\). Monotonicity in \(x_k\) is therefore automatically ensured.
@@ -13,7 +13,7 @@ This repository is a research notebook rather than a software project. All scrip
 - Strictly adhear to notations outlined in `Theory.md`.
 - Adjust `ALGORITHM_SPEC.md` after every task if necessary, so that `ALGORITHM_SPEC.md` always reflects the current state of the codebase.
  - Jede Änderung am Algorithmus‑ oder Auswertungscode (Modelle, Training, Predict‑API, Evaluationsmetriken, numerische Konstanten, Plot-/Grid-Logik) MUSS zeitnah an der entsprechenden Stelle in `ALGORITHM_SPEC.md` nachvollziehbar gemacht werden. Abweichungen zwischen Code und Spezifikation sind explizit zu dokumentieren und in der PR‑Beschreibung festzuhalten.
-- If a task modifies code that `main.R` uses, run `main.R` and update `replicated_code.txt` so it mirrors the current execution.
+  
 - Always analyzing outputs for numerical numerical validation.
 - You must always stay within the algorithmic workflow of `Theory.md`. If that is not possible, tell where there might be conflicts.
 - Keep Code as simple as possible. Goal is a Proof-of-Concept.

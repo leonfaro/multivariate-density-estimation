@@ -21,7 +21,6 @@ All densities are evaluated in log-space and strictly positive parameters use so
 - [main.R](main.R) — Orchestrates full pipeline with global seed.
 - [main_moon.R](main_moon.R) — Run Half‑Moon (2D) experiments and plotting pipeline.
 - [miniboone.R](miniboone.R) — Preprocesses MiniBooNE data into splits.
-- [replicate_code.R](replicate_code.R) — Concatenates sourced scripts for reproducibility.
 
 * * *
 
