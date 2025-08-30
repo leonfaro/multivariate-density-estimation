@@ -40,10 +40,15 @@ main <- function() {
     X_te  = S0$X_te[, perm, drop = FALSE]
   )
   cfg <- config[perm]
-
+  
   t_true_tr  <- system.time(mod_true      <- fit_TRUE(S, cfg))[['elapsed']]
   t_joint_tr <- 0
-  mod_true_joint <- fit_TRUE_JOINT(S, cfg)
+  mod_true_joint <- tryCatch({
+    fit_TRUE_JOINT(S, cfg)
+  }, error = function(e) {
+    message("[WARN] Skipping True (Joint) for this permutation: ", e$message)
+    NULL
+  })
   t_trtf_tr  <- system.time(mod_trtf      <- fit_TRTF(S, cfg, seed = seed))[['elapsed']]
   mod_ttm     <- trainMarginalMap(S, seed = seed);   t_ttm_tr <- mod_ttm$time_train
   mod_ttm_sep <- trainSeparableMap(S, seed = seed);  t_sep_tr <- mod_ttm_sep$time_train
@@ -64,7 +69,10 @@ main <- function() {
   }
 
   t_true_te  <- system.time(logL_TRUE(mod_true, S$X_te))[['elapsed']]
-  t_joint_te <- system.time(true_joint_logdensity_by_dim(cfg, S$X_te))[['elapsed']]
+  # Compute True (Joint) timing in canonical order (independent of permutation)
+  t_joint_te <- tryCatch({
+    system.time(true_joint_logdensity_by_dim(config, S0$X_te))[['elapsed']]
+  }, error = function(e) NA_real_)
   t_trtf_te  <- system.time(predict(mod_trtf, S$X_te, type = "logdensity_by_dim"))[['elapsed']]
   t_ttm_te   <- mod_ttm$time_pred
   t_sep_te   <- mod_ttm_sep$time_pred
@@ -78,7 +86,11 @@ main <- function() {
     ttm_sep = mod_ttm_sep,
     ttm_cross = mod_ttm_cross
   )
-  tab <- calc_loglik_tables(mods, cfg, S$X_te)
+  tab <- calc_loglik_tables(mods, cfg, S$X_te, config_canonical = config, perm = perm)
+  # Remove bookkeeping column from main pipeline output
+  if ("train_test_policy" %in% names(tab)) {
+    tab$train_test_policy <- NULL
+  }
   cat(sprintf("n=%d\n", n))
   print(tab)
   cat(sprintf("Permutation order %s (train/test only)\n", paste(perm, collapse = ",")))

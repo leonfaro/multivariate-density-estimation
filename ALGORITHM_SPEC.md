@@ -125,6 +125,7 @@ $\partial_k S_k = \exp(h_k) > 0$ by construction.
 
 * $g_k$ as in separable.
 * $h_k(t,\mathbf{x}_{1:k-1}) = \sum_\alpha \beta_\alpha \,\psi_\alpha(t,\mathbf{x}_{1:k-1})$ with cross terms $t^r x_j^s$.
+* Training cache: build B‑spline basis $B(t)$ (df columns) and predecessor basis $\Psi(\mathbf{x}_{1:k-1})$ (m columns), then form the row‑wise Khatri–Rao design $\Pi \in \mathbb{R}^{(NQ)\times(df\cdot m)}$ with $\Pi_{(i,q),:}=B(t_{iq})\odot\Psi(\mathbf{x}_{1:k-1}^{(i)})$ (no recycling).
 * Integrate via Gauss–Legendre on $[0,x_k]$; accumulate $\log\int\exp(h)$ by **log‑sum‑exp** of $\log w_q + h_q$.
 
 **Per‑k objective (forward‑KL component)**
@@ -186,7 +187,10 @@ Most expressive; computationally heavier due to the 1‑D integral and stabiliza
 * For each model, compute `by_dim` on $X_{\mathrm{te}}$, sum to `joint`.
 * Per‑dim mean NLL is $-$colMeans(`by_dim`); SE per dim is `stderr(-by_dim[,k])`.
 * SUM row reports sums of means; SE computed as `sd(rowSums(-by_dim))/sqrt(N)`.
-* Columns: **True (marginal)**, **True (Joint)**, **Random Forest**, **Marginal Map**, **Separable Map**, **Cross‑term Map**, and `train_test_policy` (set to `train_test_only`).
+* Columns: **True (marginal)**, **True (Joint)**, **Random Forest**, **Marginal Map**, **Separable Map**, **Cross‑term Map`.
+  Note: `train_test_policy` (previously set to `train_test_only`) is omitted from the main pipeline output (`main.R`),
+  but remains in auxiliary CSVs produced by Half‑Moon evaluation for bookkeeping.
+* True (Joint) under permutation: evaluation uses the canonical generative order to compute per‑dimensional oracle terms and then re‑indexes them to the current display order (no NA); joint equals the sum by construction.
 * Formatting: `"%.2f ± %.2f"` where the ± part is **2·SE**.
 
 ---
