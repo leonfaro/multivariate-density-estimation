@@ -134,11 +134,15 @@ if (!exists(".standardize")) {
   for (i in seq_len(N)) {
     rows <- ((i - 1L) * Q + 1L):(i * Q)
     Bi <- B2D[rows, , drop = FALSE]
-    psi <- matrix(PsiX[i, ], nrow = 1)
-    # Khatri-Rao by row: expand by multiplication
-    block <- do.call(cbind, lapply(seq_len(ncol(Bi)), function(j) Bi[, j] * psi))
+    Mx <- ncol(PsiX)
+    # Khatri–Rao row-wise: replicate the PsiX row to Q rows, then KR with Bi
+    psi_mat <- matrix(PsiX[i, ], nrow = Q, ncol = Mx, byrow = TRUE)
+    block <- .KR_rowwise_ct(Bi, psi_mat)
     Pi[rows, ] <- block
   }
+  # Strict shape/numeric checks
+  stopifnot(nrow(Pi) == N * Q, ncol(Pi) == df * ncol(PsiX))
+  if (!all(is.finite(Pi))) stop("Non-finite entries in Pi design (training)")
   list(Pi = Pi, B2D = B2D, PsiX = PsiX, df = df, M = M, Q = Q)
 }
 
@@ -488,7 +492,17 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2, degree_t_cr
             Bs_blk <- splines::bs(xk_blk, df = bs_spec$df, degree = bs_spec$degree,
                                   knots = bs_spec$knots, Boundary.knots = bs_spec$boundary,
                                   intercept = TRUE)
-            PsiX_blk <- if (ncol(Xprev) >= 1L) cbind(1, Xprev[idx, 1], Xprev[idx, 1]^2, Xprev[idx, 1]^3) else matrix(1, nrow = length(idx), ncol = 1)
+            # Build PsiX for log-Jacobian consistently with training (all predecessors)
+            if (ncol(Xprev) >= 1L) {
+              parts <- list(matrix(1, nrow = length(idx), ncol = 1))
+              for (jj in seq_len(ncol(Xprev))) {
+                xj <- Xprev[idx, jj]
+                parts[[length(parts) + 1L]] <- cbind(xj, xj^2, xj^3)
+              }
+              PsiX_blk <- do.call(cbind, parts)
+            } else {
+              PsiX_blk <- matrix(1, nrow = length(idx), ncol = 1)
+            }
             Hblk <- .KR_rowwise_ct(Bs_blk, PsiX_blk)
             # Accumulate
             if (m_alpha > 0) {

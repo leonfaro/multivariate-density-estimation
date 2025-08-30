@@ -81,7 +81,7 @@ fit_models <- function(S, config) {
 #' @param config Konfiguration
 #' @return Datenrahmen mit Summenzeile
 #' @export
-calc_loglik_tables <- function(models, config, X_te) {
+calc_loglik_tables <- function(models, config, X_te, config_canonical = NULL, perm = NULL) {
   K <- length(config)
 
   ll_true <- matrix(NA_real_, nrow = nrow(X_te), ncol = K)
@@ -91,7 +91,22 @@ calc_loglik_tables <- function(models, config, X_te) {
     ll_true[, k] <- -ll_vec
   }
   ll_trtf <- -predict(models$trtf, X_te, type = "logdensity_by_dim")
-  ll_true_joint <- - true_joint_logdensity_by_dim(config, X_te)
+  ll_true_joint <- tryCatch({
+    if (!is.null(config_canonical) && !is.null(perm)) {
+      stopifnot(length(perm) == K)
+      # Reorder X_te back to the canonical (generative) order, evaluate, then map to current order
+      inv_perm <- integer(K); inv_perm[perm] <- seq_len(K)
+      X_te_canon <- X_te[, inv_perm, drop = FALSE]
+      ll_can <- - true_joint_logdensity_by_dim(config_canonical, X_te_canon)
+      stopifnot(ncol(ll_can) == K)
+      ll_can[, perm, drop = FALSE]
+    } else {
+      - true_joint_logdensity_by_dim(config, X_te)
+    }
+  }, error = function(e) {
+    message("[WARN] True (Joint) not computed for this configuration/permutation: ", e$message)
+    matrix(NA_real_, nrow = nrow(X_te), ncol = K)
+  })
 
   if (!is.null(models$ttm)) {
     ll_ttm <- -predict(models$ttm$S, X_te, type = "logdensity_by_dim")
