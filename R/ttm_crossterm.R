@@ -12,7 +12,7 @@ source(file.path("R", "ttm_core.R"))
 
 .standardize <- function(X, mu, sigma) sweep(sweep(X, 2, mu, "-"), 2, sigma, "/")
 
-fit_ttm_crossterm <- function(data, deg_g = 2L, df_t = 6L, lambda = 1e-3, Q = 16L, Hmax = 20, seed = 42) {
+fit_ttm_crossterm <- function(data, deg_g = 2L, df_t = 6L, lambda = 1e-3, Q = 16L, Hmax = 20, maxit = 50L, seed = 42) {
   set.seed(seed)
   S_in <- if (is.list(data) && !is.null(data$X_tr) && !is.null(data$X_te)) data else {
     stopifnot(is.matrix(data))
@@ -58,7 +58,7 @@ fit_ttm_crossterm <- function(data, deg_g = 2L, df_t = 6L, lambda = 1e-3, Q = 16
         0.5 * sum(S^2) - sum(h_star) + 0.5 * lambda * sum(theta^2)
       }
       theta0 <- c(rep(0, m_g), rep(0, m_h))
-      opt <- optim(theta0, fn = fn_k, method = "L-BFGS-B")
+      opt <- optim(theta0, fn = fn_k, method = "L-BFGS-B", control = list(maxit = maxit))
       a_hat <- if (m_g > 0) opt$par[seq_len(m_g)] else numeric(0)
       b_hat <- opt$par[(m_g + 1L):length(opt$par)]
       coeffs[[k]] <- list(alpha = a_hat, beta = b_hat)
@@ -76,4 +76,3 @@ fit_ttm_crossterm <- function(data, deg_g = 2L, df_t = 6L, lambda = 1e-3, Q = 16
        NLL_test  = mean(-predict_ttm(model, X_te,  type = "logdensity")),
        time_train = time_train, time_pred = time_pred)
 }
-

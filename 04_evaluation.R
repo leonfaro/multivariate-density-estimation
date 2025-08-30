@@ -3,10 +3,16 @@ root_path <- getwd()
 if (basename(root_path) == "testthat") {
   root_path <- dirname(dirname(root_path))
 }
-source(file.path(root_path, "models/ttm_marginal.R"))
-source(file.path(root_path, "models/ttm_separable.R"))
-source(file.path(root_path, "models/ttm_cross_term.R"))
+# Use new modular TTM implementation for evaluation
+source(file.path(root_path, "R/ttm_bases.R"))
+source(file.path(root_path, "R/ttm_core.R"))
+source(file.path(root_path, "R/ttm_marginal.R"))
+source(file.path(root_path, "R/ttm_separable.R"))
+source(file.path(root_path, "R/ttm_crossterm.R"))
 source(file.path(root_path, "models/true_joint_model.R"))
+
+# Local stderr helper (avoid base::stderr connection)
+stderr <- function(x) stats::sd(x) / sqrt(length(x))
 
 #' Summen-Zeile an Tabelle anh\u00e4ngen
 #'
@@ -109,7 +115,11 @@ calc_loglik_tables <- function(models, config, X_te, config_canonical = NULL, pe
   })
 
   if (!is.null(models$ttm)) {
-    ll_ttm <- -predict(models$ttm$S, X_te, type = "logdensity_by_dim")
+    ll_ttm <- tryCatch({
+      -predict_ttm(models$ttm$S, X_te, type = "logdensity_by_dim")
+    }, error = function(e) {
+      -predict(models$ttm$S, X_te, type = "logdensity_by_dim")
+    })
     mean_ttm <- colMeans(ll_ttm)
     se_ttm   <- apply(ll_ttm, 2, stderr)
     total_nll_ttm <- rowSums(ll_ttm)
@@ -120,7 +130,11 @@ calc_loglik_tables <- function(models, config, X_te, config_canonical = NULL, pe
     se_sum_ttm <- NA_real_
   }
   if (!is.null(models$ttm_sep)) {
-    ll_ttm_sep <- -predict(models$ttm_sep$S, X_te, type = "logdensity_by_dim")
+    ll_ttm_sep <- tryCatch({
+      -predict_ttm(models$ttm_sep$S, X_te, type = "logdensity_by_dim")
+    }, error = function(e) {
+      -predict(models$ttm_sep$S, X_te, type = "logdensity_by_dim")
+    })
     mean_sep <- colMeans(ll_ttm_sep)
     se_sep   <- apply(ll_ttm_sep, 2, stderr)
     total_nll_sep <- rowSums(ll_ttm_sep)
@@ -131,8 +145,11 @@ calc_loglik_tables <- function(models, config, X_te, config_canonical = NULL, pe
     se_sum_sep <- NA_real_
   }
   if (!is.null(models$ttm_cross)) {
-    ll_ttm_cross <- -predict(models$ttm_cross$S, X_te,
-                             type = "logdensity_by_dim")
+    ll_ttm_cross <- tryCatch({
+      -predict_ttm(models$ttm_cross$S, X_te, type = "logdensity_by_dim")
+    }, error = function(e) {
+      -predict(models$ttm_cross$S, X_te, type = "logdensity_by_dim")
+    })
     mean_cross <- colMeans(ll_ttm_cross)
     se_cross   <- apply(ll_ttm_cross, 2, stderr)
     total_nll_cross <- rowSums(ll_ttm_cross)
