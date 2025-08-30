@@ -205,6 +205,17 @@ Most expressive; computationally heavier due to the 1‑D integral and stabiliza
 
 ---
 
+## MiniBooNE cross‑term grid (small n)
+
+- Script: `scripts/miniboone_ttm_cross_term.R`.
+- Data: reads `data/miniboone_train.csv`, `data/miniboone_val.csv`, `data/miniboone_test.csv`; uses first `n=50` rows of each.
+- Grid: `Q ∈ {6K, 8K, 10K}` where `K` is feature dimension; ridge `λ_non = 0.05·n/Q`, `λ_mon = 0.5·λ_non`.
+- Fit: `trainCrossTermMap(S, degree_g=3, warmstart_from_separable=TRUE)` on train; evaluate SUM NLL (nats) on validation.
+- Output: CSV `results/miniboone_ctm_grid_nXXX.csv` with columns `[n,K,Q,lambda_non,lambda_mon,nats,runtime_sec,status,msg]`, ranked by `nats` ascending (ties by runtime).
+- Best configuration is optionally refit and evaluated on the (first 50 rows of) test set; printed to console.
+
+---
+
 ## Numerical stability rules (hard constraints)
 
 * Work in **log‑space** everywhere; never exponentiate densities during training or evaluation.
@@ -243,6 +254,7 @@ Most expressive; computationally heavier due to the 1‑D integral and stabiliza
 * Eq. (20) → `trainMarginalMap`, `predict.ttm_marginal`: normal‑scores, constant log‑Jacobian.
 * Eq. (21) → `trainSeparableMap`, `predict.ttm_separable`: per‑k convex objective, $A,B,D$.
 * Eq. (22) → `trainCrossTermMap`, `predict.ttm_cross_term`: $g_k+\int\exp(h_k)$, Gauss–Legendre + LSE.
+* Reverse‑KL variant → `trainCrossTermMapReverseNF`, `predict.ttm_cross_term_rev_nf` (optional NF surrogate).
 * TRTF → `fit_TRTF`, `predict.mytrtf`: conditional transformation forests per $k$.
 * TRUE (marginal) → `fit_TRUE`, `predict_TRUE`; TRUE (joint) → `true_joint_logdensity_by_dim`.
 * Evaluation & formatting → `04_evaluation.R` and helpers.
@@ -361,9 +373,10 @@ PREDICT:
 
 Implementation policy (TTM‑Cross, this repo):
 - Train/Test only: no validation split is used (no CV/grid or automatic order selection).
-- Hyperparameters via config: ridge weights from `getOption("mde.ctm.lambda_non")` and `getOption("mde.ctm.lambda_mon")` (fallback env `MDE_CTM_LAMBDA_NON`/`MDE_CTM_LAMBDA_MON`). Defaults: `lambda_non=3e-2`, `lambda_mon=3e-2`.
-- Quadrature via config: nodes `Q` from `getOption("mde.ctm.Q")` or env `MDE_CTM_Q`; else adaptive default `min(12, 4+2·max(degree_t, degree_t_cross))`.
+- Hyperparameters via config: ridge weights from `getOption("mde.ctm.lambda_non")` and `getOption("mde.ctm.lambda_mon")` (fallback env `MDE_CTM_LAMBDA_NON`/`MDE_CTM_LAMBDA_MON`). Defaults: `lambda_non=3e-2`, `lambda_mon=2e-2`.
+- Quadrature via config: nodes `Q` from `getOption("mde.ctm.Q")` or env `MDE_CTM_Q`; else default `24` nodes.
 - Variable order: fixed by `getOption("mde.ctm.order")`/env `MDE_CTM_ORDER` ∈ {`as-is`,`x1_x2`,`x2_x1`} (2D only).
+- Optional reverse‑KL surrogate: set env `MDE_CTM_USE_REV_NF=1` to fit a shallow NF surrogate and calibrate a reverse TTM (R=z→x) by minimizing `KL(π || R_#η)`; exposed via `trainCrossTermMapReverseNF` and `predict.ttm_cross_term_rev_nf`.
 - Logging: main.R prints `[RIDGE] lambda_non=..., lambda_mon=...` after fitting TTM‑Cross.
 
 ### TRTF

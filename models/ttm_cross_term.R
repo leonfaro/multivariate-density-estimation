@@ -416,7 +416,7 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2, degree_t_cr
         Qopt <- getOption("mde.ctm.Q", NA_integer_)
         if (is.na(Qopt)) {
           Qenv <- suppressWarnings(as.integer(Sys.getenv("MDE_CTM_Q", NA_character_)))
-          if (is.na(Qenv)) min(12, 4 + 2 * degree_t_max) else Qenv
+          if (is.na(Qenv)) 24L else Qenv
         } else Qopt
       } else Q_override
       batch_use <- if (is.null(batch_n)) min(N, max(256L, floor(65536 / max(1L, Q_use)))) else min(N, batch_n)
@@ -972,7 +972,7 @@ trainCrossTermMapReverseNF <- function(S_or_X, degree_g = 2, degree_t = 2, degre
   # Reverse map R params per k: g (alpha) on z_prev, h (beta) on (t=z_k, z_prev)
   # Quadratur
   degree_t_max <- max(degree_t, degree_t_cross)
-  Q_use <- if (is.null(Q)) min(12, 4 + 2 * degree_t_max) else Q
+  Q_use <- if (is.null(Q)) 24L else Q
   quad <- .gauss_legendre_01_ct(Q_use); nodes <- quad$nodes; weights <- quad$weights
   nodes_pow <- outer(nodes, seq_len(degree_t_max), `^`)
   # Param sizes
