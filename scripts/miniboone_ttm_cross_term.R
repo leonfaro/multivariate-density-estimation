@@ -1,14 +1,20 @@
 #!/usr/bin/env Rscript
 # Grid over TTM Cross-term on MiniBooNE CSVs (small n)
-# - Uses first 50 rows of train/val/test
+# - User can set k (first columns) and n (first rows) right below
 # - Q ∈ {6K, 8K, 10K}
 # - λ_non,0 = 0.05 * n / Q,  λ_mon,0 = 2^-1 * λ_non,0
 # - Reports table with hyperparameters, nats (SUM NLL on validation), and runtime; ranked by nats asc
+
+# --- User-editable selection (set here) ---
+k <- 4L   # keep first k columns; set to NA to keep all
+n <- 50L  # use first n rows from each split
+# -----------------------------------------
 
 options(error = function(e) { message("ERROR: ", conditionMessage(e)); quit(status = 1) })
 
 suppressMessages({
   source("00_globals.R")
+  source("models/ttm_separable.R")
   source("models/ttm_cross_term.R")
 })
 
@@ -28,8 +34,11 @@ sum_nll <- function(LD_by_dim) sum(colMeans(-LD_by_dim))
 
 main <- function() {
   set.seed(as.integer(Sys.getenv("SEED", "42")))
-  n_use <- as.integer(Sys.getenv("N_USE", "50"))
-  if (!is.finite(n_use) || n_use <= 0L) n_use <- 50L
+  # Use n from header; fallback to 50 if invalid
+  n_use <- suppressWarnings(as.integer(n))
+  if (is.na(n_use) || !is.finite(n_use) || n_use <= 0L) n_use <- 50L
+  # Use k from header; NA means keep all
+  D_KEEP <- suppressWarnings(as.integer(k))
   train_csv <- Sys.getenv("TRAIN_CSV", "data/miniboone_train.csv")
   val_csv   <- Sys.getenv("VAL_CSV",   "data/miniboone_val.csv")
   test_csv  <- Sys.getenv("TEST_CSV",  "data/miniboone_test.csv")
@@ -38,61 +47,79 @@ main <- function() {
   Xval <- read_first_n_numeric(val_csv,   n_use)
   Xte <- read_first_n_numeric(test_csv,   n_use)
   stopifnot(ncol(Xtr) == ncol(Xval), ncol(Xtr) == ncol(Xte))
+  if (!is.na(D_KEEP) && is.finite(D_KEEP) && D_KEEP >= 1L && D_KEEP < ncol(Xtr)) {
+    cols <- seq_len(D_KEEP)
+    Xtr  <- Xtr[, cols, drop = FALSE]
+    Xval <- Xval[, cols, drop = FALSE]
+    Xte  <- Xte[, cols, drop = FALSE]
+  }
+  # Train-only per-column log transform: y = log(x + c_k), c_k ensures positivity on train
+  # Compute shift from train only and apply to all splits (no leakage of values)
+  train_min <- apply(Xtr, 2, min)
+  shift <- ifelse(train_min > 0, 0, -train_min + 1e-6)
+  add_shift <- function(X, s) sweep(X, 2, s, "+")
+  eps <- 1e-12
+  Xtr <- log(pmax(add_shift(Xtr, shift), eps))
+  Xval <- log(pmax(add_shift(Xval, shift), eps))
+  Xte <- log(pmax(add_shift(Xte, shift), eps))
   n <- nrow(Xtr); K <- ncol(Xtr)
   Qs <- as.integer(c(6L*K, 8L*K, 10L*K))
+  multipliers <- c(0.5, 1, 2)
 
   dir.create("results", showWarnings = FALSE)
   rows <- list()
   best <- list(nats = Inf, Q = NA_integer_, lambda_non = NA_real_, lambda_mon = NA_real_, idx = NA_integer_)
 
   for (Q in Qs) {
-    lambda_non0 <- 0.05 * n / Q
-    lambda_mon0 <- 0.5 * lambda_non0
-    S <- list(X_tr = Xtr, X_te = Xval)
-    t0 <- Sys.time()
-    fit <- tryCatch(trainCrossTermMap(S, degree_g = 3, Q = Q,
-                                      lambda_non = lambda_non0, lambda_mon = lambda_mon0,
-                                      warmstart_from_separable = TRUE,
-                                      sep_degree_g = 2, sep_lambda = 1e-3,
-                                      seed = 42),
-                    error = function(e) e)
-    runtime <- as.numeric(difftime(Sys.time(), t0, units = "secs"))
-    if (inherits(fit, "error")) {
+    # Regularisierung je Q: λ_non,0 = 0.05 * Q / n; λ_mon,0 = 0.5 * λ_non,0
+    base_non <- 0.05 * Q / n
+    base_mon <- 0.5 * base_non
+    for (m in multipliers) {
+      lambda_non0 <- base_non * m
+      lambda_mon0 <- base_mon * m
+      S <- list(X_tr = Xtr, X_te = Xval)
+      t0 <- Sys.time()
+      fit <- tryCatch(trainCrossTermMap(S, degree_g = 3, Q = Q,
+                                        lambda_non = lambda_non0, lambda_mon = lambda_mon0,
+                                        warmstart_from_separable = TRUE,
+                                        sep_degree_g = 2, sep_lambda = 1e-3,
+                                        seed = 42),
+                      error = function(e) e)
+      runtime <- as.numeric(difftime(Sys.time(), t0, units = "secs"))
+      if (inherits(fit, "error")) {
+        rows[[length(rows) + 1L]] <- data.frame(
+          n = n, K = K, Q = Q, mult = m,
+          lambda_non = lambda_non0, lambda_mon = lambda_mon0,
+          nats = NA_real_, runtime_sec = runtime,
+          stringsAsFactors = FALSE
+        )
+        next
+      }
+      LD_val <- tryCatch(-predict(fit$S, Xval, type = "logdensity_by_dim"), error = function(e) e)
+      if (inherits(LD_val, "error")) {
+        rows[[length(rows) + 1L]] <- data.frame(
+          n = n, K = K, Q = Q, mult = m,
+          lambda_non = lambda_non0, lambda_mon = lambda_mon0,
+          nats = NA_real_, runtime_sec = runtime,
+          stringsAsFactors = FALSE
+        )
+        next
+      }
+      stopifnot(is.matrix(LD_val), nrow(LD_val) == nrow(Xval), ncol(LD_val) == K)
+      nats <- sum(colMeans(LD_val))
       rows[[length(rows) + 1L]] <- data.frame(
-        n = n, K = K, Q = Q,
+        n = n, K = K, Q = Q, mult = m,
         lambda_non = lambda_non0, lambda_mon = lambda_mon0,
-        nats = NA_real_, runtime_sec = runtime,
-        status = "error", msg = as.character(fit$message),
+        nats = nats, runtime_sec = runtime,
         stringsAsFactors = FALSE
       )
-      next
+      if (is.finite(nats) && nats < best$nats) best <- list(nats = nats, Q = Q, lambda_non = lambda_non0, lambda_mon = lambda_mon0, idx = length(rows))
     }
-    LD_val <- tryCatch(-predict(fit$S, Xval, type = "logdensity_by_dim"), error = function(e) e)
-    if (inherits(LD_val, "error")) {
-      rows[[length(rows) + 1L]] <- data.frame(
-        n = n, K = K, Q = Q,
-        lambda_non = lambda_non0, lambda_mon = lambda_mon0,
-        nats = NA_real_, runtime_sec = runtime,
-        status = "predict_error", msg = as.character(LD_val$message),
-        stringsAsFactors = FALSE
-      )
-      next
-    }
-    stopifnot(is.matrix(LD_val), nrow(LD_val) == nrow(Xval), ncol(LD_val) == K)
-    nats <- sum(colMeans(LD_val))
-    rows[[length(rows) + 1L]] <- data.frame(
-      n = n, K = K, Q = Q,
-      lambda_non = lambda_non0, lambda_mon = lambda_mon0,
-      nats = nats, runtime_sec = runtime,
-      status = "ok", msg = "",
-      stringsAsFactors = FALSE
-    )
-    if (is.finite(nats) && nats < best$nats) best <- list(nats = nats, Q = Q, lambda_non = lambda_non0, lambda_mon = lambda_mon0, idx = length(rows))
   }
 
   df <- if (length(rows) > 0) do.call(rbind, rows) else data.frame()
   ord <- order(df$nats, df$runtime_sec, na.last = TRUE)
-  df_ranked <- df[ord, , drop = FALSE]
+  df_ranked <- df[ord, c("n","K","Q","mult","lambda_non","lambda_mon","nats","runtime_sec") , drop = FALSE]
   rownames(df_ranked) <- NULL
   out_path <- sprintf("results/miniboone_ctm_grid_n%03d.csv", n)
   write.csv(df_ranked, out_path, row.names = FALSE)
@@ -119,4 +146,3 @@ main <- function() {
 }
 
 if (sys.nframe() == 0L) main()
-

@@ -209,7 +209,11 @@ Most expressive; computationally heavier due to the 1‑D integral and stabiliza
 
 - Script: `scripts/miniboone_ttm_cross_term.R`.
 - Data: reads `data/miniboone_train.csv`, `data/miniboone_val.csv`, `data/miniboone_test.csv`; uses first `n=50` rows of each.
-- Grid: `Q ∈ {6K, 8K, 10K}` where `K` is feature dimension; ridge `λ_non = 0.05·n/Q`, `λ_mon = 0.5·λ_non`.
+- Column subset: optionally restrict to the first `D_KEEP` columns via env var `D_KEEP` (applied before computing `K`).
+- Direct editing in script: at the top of `scripts/miniboone_ttm_cross_term.R` set `k <-` (first columns to keep; `NA` for all) and `n <-` (first rows per split). These override env defaults.
+- Train‑only log transform: after reading/slicing, apply per‑column `y = log(max(x + c_k, ε))` with `c_k = max(0, −min_train(x_k)) + 1e−6`, `ε=1e−12`; reuse the same `c_k` for val/test.
+- Grid: `Q ∈ {6K, 8K, 10K}` where `K` is feature dimension; ridge `λ_non = 0.05·Q/n`, `λ_mon = 0.5·λ_non`.
+- Geometric spread per Q: multiply both λ by `m ∈ {0.5, 1, 2}`; columns include `mult`.
 - Fit: `trainCrossTermMap(S, degree_g=3, warmstart_from_separable=TRUE)` on train; evaluate SUM NLL (nats) on validation.
 - Output: CSV `results/miniboone_ctm_grid_nXXX.csv` with columns `[n,K,Q,lambda_non,lambda_mon,nats,runtime_sec,status,msg]`, ranked by `nats` ascending (ties by runtime).
 - Best configuration is optionally refit and evaluated on the (first 50 rows of) test set; printed to console.
@@ -254,7 +258,7 @@ Most expressive; computationally heavier due to the 1‑D integral and stabiliza
 * Eq. (20) → `trainMarginalMap`, `predict.ttm_marginal`: normal‑scores, constant log‑Jacobian.
 * Eq. (21) → `trainSeparableMap`, `predict.ttm_separable`: per‑k convex objective, $A,B,D$.
 * Eq. (22) → `trainCrossTermMap`, `predict.ttm_cross_term`: $g_k+\int\exp(h_k)$, Gauss–Legendre + LSE.
-* Reverse‑KL variant → `trainCrossTermMapReverseNF`, `predict.ttm_cross_term_rev_nf` (optional NF surrogate).
+* (Removed) Reverse‑KL variant and NF‑reverse surrogate; only forward‑KL TTM is maintained.
 * TRTF → `fit_TRTF`, `predict.mytrtf`: conditional transformation forests per $k$.
 * TRUE (marginal) → `fit_TRUE`, `predict_TRUE`; TRUE (joint) → `true_joint_logdensity_by_dim`.
 * Evaluation & formatting → `04_evaluation.R` and helpers.
@@ -376,8 +380,17 @@ Implementation policy (TTM‑Cross, this repo):
 - Hyperparameters via config: ridge weights from `getOption("mde.ctm.lambda_non")` and `getOption("mde.ctm.lambda_mon")` (fallback env `MDE_CTM_LAMBDA_NON`/`MDE_CTM_LAMBDA_MON`). Defaults: `lambda_non=3e-2`, `lambda_mon=2e-2`.
 - Quadrature via config: nodes `Q` from `getOption("mde.ctm.Q")` or env `MDE_CTM_Q`; else default `24` nodes.
 - Variable order: fixed by `getOption("mde.ctm.order")`/env `MDE_CTM_ORDER` ∈ {`as-is`,`x1_x2`,`x2_x1`} (2D only).
-- Optional reverse‑KL surrogate: set env `MDE_CTM_USE_REV_NF=1` to fit a shallow NF surrogate and calibrate a reverse TTM (R=z→x) by minimizing `KL(π || R_#η)`; exposed via `trainCrossTermMapReverseNF` and `predict.ttm_cross_term_rev_nf`.
+  (Reverse‑KL and NF‑reverse APIs have been removed; forward‑KL only.)
 - Logging: main.R prints `[RIDGE] lambda_non=..., lambda_mon=...` after fitting TTM‑Cross.
+
+Hyperparameter optimization (HPO, optional):
+- Enable with `options(mde.ctm.auto_hpo=TRUE)` or env `MDE_CTM_AUTO_HPO=1`.
+- Split `X_tr` into `(X_tr_fit, X_val)` by `hpo_val_frac` (default 0.2) using the same `seed`.
+- Loop up to `hpo_max_rounds` and adapt `(λ_non, λ_mon)` multiplicatively using candidates `c∈{0.5,1,2}`, `c_r∈{0.75,1,1.25}` within bounds `hpo_lambda_lo/hi` and ratio bounds `hpo_ratio_lo/hi`.
+- Adaptive quadrature: increase `Q` by `hpo_Q_step` up to `[hpo_Q_min, hpo_Q_max]` if the finite‑difference derivative check against `exp(h)` exceeds `hpo_deriv_tol`. The derivative check is basis‑consistent: if the fit used B‑splines it evaluates `h` and the integral using the Bspline×ψ basis; otherwise it uses the polynomial fallback—identical to the predictor’s Eq. (22) logic.
+- Eq.(22)‑Check ist single‑source und basis‑konsistent: Sowohl der HPO‑Derivatetest als auch der optionale Predictor‑Debug verwenden dieselbe Helper‑Routine und die jeweilige Trainingsbasis (B‑Spline×ψ bzw. Poly‑Fallback).
+- Warm‑start α‑coefficients across rounds; rollback and inflate `λ_mon` if instability is detected.
+- On success, the chosen `(Q, λ_non, λ_mon)` are persisted in `S$meta$hpo` together with the best validation NLL.
 
 ### TRTF
 
