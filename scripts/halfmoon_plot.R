@@ -195,7 +195,8 @@ eval_density_grid <- function(model, G, xlim, ylim, grid_side, seed,
   # Lade benötigte Funktionen/Packages in Worker-Sessions
   parallel::clusterEvalQ(cl, {
     source("00_globals.R")
-    source("models/ttm_marginal.R"); source("models/ttm_separable.R"); source("models/ttm_cross_term.R")
+    source("R/ttm_bases.R"); source("R/ttm_core.R")
+    source("R/ttm_marginal.R"); source("R/ttm_separable.R"); source("R/ttm_crossterm.R")
     source("models/trtf_model.R"); source("models/true_model.R")
     source("scripts/halfmoon_plot.R")
     NULL

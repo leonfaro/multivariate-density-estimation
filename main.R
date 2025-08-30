@@ -56,9 +56,9 @@ main <- function() {
   # New TTM fits (maps-from-samples, forward-KL)
   mod_ttm      <- fit_ttm(S, algo = "marginal",  seed = seed);  t_ttm_tr <- mod_ttm$time_train
   mod_ttm_sep  <- fit_ttm(S, algo = "separable", seed = seed);  t_sep_tr <- mod_ttm_sep$time_train
-  # Lighter cross-term defaults for speed on small n
+  # Cross-term with moderate expressiveness and accuracy
   mod_ttm_cross<- fit_ttm(S, algo = "crossterm", seed = seed,
-                          deg_g = 0L, df_t = 4L, Q = 8L, lambda = 1e-3, maxit = 30L);
+                          deg_g = 2L, df_t = 6L, Q = 16L, lambda = 1e-3, maxit = 50L);
   t_ct_tr  <- mod_ttm_cross$time_train
 
   t_true_te  <- system.time(logL_TRUE(mod_true, S$X_te))[['elapsed']]

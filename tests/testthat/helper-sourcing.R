@@ -8,9 +8,11 @@ if (basename(root_path) == "testthat") {
 source(file.path(root_path, "00_globals.R"))
 source(file.path(root_path, "01_data_generation.R"))
 source(file.path(root_path, "02_split.R"))
-source(file.path(root_path, "models/ttm_marginal.R"))
-source(file.path(root_path, "models/ttm_separable.R"))
-source(file.path(root_path, "models/ttm_cross_term.R"))
+source(file.path(root_path, "R/ttm_bases.R"))
+source(file.path(root_path, "R/ttm_core.R"))
+source(file.path(root_path, "R/ttm_marginal.R"))
+source(file.path(root_path, "R/ttm_separable.R"))
+source(file.path(root_path, "R/ttm_crossterm.R"))
 source(file.path(root_path, "models/true_model.R"))
 source(file.path(root_path, "models/true_joint_model.R"))
 
@@ -18,4 +20,3 @@ source(file.path(root_path, "models/true_joint_model.R"))
 source(file.path(root_path, "main.R"))
 
 stderr <- function(x) stats::sd(x)/sqrt(length(x))
-

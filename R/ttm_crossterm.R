@@ -67,12 +67,16 @@ fit_ttm_crossterm <- function(data, deg_g = 2L, df_t = 6L, lambda = 1e-3, Q = 16
               deg_g = as.integer(deg_g), spec_h = spec_h,
               gl_nodes = nodes, gl_weights = weights, Hmax = Hmax)
     class(S) <- "ttm_cross_term"
-    model <<- S
   })[["elapsed"]]
 
-  time_pred <- system.time({ invisible(predict_ttm(model, X_te, type = "logdensity_by_dim")) })[["elapsed"]]
-  list(S = model,
-       NLL_train = mean(-predict_ttm(model, X_tr, type = "logdensity")),
-       NLL_test  = mean(-predict_ttm(model, X_te,  type = "logdensity")),
+  time_pred <- system.time({ invisible(predict_ttm(S, X_te, type = "logdensity_by_dim")) })[["elapsed"]]
+  list(S = S,
+       NLL_train = mean(-predict_ttm(S, X_tr, type = "logdensity")),
+       NLL_test  = mean(-predict_ttm(S, X_te,  type = "logdensity")),
        time_train = time_train, time_pred = time_pred)
+}
+
+# S3 predict wrapper for cross-term TTM
+predict.ttm_cross_term <- function(object, newdata, type = c("logdensity_by_dim", "logdensity"), ...) {
+  predict_ttm(object, newdata, match.arg(type))
 }

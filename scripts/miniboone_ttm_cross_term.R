@@ -14,8 +14,10 @@ options(error = function(e) { message("ERROR: ", conditionMessage(e)); quit(stat
 
 suppressMessages({
   source("00_globals.R")
-  source("models/ttm_separable.R")
-  source("models/ttm_cross_term.R")
+  source("R/ttm_bases.R")
+  source("R/ttm_core.R")
+  source("R/ttm_separable.R")
+  source("R/ttm_crossterm.R")
 })
 
 # Helper: read first N numeric rows from CSV
@@ -79,11 +81,8 @@ main <- function() {
       lambda_mon0 <- base_mon * m
       S <- list(X_tr = Xtr, X_te = Xval)
       t0 <- Sys.time()
-      fit <- tryCatch(trainCrossTermMap(S, degree_g = 3, Q = Q,
-                                        lambda_non = lambda_non0, lambda_mon = lambda_mon0,
-                                        warmstart_from_separable = TRUE,
-                                        sep_degree_g = 2, sep_lambda = 1e-3,
-                                        seed = 42),
+      fit <- tryCatch(fit_ttm(S, algo = "crossterm", deg_g = 3, Q = Q,
+                               lambda = mean(c(lambda_non0, lambda_mon0)), df_t = 6, seed = 42),
                       error = function(e) e)
       runtime <- as.numeric(difftime(Sys.time(), t0, units = "secs"))
       if (inherits(fit, "error")) {
@@ -95,7 +94,7 @@ main <- function() {
         )
         next
       }
-      LD_val <- tryCatch(-predict(fit$S, Xval, type = "logdensity_by_dim"), error = function(e) e)
+      LD_val <- tryCatch(-predict_ttm(fit$S, Xval, type = "logdensity_by_dim"), error = function(e) e)
       if (inherits(LD_val, "error")) {
         rows[[length(rows) + 1L]] <- data.frame(
           n = n, K = K, Q = Q, mult = m,
@@ -130,13 +129,11 @@ main <- function() {
     cat(sprintf("\n[Best] Q=%d, lambda_non=%.6g, lambda_mon=%.6g (val SUM NLL=%.4f)\n", best$Q, best$lambda_non, best$lambda_mon, best$nats))
     # Reuse best fit if index tracked; otherwise refit
     S_test <- list(X_tr = Xtr, X_te = Xte)
-    fit_best <- tryCatch(trainCrossTermMap(S_test, degree_g = 3, Q = best$Q,
-                                           lambda_non = best$lambda_non, lambda_mon = best$lambda_mon,
-                                           warmstart_from_separable = TRUE,
-                                           sep_degree_g = 2, sep_lambda = 1e-3,
-                                           seed = 42), error = function(e) e)
+    fit_best <- tryCatch(fit_ttm(S_test, algo = "crossterm", deg_g = 3, Q = best$Q,
+                                 lambda = mean(c(best$lambda_non, best$lambda_mon)), df_t = 6, seed = 42),
+                         error = function(e) e)
     if (!inherits(fit_best, "error")) {
-      LD_test <- -predict(fit_best$S, Xte, type = "logdensity_by_dim")
+      LD_test <- -predict_ttm(fit_best$S, Xte, type = "logdensity_by_dim")
       nats_test <- sum(colMeans(LD_test))
       cat(sprintf("[Best→Test] SUM NLL (nats): %.4f\n", nats_test))
     } else {
