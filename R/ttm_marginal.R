@@ -56,14 +56,13 @@ fit_ttm_marginal <- function(data, seed = 42) {
     coeffs <- lapply(seq_len(K), function(k) .fit_marginal_per_k(X_tr_std[, k]))
     S <- list(algo = "marginal", mu = mu, sigma = sigma, coeffs = coeffs, order = seq_len(K))
     class(S) <- "ttm_marginal2"
-    model <<- S
   })[["elapsed"]]
 
-  t_te <- system.time({ invisible(predict_ttm(model, X_te, type = "logdensity_by_dim")) })[["elapsed"]]
+  t_te <- system.time({ invisible(predict_ttm(S, X_te, type = "logdensity_by_dim")) })[["elapsed"]]
 
-  list(S = model,
-       NLL_train = mean(-predict_ttm(model, X_tr, type = "logdensity")),
-       NLL_test  = mean(-predict_ttm(model, X_te,  type = "logdensity")),
+  list(S = S,
+       NLL_train = mean(-predict_ttm(S, X_tr, type = "logdensity")),
+       NLL_test  = mean(-predict_ttm(S, X_te,  type = "logdensity")),
        time_train = t_tr, time_pred = t_te)
 }
 

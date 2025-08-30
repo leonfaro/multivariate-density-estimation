@@ -75,13 +75,17 @@ fit_ttm_separable <- function(data, degree_g = 2L, lambda = 0.0, eps = 1e-6, see
     }
     S <- list(algo = "separable", mu = mu, sigma = sigma, coeffs = coeffs, degree_g = degree_g)
     class(S) <- "ttm_separable"
-    model <<- S
   })[["elapsed"]]
 
-  time_pred <- system.time({ invisible(predict_ttm(model, X_te, type = "logdensity_by_dim")) })[["elapsed"]]
+  time_pred <- system.time({ invisible(predict_ttm(S, X_te, type = "logdensity_by_dim")) })[["elapsed"]]
 
-  list(S = model,
-       NLL_train = mean(-predict_ttm(model, X_tr, type = "logdensity")),
-       NLL_test  = mean(-predict_ttm(model, X_te,  type = "logdensity")),
+  list(S = S,
+       NLL_train = mean(-predict_ttm(S, X_tr, type = "logdensity")),
+       NLL_test  = mean(-predict_ttm(S, X_te,  type = "logdensity")),
        time_train = time_train, time_pred = time_pred)
+}
+
+# S3 predict wrapper for separable TTM
+predict.ttm_separable <- function(object, newdata, type = c("logdensity_by_dim", "logdensity"), ...) {
+  predict_ttm(object, newdata, match.arg(type))
 }
