@@ -256,6 +256,8 @@ Most expressive; computationally heavier due to the 1‑D integral and stabiliza
 ## Repository mapping (spec → code)
 
 * Eq. (20) → `trainMarginalMap`, `predict.ttm_marginal`: normal‑scores, constant log‑Jacobian.
+* Core forward/logdensity helpers → `R/ttm_core.R`: `ttm_forward(model,X)` returns `(Z,J)` where `Z=S(X_std)` and `J=∂S/∂(x_std)`; `ttm_ld_by_dim(model,X)` applies the universal LD: `-0.5*Z^2 - 0.5*log(2π) + log(J) - log σ`.
+* Eq. (20) (alt.) → `R/ttm_marginal.R` with `fit_ttm` and `predict_ttm` (class `ttm_marginal2`): per‑k monotone map `S_k(x_k)=a_k+b_k x_k` with `b_k>0`; train‑only standardization `(x-μ)/σ` and closed‑form minimization of `∑[0.5 f_k(x_k)^2 − log f'_k(x_k)]` yields `a_k=−b_k·mean(x_k_std)`, `b_k=max(ε, 1/sd(x_k_std))`. Predict uses the universal per‑dimensional LD with `log ∂_k S_k = log b_k − log σ_k`.
 * Eq. (21) → `trainSeparableMap`, `predict.ttm_separable`: per‑k convex objective, $A,B,D$.
 * Eq. (22) → `trainCrossTermMap`, `predict.ttm_cross_term`: $g_k+\int\exp(h_k)$, Gauss–Legendre + LSE.
 * (Removed) Reverse‑KL variant and NF‑reverse surrogate; only forward‑KL TTM is maintained.

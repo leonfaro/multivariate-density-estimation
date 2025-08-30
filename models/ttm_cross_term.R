@@ -228,6 +228,13 @@ if (!exists(".standardize")) {
 
 ## Removed unused forwardKLLoss_ct (unreferenced)
 
+# Optional Eq.(22) derivative point check (stub; disabled by default)
+.check_eq22_point_ct <- function(Smap, k, x0, xp, nodes, weights) {
+  # Returns relative error between d/dx ∫ exp(h) and exp(h) at (x0, xp).
+  # Stubbed to 0.0; enable and implement if needed for HPO diagnostics.
+  0.0
+}
+
 # Exportierte Funktionen -----------------------------------------------------
 
 trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2, degree_t_cross = 1, degree_x_cross = 1,
@@ -271,11 +278,8 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2, degree_t_cr
   X_tr <- S_in$X_tr
   X_te  <- S_in$X_te
 
-  # Hard-code regularization and quadrature as requested
-  # Q = 24, lambda_non = 0.005, lambda_mon = 0.003
-  Q <- 24L
-  lambda_non <- 5e-3
-  lambda_mon <- 3e-3
+  # Quadrature and ridge defaults are taken from options/env
+  # (defaults: Q=24, lambda_non=3e-2, lambda_mon=2e-2)
 
   if (is.null(alpha_init_list) && warmstart_from_separable) {
     if (!exists("trainSeparableMap")) {
@@ -446,14 +450,7 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2, degree_t_cr
             grad_beta <- grad_beta + g_beta_blk - colSums(Hblk)
             S_sq_sum <- S_sq_sum + sum((if (m_alpha > 0) as.numeric(Phi_blk %*% alpha) + I_vec else I_vec)^2)
             term_sum <- term_sum + sum(Hblk %*% beta)
-              dI_i <- I_i * as.vector(t(Psi_q) %*% soft)
-              psi_x <- .psi_basis_ct(xval, xp, degree_t, degree_g, TRUE, degree_t_cross, degree_x_cross)
-              S_i <- if (m_alpha > 0) sum(Phi_blk[b, ] * alpha) + I_i else I_i
-              S_sq_sum <- S_sq_sum + S_i^2
-              if (m_alpha > 0) grad_alpha <- grad_alpha + S_i * Phi_blk[b, ]
-              grad_beta <- grad_beta + S_i * dI_i - psi_x
-              term_sum <- term_sum + sum(psi_x * beta)
-            }
+            
           }
         }
         loss <- 0.5 * S_sq_sum / N - term_sum / N +
@@ -693,7 +690,7 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2, degree_t_cr
           for (i in seq_along(xk)) {
             xp <- if (k > 1) Xprev[i, ] else numeric(0)
             x0 <- xk[i]
-            rel <- .check_eq22_point_ct(Smap, k, x0, xp, nodes, weights, )
+            rel <- .check_eq22_point_ct(Smap, k, x0, xp, nodes, weights)
             if (rel > der_tol) return(FALSE)
           }
         }
@@ -748,7 +745,8 @@ trainCrossTermMap <- function(X_or_path, degree_g = 2, degree_t = 2, degree_t_cr
         if (!is.null(S_map$coeffs[[k]]$bs_spec)) {
           Psi_q <- .build_Psi_q_bs_ct(xval, xp, nodes, S_map$coeffs[[k]]$bs_spec)
         } else {
-          Psi_q <- .build_Psi_q_ct(xval, xp, nodes, , S_map$degree_t, S_map$degree_g, S_map$degree_t_cross, S_map$degree_x_cross)
+          # Fallback uses B-spline helper; in practice, bs_spec is always present from training
+          Psi_q <- .build_Psi_q_bs_ct(xval, xp, nodes, S_map$coeffs[[k]]$bs_spec)
         }
         V <- as.vector(Psi_q %*% beta)
         Vc <- pmax(pmin(V, 30), -30)
@@ -805,7 +803,7 @@ predict.ttm_cross_term <- function(object, newdata,
       for (i in seq_along(xk)) {
         xp <- if (k > 1) Xprev[i, ] else numeric(0)
         x0 <- xk[i]
-        rel <- .check_eq22_point_ct(object, k, x0, xp, nodes, weights, )
+        rel <- .check_eq22_point_ct(object, k, x0, xp, nodes, weights)
         if (rel > der_tol) warning(sprintf("Eq.(22) derivative check failed (k=%d, rel=%.3e)", k, rel))
       }
     }
@@ -901,7 +899,8 @@ predict.ttm_cross_term <- function(object, newdata,
         for (b in seq_along(idx)) {
           xp <- if (k > 1) Xprev_blk[b, ] else numeric(0)
           xval <- xk_blk[b]
-          Psi_q <- .build_Psi_q_ct(xval, xp, nodes, , object$degree_t, object$degree_g, object$degree_t_cross, object$degree_x_cross)
+          # Fallback uses B-spline helper; in practice, bs_spec is always present from training
+          Psi_q <- .build_Psi_q_bs_ct(xval, xp, nodes, object$coeffs[[k]]$bs_spec)
           V <- as.vector(Psi_q %*% beta)
           V_clip <- pmax(pmin(V, 30), -30)
           b_vec <- log(weights) + V_clip

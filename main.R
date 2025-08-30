@@ -4,6 +4,8 @@ source("01_data_generation.R")
 source("02_split.R")
 source("models/true_model.R")
 source("models/trtf_model.R")
+# Prefer new marginal TTM (R/ttm_marginal.R) for CLI and API; keep legacy for tests
+source("R/ttm_marginal.R")
 source("models/ttm_marginal.R")
 source("models/ttm_separable.R")
 source("models/ttm_cross_term.R")
@@ -50,7 +52,13 @@ main <- function() {
     NULL
   })
   t_trtf_tr  <- system.time(mod_trtf      <- fit_TRTF(S, cfg, seed = seed))[['elapsed']]
-  mod_ttm     <- trainMarginalMap(S, seed = seed);   t_ttm_tr <- mod_ttm$time_train
+  # Use new marginal TTM implementation but preserve structure (S, timings)
+  mod_ttm     <- tryCatch({
+    fit_ttm(S, seed = seed)
+  }, error = function(e) {
+    message("[WARN] falling back to legacy marginal map: ", e$message)
+    trainMarginalMap(S, seed = seed)
+  });   t_ttm_tr <- mod_ttm$time_train
   mod_ttm_sep <- trainSeparableMap(S, seed = seed);  t_sep_tr <- mod_ttm_sep$time_train
   # Forward‑KL TTM Cross-term (reverse-KL/NF path removed)
   mod_ttm_cross <- trainCrossTermMap(S, degree_g = 3, seed = seed, warmstart_from_separable = TRUE)
