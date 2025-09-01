@@ -89,3 +89,9 @@ fit_ttm_separable <- function(data, degree_g = 2L, lambda = 0.0, eps = 1e-6, see
 predict.ttm_separable <- function(object, newdata, type = c("logdensity_by_dim", "logdensity"), ...) {
   predict_ttm(object, newdata, match.arg(type))
 }
+
+# Compatibility wrapper for existing scripts/tests
+# Mirrors the structure returned by fit_ttm_separable
+trainSeparableMap <- function(S, degree_g = 2L, lambda = 0.0, seed = 42, ...) {
+  fit_ttm(S, algo = "separable", degree_g = degree_g, lambda = lambda, seed = seed)
+}

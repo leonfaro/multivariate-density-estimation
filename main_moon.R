@@ -1,4 +1,5 @@
 args <- commandArgs(trailingOnly = TRUE)
+source("00_globals.R")
 grid_side_arg <- NA_integer_
 no_cache <- FALSE
 cores_arg <- NA_integer_
@@ -21,10 +22,19 @@ Sys.setenv(
   N_TEST = as.character(N),
   NOISE = as.character(NOISE)
 )
-source("main.R"); tab <- main()
+source("scripts/halfmoon_data.R")
+source("scripts/halfmoon_plot.R")
+source("04_evaluation.R")
+source("models/true_model.R")
+source("models/trtf_model.R")
+# Create splits and persist for reproducibility
+S <- make_halfmoon_splits(n_train = N, n_test = N, noise = NOISE, seed = SEED, val_frac = 0.2)
+dir.create("results", showWarnings = FALSE)
+saveRDS(S, sprintf("results/splits_halfmoon2d_seed%03d.rds", SEED))
+# Fit models and write NLL CSV via evaluation helper
+mods <- fit_halfmoon_models(S, seed = SEED, order_mode = if (!is.na(order_arg)) order_arg else "as-is")
+tab_nll <- eval_halfmoon(mods, S)
 csv <- sprintf("results/nll_halfmoon_seed%03d.csv", SEED)
-stopifnot(file.exists(csv))
-S <- readRDS(sprintf("results/splits_halfmoon2d_seed%03d.rds", SEED))
 clamp <- function(x, lo, hi) pmax(lo, pmin(hi, x))
 N_tr <- nrow(S$X_tr)
 grid_side <- if (!is.na(grid_side_arg)) grid_side_arg else clamp(floor(sqrt(100 * N_tr)), 80L, 200L)

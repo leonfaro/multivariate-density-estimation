@@ -5,6 +5,48 @@
   sweep(X1, 2, sigma, "/")
 }
 
+# Minimal infix helper and config reader used across files
+if (!exists("%||%")) `%||%` <- function(a, b) if (is.null(a)) b else a
+.get_cross_maxit <- function() as.integer(getOption("cross.maxit", 200L))
+.get_cross_quad_nodes <- function(fallback = NULL) {
+  q <- getOption("cross.quad_nodes", NULL)
+  if (!is.null(q)) return(as.integer(q))
+  if (!is.null(fallback)) return(as.integer(fallback))
+  as.integer(32L)
+}
+.get_cross_df_t <- function(fallback = NULL) {
+  d <- getOption("cross.df_t", NULL)
+  if (!is.null(d)) return(as.integer(d))
+  if (!is.null(fallback)) return(as.integer(fallback))
+  as.integer(8L)
+}
+
+.get_cross_lambda_non <- function(Q_used, N, fallback = NULL) {
+  ln <- getOption("cross.lambda_non", NULL)
+  if (!is.null(ln)) return(as.numeric(ln))
+  if (!is.null(fallback) && is.finite(fallback)) return(as.numeric(fallback))
+  0.05 * (as.numeric(Q_used) / as.numeric(N))
+}
+
+.get_cross_lambda_mon <- function(lam_non, Q_used, N, fallback = NULL) {
+  lm <- getOption("cross.lambda_mon", NULL)
+  if (!is.null(lm)) return(as.numeric(lm))
+  if (!is.null(fallback) && is.finite(fallback)) return(as.numeric(fallback))
+  0.5 * as.numeric(lam_non)
+}
+
+.use_cross_analytic_grad <- function() {
+  isTRUE(getOption("cross.use_analytic_grad", TRUE))
+}
+
+.get_cross_workers <- function() {
+  w <- getOption("cross.workers", NULL)
+  if (!is.null(w)) return(as.integer(max(1L, w)))
+  cw <- tryCatch(parallel::detectCores(), error = function(e) 1L)
+  as.integer(max(1L, cw - 1L))
+}
+.get_cross_deg_g <- function() as.integer(getOption("cross.deg_g", 3L))
+
 # Determine algo tag from model object
 .ttm_algo_of <- function(model) {
   if (!is.null(model$algo)) return(model$algo)
