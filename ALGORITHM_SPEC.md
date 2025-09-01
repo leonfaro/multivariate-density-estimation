@@ -267,6 +267,11 @@ Most expressive; computationally heavier due to the 1‑D integral and stabiliza
 * Half‑Moon splits and panels → `scripts/halfmoon_data.R`, `scripts/halfmoon_plot.R`.
 * Top‑level orchestration → `main.R` and `main_moon.R`.
 
+Compatibility wrappers (scripts/tests):
+- `trainMarginalMap(S, seed)` → calls `fit_ttm(S, algo="marginal", ...)` and returns the same fit structure with `$S`, times, and NLLs.
+- `trainSeparableMap(S, degree_g, lambda, seed, ...)` → calls `fit_ttm(S, algo="separable", ...)`.
+- `trainCrossTermMap(S, degree_g, Q, lambda_non, lambda_mon, lambda, ...)` → calls `fit_ttm(S, algo="crossterm", ...)`. If both `lambda_non` and `lambda_mon` are provided, they are merged into a single ridge weight via `lambda := 0.5·(lambda_non + lambda_mon)` for this minimal forward‑KL implementation.
+
 ---
 
 ## Determinism and splits
@@ -384,6 +389,10 @@ Implementation policy (TTM‑Cross, this repo):
 - Variable order: fixed by `getOption("mde.ctm.order")`/env `MDE_CTM_ORDER` ∈ {`as-is`,`x1_x2`,`x2_x1`} (2D only).
   (Reverse‑KL and NF‑reverse APIs have been removed; forward‑KL only.)
 - Logging: main.R prints `[RIDGE] lambda_non=..., lambda_mon=...` after fitting TTM‑Cross.
+- Optimization control: L‑BFGS‑B iterations via `options(cross.maxit)` (default 200); optional CLI `--cross_maxit`.
+- g‑basis degree (Cross‑Term only): configurable via `options(cross.deg_g)` (default 3). Optional CLI `--cross_deg_g`. The g‑basis degree is applied only to `g_k(x_{<k})`; the h‑basis degree in predecessors remains unchanged.
+- Quadrature nodes (Cross‑Term only): configurable via `options(cross.quad_nodes)` (default 32). Optional CLI `--cross_quad_nodes`. Nodes/weights are cached in the model; logs include Q and integration timing per k when `cross.verbose` is TRUE or in interactive sessions.
+ - Separate ridge for g/h (Cross‑Term): `λ_non` applies only to g‑coefficients (shift), `λ_mon` only to h‑coefficients (monotone channel). Defaults (heuristic): `λ_non = 0.05·(Q/N)`, `λ_mon = 0.5·λ_non`. Override via `options(cross.lambda_non)` and `options(cross.lambda_mon)` or CLI `--cross_lambda_non`, `--cross_lambda_mon`. Logs (verbose): `lam_non`, `lam_mon`, ridge share of the loss, and squared norms of g/h.
 
 Hyperparameter optimization (HPO, optional):
 - Enable with `options(mde.ctm.auto_hpo=TRUE)` or env `MDE_CTM_AUTO_HPO=1`.

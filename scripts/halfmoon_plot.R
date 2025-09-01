@@ -12,10 +12,10 @@ fit_halfmoon_models <- function(S, seed = NULL, order_mode = "as-is") {
   list(
     true = M_true,
     trtf = fit_TRTF(S, cfg, seed = seed),
-    ttm = trainMarginalMap(S, seed = seed)$S,
-    ttm_sep = trainSeparableMap(S, seed = seed)$S,
-    ttm_cross = trainCrossTermMap(S, seed = seed, warmstart_from_separable = TRUE,
-                                  order_mode = order_mode)$S
+    ttm = fit_ttm(S, algo = "marginal",  seed = seed)$S,
+    ttm_sep = fit_ttm(S, algo = "separable", seed = seed)$S,
+    ttm_cross = fit_ttm(S, algo = "crossterm", seed = seed,
+                        deg_g = 2L, df_t = 6L, Q = 16L, lambda = 1e-3, maxit = 50L)$S
   )
 }
 
@@ -181,56 +181,54 @@ eval_density_grid <- function(model, G, xlim, ylim, grid_side, seed,
   dir.create(chunk_dir, showWarnings = FALSE, recursive = TRUE)
   chunk_path <- function(i) file.path(chunk_dir, sprintf("chunk_%05d.rds", i))
 
-  # Starte PSOCK-Cluster
+  # Starte PSOCK-Cluster nur wenn cores_use > 1, sonst sequentiell
   cores_use <- if (is.finite(cores) && cores >= 1L) as.integer(cores) else 1L
-  cl <- parallel::makeCluster(cores_use, type = "PSOCK")
-  on.exit(try(parallel::stopCluster(cl), silent = TRUE), add = TRUE)
-  # Initialisiere Worker-Umgebung
-  parallel::clusterEvalQ(cl, {
-    options(mde.parallel_active = TRUE)
-    Sys.setenv(OMP_NUM_THREADS = "1", OPENBLAS_NUM_THREADS = "1",
-               MKL_NUM_THREADS = "1", VECLIB_MAXIMUM_THREADS = "1")
-    NULL
-  })
-  # Lade benötigte Funktionen/Packages in Worker-Sessions
-  parallel::clusterEvalQ(cl, {
-    source("00_globals.R")
-    source("R/ttm_bases.R"); source("R/ttm_core.R")
-    source("R/ttm_marginal.R"); source("R/ttm_separable.R"); source("R/ttm_crossterm.R")
-    source("models/trtf_model.R"); source("models/true_model.R")
-    source("scripts/halfmoon_plot.R")
-    NULL
-  })
-  parallel::clusterExport(cl, varlist = c("G", "type", "model", "idx_list",
-                                          "chunk_path", "abort_file", "timeout_sec"),
-                          envir = environment())
+  use_cluster <- cores_use > 1L
+  if (use_cluster) {
+    cl <- parallel::makeCluster(cores_use, type = "PSOCK")
+    on.exit(try(parallel::stopCluster(cl), silent = TRUE), add = TRUE)
+    parallel::clusterEvalQ(cl, {
+      options(mde.parallel_active = TRUE)
+      Sys.setenv(OMP_NUM_THREADS = "1", OPENBLAS_NUM_THREADS = "1",
+                 MKL_NUM_THREADS = "1", VECLIB_MAXIMUM_THREADS = "1")
+      NULL
+    })
+    parallel::clusterEvalQ(cl, {
+      source("00_globals.R")
+      source("R/ttm_bases.R"); source("R/ttm_core.R")
+      source("R/ttm_marginal.R"); source("R/ttm_separable.R"); source("R/ttm_crossterm.R")
+      source("models/trtf_model.R"); source("models/true_model.R")
+      source("scripts/halfmoon_plot.R")
+      NULL
+    })
+    parallel::clusterExport(cl, varlist = c("G", "type", "model", "idx_list",
+                                            "chunk_path", "abort_file", "timeout_sec"),
+                            envir = environment())
+  }
 
   # Entscheide, welche Chunks noch fehlen
   missing_ids <- which(!file.exists(vapply(seq_len(n_chunks), chunk_path, character(1))))
   if (length(missing_ids) > 0L) {
-    par_fun <- function(i) {
+    do_chunk_local <- function(i) {
       if (!is.null(abort_file) && nzchar(abort_file) && file.exists(abort_file)) stop("ABORT: abort_file present")
-      do_chunk <- function() {
-        Xc <- G[idx_list[[i]], , drop = FALSE]
-        pr <- try(predict(model, Xc, type = type, cores = 1L), silent = TRUE)
-        if (inherits(pr, "try-error")) pr <- predict(model, Xc, type = type)
-        stopifnot(is.matrix(pr), nrow(pr) == nrow(Xc))
-        jointc <- rowSums(pr)
-        joint_ref <- try(predict(model, Xc, type = "logdensity", cores = 1L), silent = TRUE)
-        if (inherits(joint_ref, "try-error")) joint_ref <- predict(model, Xc, "logdensity")
-        stopifnot(length(joint_ref) == nrow(Xc), max(abs(jointc - joint_ref)) <= 1e-10)
-        if (any(!is.finite(pr))) stop("NA/Inf in log-dichte (chunk)")
-        saveRDS(list(LD = pr, joint = jointc, id = i), chunk_path(i))
-        i
-      }
-      if (is.finite(timeout_sec) && !is.na(timeout_sec) && timeout_sec > 0L) {
-        R.utils::withTimeout(do_chunk(), timeout = timeout_sec, onTimeout = "error")
-      } else {
-        do_chunk()
-      }
+      Xc <- G[idx_list[[i]], , drop = FALSE]
+      pr <- try(predict(model, Xc, type = type), silent = TRUE)
+      if (inherits(pr, "try-error")) pr <- predict(model, Xc, type = type)
+      stopifnot(is.matrix(pr), nrow(pr) == nrow(Xc))
+      jointc <- rowSums(pr)
+      joint_ref <- try(predict(model, Xc, type = "logdensity"), silent = TRUE)
+      if (inherits(joint_ref, "try-error")) joint_ref <- predict(model, Xc, "logdensity")
+      stopifnot(length(joint_ref) == nrow(Xc), max(abs(jointc - joint_ref)) <= 1e-10)
+      if (any(!is.finite(pr))) stop("NA/Inf in log-dichte (chunk)")
+      saveRDS(list(LD = pr, joint = jointc, id = i), chunk_path(i))
+      i
     }
-    # Führe fehlende Chunks aus
-    parallel::parLapply(cl, missing_ids, par_fun)
+    if (use_cluster) {
+      par_fun <- function(i) do_chunk_local(i)
+      parallel::parLapply(cl, missing_ids, par_fun)
+    } else {
+      lapply(missing_ids, do_chunk_local)
+    }
   }
   # Reassembling
   parts <- lapply(seq_len(n_chunks), function(i) readRDS(chunk_path(i)))

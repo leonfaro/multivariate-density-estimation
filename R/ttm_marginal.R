@@ -81,6 +81,12 @@ fit_ttm <- function(data, algo = c("marginal","separable","crossterm"), seed = 4
   stop(paste0("algo='", algo, "' not implemented in dispatcher"))
 }
 
+# Compatibility wrapper for existing scripts/tests
+# Returns the same structure as fit_ttm_marginal (list with $S, times, NLLs)
+trainMarginalMap <- function(S, seed = 42) {
+  fit_ttm(S, algo = "marginal", seed = seed)
+}
+
 predict_ttm <- function(model, X, type = c("transform", "jac_diag", "logdensity_by_dim", "logdensity")) {
   type <- match.arg(type)
   # accept either a fitted list (with $S) or the model itself
