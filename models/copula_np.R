@@ -137,10 +137,10 @@ predict.copula_np <- function(object, newdata, y, type = c("logdensity", "logden
     if (!length(id)) next
     comp <- object$by_class[[as.character(yy)]]
     Xi <- X[id, , drop = FALSE]
-    f1 <- log(pmax(kde1d::predict(comp$m1, Xi[, 1], what = "pdf"), tiny))
-    F1 <- pmin(pmax(kde1d::predict(comp$m1, Xi[, 1], what = "cdf"), comp$eps), 1 - comp$eps)
-    f2 <- log(pmax(kde1d::predict(comp$m2, Xi[, 2], what = "pdf"), tiny))
-    F2 <- pmin(pmax(kde1d::predict(comp$m2, Xi[, 2], what = "cdf"), comp$eps), 1 - comp$eps)
+    f1 <- log(pmax(kde1d::dkde1d(Xi[, 1], comp$m1), tiny))
+    F1 <- pmin(pmax(kde1d::pkde1d(Xi[, 1], comp$m1), comp$eps), 1 - comp$eps)
+    f2 <- log(pmax(kde1d::dkde1d(Xi[, 2], comp$m2), tiny))
+    F2 <- pmin(pmax(kde1d::pkde1d(Xi[, 2], comp$m2), comp$eps), 1 - comp$eps)
     lc <- log(pmax(kdecopula::dkdecop(cbind(F1, F2), comp$cop), tiny))
     LD[id, 1] <- f1 + 0.5 * lc
     LD[id, 2] <- f2 + 0.5 * lc

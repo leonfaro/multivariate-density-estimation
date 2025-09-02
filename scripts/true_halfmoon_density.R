@@ -53,3 +53,35 @@ true_logdensity <- function(X, S, Q = 32L) {
   list(joint = joint, by_dim = by_dim)
 }
 
+# Conditional oracle log-density p(x | y) for two-moons
+# Returns list(joint, by_dim) with by_dim columns summing to joint (within FP tolerance)
+true_logdensity_conditional <- function(X, y, S, Q = 32L) {
+  stopifnot(is.matrix(X), ncol(X) == 2, length(y) == nrow(X))
+  sigma <- if (!is.null(S$meta$sigma)) S$meta$sigma else if (!is.null(S$meta$noise)) S$meta$noise else 0.15
+  gap <- if (!is.null(S$meta$gap)) S$meta$gap else 0.5
+  R <- if (!is.null(S$meta$radius)) S$meta$radius else 1.0
+  gl <- gauss_legendre_0_pi(Q)
+  t <- gl$t; w <- gl$w
+  # Curve means for parameter t
+  m1 <- cbind(R * cos(t), R * sin(t))
+  m2 <- cbind(R * (1 - cos(t)), -R * sin(t) + gap)
+  inv2s2 <- 1 / (2 * sigma^2)
+  log_norm_const <- -log(2 * pi * sigma^2)
+  N <- nrow(X)
+  y <- as.integer(y)
+  if (!all(y %in% c(1L, 2L))) stop("y must be integer labels in {1,2}")
+  # Accumulate log-sum-exp across quadrature nodes for the selected arc per sample
+  joint <- rep(-Inf, N)
+  for (q in seq_along(t)) {
+    # distances to means for both arcs at node q
+    d1 <- rowSums((X - matrix(m1[q, ], nrow = N, ncol = 2, byrow = TRUE))^2)
+    d2 <- rowSums((X - matrix(m2[q, ], nrow = N, ncol = 2, byrow = TRUE))^2)
+    lp1_q <- log(w[q]) - log(pi) + log_norm_const - inv2s2 * d1
+    lp2_q <- log(w[q]) - log(pi) + log_norm_const - inv2s2 * d2
+    lp_q <- ifelse(y == 1L, lp1_q, lp2_q)
+    m <- pmax(joint, lp_q)
+    joint <- m + log(exp(joint - m) + exp(lp_q - m))
+  }
+  by_dim <- cbind(joint/2, joint/2)
+  list(joint = joint, by_dim = by_dim)
+}

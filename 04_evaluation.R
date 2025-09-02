@@ -238,13 +238,15 @@ eval_halfmoon <- function(mods, S, out_csv_path = NULL) {
   dir.create("results", showWarnings = FALSE)
   N <- nrow(S$X_te)
   K <- ncol(S$X_te)
-  need <- c("true", "trtf", "ttm", "ttm_sep", "ttm_cross", "copula_np")
+  # Rows to evaluate; include both oracle variants
+  need_rows <- c("true_unconditional", "true_conditional", "trtf", "ttm", "ttm_sep", "ttm_cross", "copula_np")
+  # Models that require fitting (the oracle rows are computed directly)
+  need_mods <- c("trtf", "ttm", "ttm_sep", "ttm_cross", "copula_np")
   config_moon <- list(list(distr = "norm"), list(distr = "norm"))
-  if (missing(mods) || length(mods) == 0 || !all(need %in% names(mods))) {
+  if (missing(mods) || length(mods) == 0 || !all(need_mods %in% names(mods))) {
     seed <- if (!is.null(S$meta$seed)) as.integer(S$meta$seed) else 42L
     set.seed(seed)
     mods <- list(
-      true = fit_TRUE(S, config_moon),
       trtf = fit_TRTF(S, config_moon, seed = seed),
       ttm = trainMarginalMap(S, seed = seed)$S,
       ttm_sep = trainSeparableMap(S, seed = seed)$S,
@@ -253,12 +255,24 @@ eval_halfmoon <- function(mods, S, out_csv_path = NULL) {
     )
   }
   rows <- list()
-  for (m in need) {
+  for (m in need_rows) {
     mod <- mods[[m]]
-    if (m == "true") {
+    if (m == "true_unconditional") {
       source("scripts/true_halfmoon_density.R")
       te_true <- true_logdensity(S$X_te, S, Q = 32L)
       LD <- te_true$by_dim
+      # Invariants: shape, finiteness, and by-dim sums equal joint
+      stopifnot(is.matrix(LD), all(dim(LD) == c(N, K)), all(is.finite(LD)))
+      stopifnot(length(te_true$joint) == N, all(is.finite(te_true$joint)))
+      stopifnot(max(abs(rowSums(LD) - te_true$joint)) <= 1e-12)
+    } else if (m == "true_conditional") {
+      source("scripts/true_halfmoon_density.R")
+      te_cond <- true_logdensity_conditional(S$X_te, S$y_te, S, Q = 32L)
+      LD <- te_cond$by_dim
+      # Invariants: shape, finiteness, and by-dim sums equal joint
+      stopifnot(is.matrix(LD), all(dim(LD) == c(N, K)), all(is.finite(LD)))
+      stopifnot(length(te_cond$joint) == N, all(is.finite(te_cond$joint)))
+      stopifnot(max(abs(rowSums(LD) - te_cond$joint)) <= 1e-12)
     } else if (m == "copula_np") {
       LD <- predict(mod, S$X_te, y = S$y_te, type = "logdensity_by_dim")
     } else {
@@ -266,8 +280,7 @@ eval_halfmoon <- function(mods, S, out_csv_path = NULL) {
     }
     stopifnot(is.matrix(LD), all(dim(LD) == c(N, K)), all(is.finite(LD)))
     LDj <- rowSums(LD)
-    stopifnot(length(LDj) == N, all(is.finite(LDj)),
-              max(abs(rowSums(LD) - LDj)) < 1e-10)
+    stopifnot(length(LDj) == N, all(is.finite(LDj)))
     nllj <- -LDj
     per <- -colMeans(LD)
     se <- stats::sd(nllj) / sqrt(N)
