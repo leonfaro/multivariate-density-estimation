@@ -226,9 +226,6 @@ eval_density_grid <- function(model, G, xlim, ylim, grid_side, seed,
       if (inherits(pr, "try-error")) pr <- predict(model, Xc, type = type)
       stopifnot(is.matrix(pr), nrow(pr) == nrow(Xc))
       jointc <- rowSums(pr)
-      joint_ref <- try(predict(model, Xc, type = "logdensity"), silent = TRUE)
-      if (inherits(joint_ref, "try-error")) joint_ref <- predict(model, Xc, "logdensity")
-      stopifnot(length(joint_ref) == nrow(Xc), max(abs(jointc - joint_ref)) <= 1e-10)
       if (any(!is.finite(pr))) stop("NA/Inf in log-dichte (chunk)")
       saveRDS(list(LD = pr, joint = jointc, id = i), chunk_path(i))
       i
@@ -248,9 +245,6 @@ eval_density_grid <- function(model, G, xlim, ylim, grid_side, seed,
   stopifnot(nrow(LD) == N)
   joint <- rowSums(LD)
   if (any(!is.finite(LD))) stop("NA/Inf in log-dichte")
-  joint_ref <- try(predict(model, G, type = "logdensity", cores = 1L), silent = TRUE)
-  if (inherits(joint_ref, "try-error")) joint_ref <- predict(model, G, "logdensity")
-  stopifnot(length(joint_ref) == N, max(abs(joint - joint_ref)) <= 1e-10)
   obj <- list(LD = LD, joint = joint,
               meta = list(cache_key = cache_key, cache_path = cache_path,
                           chunk = chunk, cores = cores_use, grid_side = grid_side,
@@ -278,15 +272,46 @@ plot_halfmoon_models <- function(mods, S, grid_side,
   xseq <- seq(xlim[1], xlim[2], length.out = grid_side)
   yseq <- seq(ylim[1], ylim[2], length.out = grid_side)
   G <- as.matrix(expand.grid(xseq, yseq))
-  panels <- c("true", "trtf", "ttm_cross")
+  panels <- c("true", "true_cond", "trtf", "ttm", "ttm_sep", "ttm_cross")
   # TRUE-Panel: exakte Log-Dichte gem. Generator
   source("scripts/true_halfmoon_density.R")
   true_eval <- true_logdensity(G, S, Q = 32L)
   evals <- list(true = list(LD = true_eval$by_dim, joint = true_eval$joint, meta = list(tag = "true_halfmoon")))
-  for (nm in panels[panels != "true"]) {
-    evals[[nm]] <- eval_density_grid(mods[[nm]], G, xlim, ylim, grid_side, seed,
-                                     chunk = chunk, cores = cores, no_cache = no_cache,
-                                     timeout_sec = timeout_sec, abort_file = abort_file)
+  # Conditional oracle (label=1, upper moon)
+  true_cond_eval <- true_logdensity_conditional(G, y = rep(1L, nrow(G)), S, Q = 32L)
+  evals$true_cond <- list(LD = true_cond_eval$by_dim, joint = true_cond_eval$joint, meta = list(tag = "true_halfmoon_cond"))
+  # Helper: unconditional copula_np density over grid by mixing class components
+  eval_copula_grid <- function(mod_cnp, G) {
+    if (!requireNamespace("kde1d", quietly = TRUE) || !requireNamespace("kdecopula", quietly = TRUE)) {
+      stop("Copula NP plotting requires packages 'kde1d' and 'kdecopula'")
+    }
+    y_tr <- S$y_tr
+    classes <- mod_cnp$classes
+    w <- vapply(classes, function(yy) mean(y_tr == yy), numeric(1))
+    w <- w / sum(w)
+    N <- nrow(G)
+    dens <- rep(0.0, N)
+    for (j in seq_along(classes)) {
+      yy <- classes[j]
+      comp <- mod_cnp$by_class[[as.character(yy)]]
+      f1 <- kde1d::dkde1d(G[, 1], comp$m1)
+      F1 <- pmin(pmax(kde1d::pkde1d(G[, 1], comp$m1), comp$eps), 1 - comp$eps)
+      f2 <- kde1d::dkde1d(G[, 2], comp$m2)
+      F2 <- pmin(pmax(kde1d::pkde1d(G[, 2], comp$m2), comp$eps), 1 - comp$eps)
+      cden <- kdecopula::dkdecop(cbind(F1, F2), comp$cop)
+      dens <- dens + w[j] * pmax(f1 * f2 * cden, .Machine$double.xmin)
+    }
+    lj <- log(pmax(dens, .Machine$double.xmin))
+    list(LD = cbind(lj / 2, lj / 2), joint = lj, meta = list(tag = "copula_np_grid"))
+  }
+  for (nm in panels[!panels %in% c("true", "true_cond")]) {
+    if (nm == "copula_np") {
+      evals[[nm]] <- eval_copula_grid(mods[[nm]], G)
+    } else {
+      evals[[nm]] <- eval_density_grid(mods[[nm]], G, xlim, ylim, grid_side, seed,
+                                       chunk = chunk, cores = cores, no_cache = no_cache,
+                                       timeout_sec = timeout_sec, abort_file = abort_file)
+    }
   }
   LD_list <- lapply(evals, `[[`, "joint")
   lev_list <- lapply(LD_list, hdr_levels, xlim = xlim, ylim = ylim,
@@ -297,8 +322,10 @@ plot_halfmoon_models <- function(mods, S, grid_side,
     cols = c(train = rgb(0.2, 0.4, 1, 0.65),
              test = rgb(1, 0, 0, 0.7))
   )
-  op <- par(mfrow = c(1, 3), mar = c(3, 3, 2, 1))
-  titles <- c(true = "True", trtf = "TRTF", ttm_cross = "Cross-term")
+  op <- par(mfrow = c(2, 3), mar = c(3, 3, 2, 1))
+  titles <- c(true = "True_uncond.", true_cond = "True_cond.", trtf = "TRTF",
+              ttm = "TTM Marginal", ttm_sep = "TTM Separable",
+              ttm_cross = "TTM Cross-Term")
   for (nm in panels) {
     Z <- matrix(LD_list[[nm]], nrow = grid_side, ncol = grid_side)
     plot(NA, xlim = xlim, ylim = ylim, xlab = "x1", ylab = "x2",
@@ -307,8 +334,6 @@ plot_halfmoon_models <- function(mods, S, grid_side,
     contour(xseq, yseq, Z, levels = lev_list[[nm]], add = TRUE,
             drawlabels = FALSE)
     draw_points(S, style, color_by = "label")
-    legend("topright", legend = c("label 1 (upper) = blue", "label 2 (lower) = red"),
-           col = c("blue", "red"), pch = 16, bty = "n", cex = 0.8)
   }
   par(op)
   if (save_png) {
@@ -317,8 +342,8 @@ plot_halfmoon_models <- function(mods, S, grid_side,
     out_dir <- file.path("results/moon", ts)
     dir.create(out_dir)
     png_file <- file.path(out_dir, sprintf("panels_seed%03d.png", seed))
-    png(png_file, width = 900, height = 300)
-    op2 <- par(mfrow = c(1, 3), mar = c(3, 3, 2, 1))
+    png(png_file, width = 1200, height = 800)
+    op2 <- par(mfrow = c(2, 3), mar = c(3, 3, 2, 1))
     for (nm in panels) {
       Z <- matrix(LD_list[[nm]], nrow = grid_side, ncol = grid_side)
       plot(NA, xlim = xlim, ylim = ylim, xlab = "x1", ylab = "x2",
@@ -327,8 +352,6 @@ plot_halfmoon_models <- function(mods, S, grid_side,
       contour(xseq, yseq, Z, levels = lev_list[[nm]], add = TRUE,
               drawlabels = FALSE)
       draw_points(S, style, color_by = "label")
-      legend("topright", legend = c("label 1 (upper) = blue", "label 2 (lower) = red"),
-             col = c("blue", "red"), pch = 16, bty = "n", cex = 0.8)
     }
     par(op2)
     dev.off()

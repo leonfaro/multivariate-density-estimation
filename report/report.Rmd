@@ -1,0 +1,470 @@
+---
+title: "Multivariate Density Estimation: Comparing Transformation Random Forest, Normalizing Flows and Copulas"
+author: "Léon Kia Faro"
+date: "`r format(Sys.Date())`"
+output:
+  pdf_document:
+    number_sections: true
+    toc: true
+    latex_engine: xelatex
+  html_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+    fig_caption: true
+    df_print: paged
+fontsize: 11pt
+geometry: margin=1in
+linkcolor: blue
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+---
+
+
+# Introduction
+
+Estimating the joint density $p(x_1,\dots,x_K)$ of a multivariate random vector $x=(x_1,\ldots,x_K)$ is a core problem in statistical modeling and unsupervised learning. By learning $p(x)$ from data, we enable a range of tasks including probabilistic inference, anomaly detection, data imputation, and generative modeling. However, high-dimensional density estimation is challenging due to the curse of dimensionality and complex dependency structures. This thesis investigates three modern approaches to multivariate density estimation – **Triangular Transport Maps (TTM)**, **Transformation Random Forests (TRTF)**, and **Copula Models** – comparing their methodologies and performance. We focus on how each method transforms or models a complex joint distribution by leveraging simpler components, and we evaluate them on benchmark data.
+
+A unifying perspective for density estimation is **measure transport**, where one transforms a complicated **target distribution** $\pi$ on $\mathbb{R}^K$ into a simpler **reference distribution** $\eta$ (often a standard Gaussian or uniform). If $S:\mathbb{R}^K \to \mathbb{R}^K$ is an invertible transport map such that $z = S(x)$ has distribution $\eta$ when $x \sim \pi$, then we can estimate $\pi$ via learning $S$ and use $S^{-1}$ for sampling from $\pi$. **Normalizing flows** implement this idea using deep neural networks: they construct $S$ as a composition of many invertible transformations with tractable Jacobians. *Triangular transport maps*, in contrast, impose a structured, *monotonic* form on $S$ that offers theoretical and practical advantages. Meanwhile, **transformation forests** (TRTF) take a nonparametric ensemble approach, using tree-based models to estimate conditional distributions. Finally, **copula models** provide a statistically interpretable way to construct multivariate densities by separating marginal distributions from the dependency structure (the copula). In this work, we formulate each approach in a common framework, strictly adopting the notation and terminology of a recent tutorial on triangular transport maps. We then empirically compare their performance on a real dataset and discuss theoretical connections between the methods.
+
+# Research Questions
+
+We address the following research questions:
+
+- **Q1: Performance** – How do TTM, TRTF, and copula models compare in terms of goodness-of-fit for multivariate density estimation? We will evaluate models on held-out test data via log-likelihood and other metrics to determine which approach best captures the true distribution of complex, high-dimensional data.
+
+- **Q2: Trade-offs** – What are the trade-offs in complexity, interpretability, and computational efficiency between the methods? For instance, triangular maps offer *exact* likelihood evaluation and have interpretable structure, while normalizing flows and forests might be more flexible but less transparent. We also ask if simpler parametric copulas suffer when assumptions are violated.
+
+
+# Methods
+
+We outline the methodology of each approach. We begin with triangular transport maps (a type of normalizing flow with a structured form), then describe transformation random forests, copula models, and finally define baseline oracle models. Throughout, we let $\pi(x)$ denote the unknown target density of interest (on $\mathbb{R}^K$) and $\eta(z)$ a reference density (typically a standard multivariate normal or product of uniforms). All methods ultimately seek to estimate $\pi$ by either constructing a map $S$ such that $S(X)\sim \eta$ for $X\sim \pi$, or by directly modeling $\pi$ via factorization into lower-dimensional components.
+
+## Triangular Transport Maps
+
+
+We adopt the transport view: learn an invertible map \(S:\mathbb{R}^K\to\mathbb{R}^K\) that pushes the target \(\pi\) to a reference \(\eta\) (typically \(\mathcal N(0,I)\)). A map \(S\) is **triangular** if
+\[
+S(x)=(S_1(x_1),\ S_2(x_{1:2}),\ \dots,\ S_K(x_{1:K})),
+\]
+and each \(S_k\) is **strictly increasing in its last argument** \(x_k\). This structure implies a factorized Jacobian
+\[
+\det \nabla S(x) \;=\; \prod_{k=1}^K \partial_{x_k} S_k(x_{1:k}),
+\]
+which makes change‑of‑variables numerically stable.
+
+### Train‑only standardization
+We standardize features on the **training split only**:
+\[
+u_k \,=\, \frac{x_k-\mu_k}{\sigma_k},\qquad \sigma_k>0,
+\]
+and apply the same \((\mu_k,\sigma_k)\) to validation/test. The Jacobian of this preprocessing contributes **exactly once per dimension** \(-\log\sigma_k\) to the log‑density.
+
+### Pullback density
+Let \(z=S(u)\) with \(\eta=\mathcal N(0,I)\). The log‑density on original \(x\) (units: nats) is
+\begin{equation}
+\label{eq:ttm-pullback}
+\log \pi(x)
+\,=\, \sum_{k=1}^K\Big[ -\tfrac12 z_k(u)^2 - \tfrac12 \log(2\pi) + \log \partial_{u_k} S_k(u_{1:k}) \Big] \;-\; \sum_{k=1}^K \log \sigma_k,
+\end{equation}
+where the \(-\tfrac12\log(2\pi)\) constant appears **exactly once per dimension**.
+
+### Parameterizations used in this thesis
+We study three monotone triangular families (all evaluated on standardized inputs \(u\)):
+
+- **Diagonal / marginal (linear monotone):**
+  \[
+  S_k(u_k) = a_k + b_k\,u_k,\quad b_k>0,\qquad 
+  \log \partial_{u_k} S_k = \log b_k.
+  \]
+
+- **Separable:**
+  \[
+  S_k(u_{1:k}) = g_k(u_{1:k-1}) + f_k(u_k),\quad f_k'(u_k)>0,\qquad
+  \log \partial_{u_k} S_k = \log f_k'(u_k).
+  \]
+
+- **Cross‑term:**
+  \[
+  S_k(u_{1:k}) = g_k(u_{1:k-1}) + \int_0^{u_k} \exp\!\big(h_k(t, u_{1:k-1})\big)\,dt,\quad
+  \log \partial_{u_k} S_k = h_k(u_k,u_{1:k-1}).
+  \]
+
+All three are **triangular** and guarantee invertibility by construction (monotonicity in \(u_k\)).
+
+
+## Transformation Random Forests
+
+**Goal.** Estimate the joint via an autoregressive chain of conditional models \(\pi(x_k\mid x_{1:k-1})\), \(k=1,\dots,K\), on **standardized** inputs \(u=(x-\mu)\oslash\sigma\).
+
+### Transformation models
+A transformation model specifies conditional CDF/PDF as
+\[
+F_k(y\mid u_{1:k-1})=\Phi\!\big(h_k(y)-\eta_k(u_{1:k-1})\big),\qquad
+f_k(y\mid u_{1:k-1})=\phi\!\big(h_k(y)-\eta_k(u_{1:k-1})\big)\,h_k'(y),
+\]
+where \(h_k\) is **strictly increasing** in \(y\) and \(\eta_k\) is a smooth effect of the predictors. 
+
+### Forest construction
+For each \(k\ge 2\), a **transformation forest** partitions the \(u_{1:k-1}\)-space and fits local transformation models in the leaves. Splits maximize increase in leaf log‑likelihood; bagging and \(mtry\) reduce variance. Aggregating leaf models across trees yields a smooth conditional \(\hat F_k(\cdot\mid u_{1:k-1})\) and \(\hat f_k(\cdot\mid u_{1:k-1})\).
+
+### Prediction and joint log‑likelihood
+For a query point \(x\) (standardized to \(u\)), the **per‑dimension** log‑density contributions are
+\[
+\mathrm{LD}_k(x) \;=\; \log \hat f_k\!\big(u_k \,\big|\, u_{1:k-1}\big)\;-\;\log \sigma_k,\quad k=1,\dots,K,
+\]
+and the joint log‑density is \(L(x)=\sum_k \mathrm{LD}_k(x)\).
+This is **exact** for the fitted TRTF model—i.e., it is the model’s normalized density—because each \(\hat f_k\) is a proper conditional pdf and the chain rule factorization is valid.
+
+### API invariants (used throughout the thesis)
+- `predict(., "logdensity_by_dim")` returns an \(N\times K\) numeric matrix \(\mathrm{LD}\).
+- `predict(., "logdensity")` returns a length‑\(N\) numeric vector \(L\) with \(L_i=\sum_k \mathrm{LD}_{ik}\) (tolerance \(\le 10^{-12}\)).
+- No NA/Inf; units are **nats**.
+
+## Theoretical Links between TRTF and TTM
+
+We make the connection precise: a TRTF is a **separable triangular transport**.
+
+### Proposition 1 (TRTF induces a separable triangular map).
+Let \(\hat F_k\) be the TRTF estimate of \(F_{X_k\mid X_{1:k-1}}\) on standardized inputs \(u=(x-\mu)\oslash\sigma\). Define
+\[
+\hat S_k(u_{1:k}) \;=\; \Phi^{-1}\!\big(\hat F_k(u_k\mid u_{1:k-1})\big)
+\;=\; h_k(u_k)-\eta_k(u_{1:k-1}).
+\]
+Then \(\hat S=(\hat S_1,\dots,\hat S_K)\) is triangular, and each component is strictly increasing in \(u_k\) with
+\[
+\partial_{u_k}\hat S_k(u) \;=\; h_k'(u_k) \;>\;0.
+\]
+Hence \(\hat S\) is a valid **separable** triangular transport.
+
+*Sketch.* Monotonicity follows from the transformation model: \(\Phi^{-1}\) is monotone, and \(h_k\) is strictly increasing in \(u_k\). Triangularity follows from the autoregressive conditioning on \(u_{1:k-1}\). \(\square\)
+
+### Corollary 1 (Exact model density via pullback).
+With \(z=\hat S(u)\) and Gaussian reference \(\eta=\mathcal N(0,I)\), the model log‑density satisfies
+\[
+\log \hat\pi(x)
+= \sum_{k=1}^K \Big[ -\tfrac12 z_k(u)^2 - \tfrac12\log(2\pi) + \log h_k'(u_k) \Big] - \sum_{k=1}^K \log \sigma_k
+= \sum_{k=1}^K \log \hat f_k(u_k\mid u_{1:k-1}) - \sum_{k=1}^K \log \sigma_k.
+\]
+Thus the TRTF joint log‑likelihood equals the sum of conditional log‑pdfs (plus the **single** standardization Jacobian), matching the triangular pullback formula.
+
+### Remark (Reference choice).
+Using \(\mathrm{Unif}(0,1)\) as reference via \(\tilde S_k(u)=\hat F_k(u_k\mid u_{1:k-1})\) is equally valid. Composing with \(\Phi^{-1}\) recovers the Gaussian reference above.
+
+### Sampling
+- **Joint sampling**: draw \(z\sim\mathcal N(0,I)\), then recursively
+  \[
+  u_k \,=\, h_k^{-1}\!\big(z_k+\eta_k(u_{1:k-1})\big),\qquad 
+  x_k \,=\, \mu_k+\sigma_k\,u_k.
+  \]
+- **Conditional sampling** \(X_k\mid X_{1:k-1}=x\): draw \(z_k\sim\mathcal N(0,1)\) and invert \(h_k\) as above (or invert \(\hat F_k(\cdot\mid u_{1:k-1})\) numerically for a given \(u_{1:k-1}\)).
+
+### Scope of the link
+The TRTF‑induced map is **separable**. Cross‑term triangular maps (with \(\log \partial_{u_k}S_k\) depending jointly on \(u_k\) and \(u_{1:k-1}\)) are strictly more expressive, but also more delicate numerically; we include them as a separate class in our experiments.
+
+
+## Exact likelihoods under triangular maps and TRTF (new)
+
+Both triangular maps and TRTF admit **exact model likelihoods**:
+- **Triangular maps.** Use \eqref{eq:ttm-pullback} with \(z=S(u)\) and \(\log\partial_{u_k}S_k\) from the chosen parameterization (diagonal/separable/cross‑term). Include \(-\tfrac12\log(2\pi)\) once per dimension and subtract \(\sum_k\log\sigma_k\) **exactly once**.
+- **TRTF.** Sum the conditional log‑pdfs \(\log \hat f_k(u_k\mid u_{1:k-1})\) and subtract \(\sum_k\log\sigma_k\) **exactly once**. This equals the triangular pullback for the separable map induced by the forest.
+
+
+## Copula Models (Parametric and Nonparametric)
+
+Copulas decouple marginals from dependence: with $u_i = F_{X_i}(x_i)$ and copula density $c(u)$, the joint density factorizes as $\pi(x) = c(u)\prod_i f_{X_i}(x_i)$. We consider a Gaussian copula with empirical marginals (semiparametric) and a smoothed empirical copula (nonparametric). These highlight the cost of misspecified dependence (parametric) versus the data demands of flexible nonparametric dependence estimation.
+
+## Baselines: True Joint and True Marginals
+
+For simulations, **True Joint** provides an oracle upper bound on test log-likelihood, while **True Marginals** (independent product of true marginals) isolates the contribution of dependence modeling. For real data (MiniBooNE), only the independent baseline is feasible.
+
+# Statistical Evaluation Framework
+
+## Data and Preprocessing
+
+For MiniBooNE we follow standard preprocessing: train-only standardization, removal of near-constant attributes, and pruning highly correlated features (to avoid trivial ridges). Established train/val/test splits are used to ensure comparability with prior work.
+
+## Log-Likelihood Estimation
+
+Primary metric is *test* log-likelihood in nats. TTM and copulas allow exact evaluation via change-of-variables and copula factorization, respectively. TRTF evaluates the sum of conditional pdf logs, using the local parametric family from each forest leaf. We also compute calibration checks (marginal QQ) and dependence diagnostics (rank correlations) as secondary assessments.
+
+## Fairness and Robustness
+
+All methods share the same splits, seeds, and comparable complexity; each result is averaged over multiple seeds with standard errors reported. We apply paired tests or overlap of ±2·SE to gauge practical significance differences.
+
+# Results
+
+## Half-Moon
+
+
+
+|  # | model               | mean\_joint\_nll | per\_dim\_nll\_1 | per\_dim\_nll\_2 |
+| -: | ------------------- | ---------------- | ---------------- | ---------------- |
+|  1 | True\_uncond. | 1.37 ± 0.11      | 0.69             | 0.69             |
+|  2 | True\_cond.   | 0.70 ± 0.12      | 0.35             | 0.35             |
+|  3 | TRTF                | 1.83 ± 0.14      | 1.25             | 0.57             |
+|  4 | TTM\_marginal                 | 2.04 ± 0.12      | 1.29             | 0.75             |
+|  5 | TTM\_sep            | 1.92 ± 0.14      | 1.29             | 0.64             |
+|  6 | TTM\_cross          | 1.22 ± 0.20      | 0.92             | 0.29             |
+|  7 | Copula\_np          | 0.87 ± 0.16      | 0.76             | 0.11             |
+
+## 4D Conditional Data Generation
+
+**n = 50**
+
+|Dim | Distribution | True (marginal) | True (joint) | Random Forest | Marginal Map | Separable Map | Cross-Term Map |
+|--: | :--------- | :-------------: | :----------: | :-----------: | :----------: | :-----------: | :------------: |
+| 1 | norm       |   1.46 ± 0.26   |  1.41 ± 0.29 |  1.48 ± 0.24  |  1.49 ± 0.20 |  1.46 ± 0.26  |   1.46 ± 0.25  |
+| 2 | exp        |   1.55 ± 0.46   |  1.38 ± 0.65 |  2.54 ± 0.75  |  3.30 ± 0.01 |  1.75 ± 0.70  |   2.58 ± 0.03  |
+| 3 | beta       |   −0.46 ± 0.63  | −0.63 ± 1.00 |  −0.14 ± 0.34 |  0.40 ± 0.17 |  0.28 ± 0.70  |   0.39 ± 0.23  |
+| 4 | gamma      |   2.21 ± 1.11   |  2.07 ± 0.80 |  2.22 ± 1.08  |  2.78 ± 0.77 |  2.97 ± 1.45  |   3.00 ± 1.46  |
+| k | SUM        |   4.75 ± 1.10   |  4.23 ± 1.03 |  6.10 ± 1.61  |  7.97 ± 0.94 |  6.47 ± 1.92  |   7.43 ± 1.66  |
+
+
+
+
+
+## MINIBOONE Dataset
+
+We trained TTM (monotone NN maps), TRTF (500 trees per conditional, depth≈10), Gaussian and nonparametric copulas, and the independent baseline. Hyperparameters were selected by validation likelihood where applicable.
+
+## Benchmark Comparison on MINIBOONE
+
+Average test log likelihood (in nats) for conditional density estimation.  Error bars correspond to 2 standard deviations.
+
+| **Model**             | **Miniboone ** |
+|-----------------------|------------------------------|
+| Gaussian (indep. baseline)  | $-37.24 \pm 1.07$ |
+| MADE (ACN)            | $-15.59 \pm 0.50$ |
+| MADE MoG              | $-12.27 \pm 0.47$ |
+| Real NVP (5-layer)    | $-13.55 \pm 0.49$ |
+| Real NVP (10-layer)   | $-13.84 \pm 0.52$ |
+| MAF (5-layer)         | $-11.75 \pm 0.44$ |
+| MAF (10-layer)        | $-12.24 \pm 0.45$ |
+| MAF MoG (5-layer)     | **$-11.68 \pm 0.44$** |
+| **TRTF (Transformation Forest)** | $-29.88 \pm 0.02$ *(ours)* |
+
+
+
+## Discussion of TRTF Result
+
+TRTF substantially improves over the independent Gaussian baseline, indicating it learns nontrivial dependencies, but it underperforms modern flow models by a wide margin. Likely causes include bias from local parametric families, high-dimensional conditioning (43D), and the need for many partitions to capture complex interactions. Qualitatively, TRTF samples preserve first-order moments and some pairwise structures but miss higher-order structure, consistent with the likelihood gap.
+
+## Triangular Transport Map Results
+
+
+
+## Copula Model Results
+
+
+## True Joint/Marginal Baseline Results 
+
+
+# Theoretical Links between TRTF and TTM
+
+Let $\hat{F}_k$ be the TRTF estimate of $F_{X_k|X_{1:k-1}}$. Define $\hat{S}_k(x_{1:k})=\hat{F}_k(x_k\mid x_{1:k-1})$. Then $\hat{\mathbf{S}}(x)=(\hat{S}_1,\dots,\hat{S}_K)$ is triangular and monotone in the last argument by construction, pushing the empirical distribution toward $\mathrm{Unif}(0,1)^K$. In the limit of infinite data and perfect conditional estimation, $\hat{\mathbf{S}}$ converges to the KR map. Thus, TRTF can be viewed as a nonparametric learner of triangular transport, providing a principled bridge between tree ensembles and measure transport.
+
+---
+
+# Appendix A — Access confirmation & Mathematical pseudoalgorithms
+
+**Access confirmation.** I have carefully read `/mnt/data/a_friendly_introduction_to_triangular_transport.md` and will strictly adhere to its notation (triangular maps \(S=(S_1,\dots,S_K)\), change of variables, monotone \(S_k\) in the last argument, Jacobian product, forward-KL training, etc.) in what follows.
+
+---
+
+## Common conventions (all models)
+
+- Data: \(X\in\mathbb{R}^{N\times K}\) split into train/val/test with a **global seed** \(s\).
+- Train-only standardization: for \(k=1,\dots,K\),
+  \[
+  \mu_k=\tfrac1{N_{\mathrm{tr}}}\!\sum_{i\in\mathrm{tr}} x_{ik},\qquad 
+  \sigma_k=\sqrt{\tfrac1{N_{\mathrm{tr}}-1}\!\sum_{i\in\mathrm{tr}}(x_{ik}-\mu_k)^2},\quad \sigma_k>0.
+  \]
+  Write \(u_{ik}=(x_{ik}-\mu_k)/\sigma_k\) and \(u=(x-\mu)\oslash\sigma\).
+- API invariants:  
+  \(\texttt{predict}(\cdot,\text{“logdensity\_by\_dim”})\to \mathbb{R}^{N\times K}\),  
+  \(\texttt{predict}(\cdot,\text{“logdensity”})\to \mathbb{R}^{N}\) with row sums:
+  \[
+  L_i=\sum_{k=1}^K \mathrm{LD}_{ik}\quad (\forall i),\qquad\text{no NA/Inf.}
+  \]
+- If a Gaussian reference \(\eta=\mathcal{N}(0,I)\) is used via a triangular map \(z=S(u)\), then for any \(x\),
+  \[
+  \boxed{\mathrm{LD}_k(x)= -\tfrac12 z_k(u)^2-\tfrac12\log(2\pi)+\log\partial_{u_k}S_k(u)-\log\sigma_k,}
+  \]
+  and \(L(x)=\sum_k\mathrm{LD}_k(x)\).  
+  (Triangular structure: \(S_k=S_k(u_{1:k})\) with \(\partial_{u_k}S_k>0\); Jacobian factorizes as \(\det\nabla S=\prod_k\partial_{u_k}S_k\).)
+- Determinism: identical seeds \(\Rightarrow\) identical outputs up to machine precision.
+
+---
+
+## A) True Marginals (“oracle–independence” model)
+
+**Inputs.** Oracle marginal pdfs \(\{\pi_k\}_{k=1}^K\) (on original scale).
+
+**Fit.**
+1. Compute \((\mu,\sigma)\) on train; persist.
+
+**Predict.** For each \(x\) (row-wise):
+1. \(u=(x-\mu)\oslash\sigma\).
+2. For each \(k\):
+   \[
+   \pi_{k,\mathrm{std}}(u_k)=\sigma_k\,\pi_k(\mu_k+\sigma_k u_k),\qquad
+   \mathrm{LD}_k=\log\pi_{k,\mathrm{std}}(u_k)-\log\sigma_k=\log\pi_k(x_k).
+   \]
+3. Output \(\mathrm{LD}=(\mathrm{LD}_k)_{k=1}^K\), \(L=\sum_k \mathrm{LD}_k\).
+
+*(Unit test: if \(\pi_k=\mathcal{N}(0,1)\) and \(\mu=0,\sigma=1\), then \(\mathrm{LD}_k=-\tfrac12x_k^2-\tfrac12\log(2\pi)\).)*
+
+---
+
+## B) True Joint (“oracle–autoreg.” model)
+
+**Inputs.** Either
+- (B1) oracle conditional pdfs \(\{\pi(x_k\mid x_{1:k-1})\}_{k=1}^K\), or
+- (B2) only oracle joint pdf \(\pi(x)\).
+
+**Fit.** Compute \((\mu,\sigma)\) on train; persist.
+
+**Predict.** For each \(x\):
+
+- **Case B1 (preferred; triangular factorization).**  
+  For \(k=1,\dots,K\), set
+  \[
+  \mathrm{LD}_1=\log\pi(x_1),\qquad
+  \mathrm{LD}_k=\log\pi(x_k\mid x_{1:k-1})\quad(k\ge2),\qquad
+  L=\sum_k\mathrm{LD}_k=\log\pi(x).
+  \]
+  *(Standardization is a no-op algebraically: \(\log\pi(x)=\log\pi_{\mathrm{std}}(u)-\sum_k\log\sigma_k\) with \(\pi_{\mathrm{std}}(u)=\pi(\mu+\sigma\odot u)\prod_k\sigma_k\).)*
+
+- **Case B2 (joint only).**  
+  \[
+  \mathrm{LD}_k=
+  \begin{cases}
+  0,& k=1,\dots,K-1,\\
+  \log\pi(x),& k=K,
+  \end{cases}
+  \qquad L=\log\pi(x).
+  \]
+  (Maintains shape and row-sum invariants.)
+
+---
+
+## C) TRTF (Transformation Random Forest; autoregressive triangular CDF map)
+
+**Model class.** For \(k=1,\dots,K\), estimate conditional CDFs \(F_k(y\mid u_{1:k-1})\) and pdfs \(f_k(y\mid u_{1:k-1})\) on standardized inputs \(u=(x-\mu)\oslash\sigma\).
+
+**Fit.** For each \(k\):
+1. Training tuples \(\{(u_{i,1:k-1},u_{ik})\}_{i\in\mathrm{tr}}\).
+2. Grow a transformation forest \(\mathcal{T}_k=\{T_{k,t}\}_{t=1}^T\).  
+   Each tree partitions \(\mathbb{R}^{k-1}\) into leaves \(\ell\). In leaf \(\ell\), estimate param \(\theta_{k,\ell}\) of a **monotone transformation model** for \(u_k\) by maximizing localized log-likelihood
+   \[
+   \hat\theta_{k,\ell}\in\arg\max_\theta\ \sum_{i\in\ell}\log f_k(u_{ik};\theta),
+   \]
+   where \(f_k(\cdot;\theta)\) is a parametric pdf (e.g. Gaussian/Laplace) and \(F_k(\cdot;\theta)\) its CDF.  
+   Splits maximize increase in this objective (with standard complexity controls).
+3. Aggregation. For query \(u_{1:k-1}\), define weights \(w_{k,t,\ell}(u_{1:k-1})\) indicating membership/proximity to leaf \(\ell\) of tree \(t\) and set
+   \[
+   \hat f_k(\,\cdot\mid u_{1:k-1})=\sum_{t,\ell}w_{k,t,\ell}(u_{1:k-1})\,f_k(\,\cdot\,;\hat\theta_{k,\ell}),
+   \]
+   \(\hat F_k\) analogously. (Enforces monotone CDFs \(\Rightarrow\) invertible in \(u_k\).)
+
+**Predict.** For each \(x\):
+1. \(u=(x-\mu)\oslash\sigma\).
+2. For \(k=1,\dots,K\): evaluate \(\hat f_k(u_k\mid u_{1:k-1})\) and set
+   \[
+   \boxed{\mathrm{LD}_k=\log \hat f_k(u_k\mid u_{1:k-1})-\log\sigma_k,}
+   \qquad L=\sum_k\mathrm{LD}_k.
+   \]
+*(Equivalently, define a triangular map \(\hat S_k(u_{1:k})=\hat F_k(u_k\mid u_{1:k-1})\) to the reference \(\mathrm{Unif}(0,1)\); monotonicity in \(u_k\) is automatic.)*
+
+---
+
+## D) TTM‑D (Diagonal / Marginal triangular transport)
+
+**Parameterization (on standardized \(u\)).**
+\(
+S_k(u_k)=a_k+b_k\,u_k,\qquad b_k>0.
+\)
+
+**Training objective (maps from samples; Gaussian reference).**
+\(
+\min_{\{a_k,b_k>0\}}\ \sum_{i\in\mathrm{tr}}\sum_{k=1}^K
+\Big(\tfrac12 S_k(u_{ik})^2-\log b_k\Big).
+\)
+
+**Predict.** For each \(x\):
+\(
+u=(x-\mu)\oslash\sigma,\quad z_k=S_k(u_k),\quad 
+\mathrm{LD}_k=-\tfrac12 z_k^2-\tfrac12\log(2\pi)+\log b_k-\log\sigma_k,
+\quad L=\sum_k\mathrm{LD}_k.
+\)
+
+---
+
+## E) TTM‑S (Separable triangular transport)
+
+**Parameterization (on standardized \(u\)).**
+\(
+S_k(u_{1:k})=g_k(u_{1:k-1})+f_k(u_k),\qquad f_k'\!(u_k)>0.
+\)
+Typical basis: \(g_k(u_{1:k-1})=\sum_j c^{\text{non}}_{k,j}\,\psi^{\text{non}}_{k,j}(u_{1:k-1})\),  
+\(f_k(u_k)=\sum_j c^{\text{mon}}_{k,j}\,\psi^{\text{mon}}_{k,j}(u_k)\) with \(\psi^{\text{mon}}\) monotone (e.g. iRBF/edge terms).
+
+**Training objective (decouples by \(k\)).**
+\(
+\min_{\{c^{\text{non}}_k,c^{\text{mon}}_k\}}\ J_k(c^{\text{non}}_k,c^{\text{mon}}_k)
+=\sum_{i\in\mathrm{tr}}\Big(\tfrac12 S_k(u_{i,1:k})^2-\log f_k'(u_{ik})\Big).
+\)
+(Option: eliminate \(c^{\text{non}}_k\) in closed form given \(c^{\text{mon}}_k\) via normal equations; then solve a convex box-constrained problem in \(c^{\text{mon}}_k\ge 0\).)
+
+**Predict.** For each \(x\):
+\(
+u=(x-\mu)\oslash\sigma,\quad z_k=S_k(u_{1:k}),\quad 
+\mathrm{LD}_k=-\tfrac12 z_k^2-\tfrac12\log(2\pi)+\log f_k'(u_k)-\log\sigma_k,\quad
+L=\sum_k\mathrm{LD}_k.
+\)
+
+---
+
+## F) TTM‑X (Cross‑term triangular transport)
+
+**Parameterization (on standardized \(u\)).**
+\(
+S_k(u_{1:k})=g_k(u_{1:k-1})+\int_{0}^{u_k}\! r\big(h_k(t,u_{1:k-1})\big)\,dt,\qquad r:\mathbb{R}\to\mathbb{R}_+\ (\text{e.g. }\exp,\ \text{softplus}).
+\)
+Here \(g_k=\sum_j c^{\text{non}}_{k,j}\psi^{\text{non}}_{k,j}\), and \(h_k=\sum_j c^{\text{cr}}_{k,j}\psi^{\text{cr}}_{k,j}\) may include cross-terms \(\psi^{\text{cr}}_{k,j}(t,u_{1:k-1})\).
+
+**Training objective (per \(k\)).**
+\(
+\min_{\{c^{\text{non}}_k,c^{\text{cr}}_k\}}\ 
+J_k=\sum_{i\in\mathrm{tr}}\Big(\tfrac12 S_k(u_{i,1:k})^2-\log\partial_{u_k}S_k(u_{i,1:k})\Big),
+\quad
+\partial_{u_k}S_k=r\big(h_k(u_{ik},u_{i,1:k-1})\big).
+\)
+(Compute the integral by 1D quadrature; enforce stability by clipping \(h_k\) to \([{-}H,H]\) during training/inference.)
+
+**Predict.** For each \(x\):
+\(
+u=(x-\mu)\oslash\sigma,\quad z_k=S_k(u_{1:k}),\quad 
+\mathrm{LD}_k=-\tfrac12 z_k^2-\tfrac12\log(2\pi)+\log r\!\big(h_k(u_k,u_{1:k-1})\big)-\log\sigma_k,\quad
+L=\sum_k\mathrm{LD}_k.
+\)
+
+---
+
+## Appendix B — Acceptance checks (all models; required)
+
+**Shapes.** If \(\mathrm{LD}\in\mathbb{R}^{N\times K}\) is `predict(., "logdensity_by_dim")` and \(L\in\mathbb{R}^N\) is `predict(., "logdensity")`, then \(\sum_k \mathrm{LD}_{ik}=L_i\) for all \(i\), tolerance \(\le 10^{-12}\).
+
+**Constants.** With Gaussian reference, include \(-\tfrac12\log(2\pi)\) **once per dimension**. No double‑counting across layers.
+
+**Standardization Jacobian.** Train‑only \((\mu,\sigma)\) must be persisted and applied to val/test. Subtract \(\sum_k\log\sigma_k\) **exactly once overall** (implemented as \(-\log\sigma_k\) inside each \(\mathrm{LD}_k\)).
+
+**Determinism.** Identical global seeds yield identical outputs up to \(10^{-15}\).
+
+**Stability.** No NA/Inf in \(\mathrm{LD}\) or \(L\); for cross‑term maps clip logits \(h_k\in[-H,H]\); for TRTF enforce leaf pdfs bounded away from zero on the working support (PIT clipping \(u\in[1/(N_{\mathrm{tr}}+1),\,N_{\mathrm{tr}}/(N_{\mathrm{tr}}+1)]\)).
+
