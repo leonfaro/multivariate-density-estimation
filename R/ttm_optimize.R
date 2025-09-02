@@ -1,8 +1,8 @@
 # Per-k training driver for TTM variants (maps-from-samples, Eq. 38/39)
 # Returns parameter list per dimension and meta.
 
-source(file.path("R", "ttm_bases.R"))
-source(file.path("R", "ttm_core.R"))
+source(file.path("models", "ttm", "ttm_bases.R"))
+source(file.path("models", "ttm", "ttm_core.R"))
 
 .opt_marginal_k <- function(xk, lambda = 0.0, eps = 1e-6) {
   # Closed-form matching marginal fit implementation (uses sample variance)

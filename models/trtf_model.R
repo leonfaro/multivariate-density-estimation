@@ -1,4 +1,4 @@
-p <- list(
+trtf_params <- list(
   minsplit = 40,
   minbucket = 5,
   maxdepth = 2,
@@ -109,9 +109,9 @@ fit_TRTF <- function(S, config, seed = NULL, cores = NC) {
 
   mod <- mytrtf(data = X_tr,
                 ntree = nrow(X_tr),
-                minsplit = p$minsplit,
-                minbucket = p$minbucket,
-                maxdepth = p$maxdepth,
+                minsplit = trtf_params$minsplit,
+                minbucket = trtf_params$minbucket,
+                maxdepth = trtf_params$maxdepth,
                 seed = seed,
                 cores = cores)
   

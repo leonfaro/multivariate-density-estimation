@@ -176,3 +176,4 @@ ttm_ld_by_dim <- function(model, X) {
   LJ <- log(J) - matrix(log(model$sigma), nrow = N, ncol = K, byrow = TRUE)
   (-0.5) * (Z^2) + C + LJ
 }
+

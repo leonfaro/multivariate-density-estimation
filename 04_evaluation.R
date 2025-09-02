@@ -4,12 +4,13 @@ if (basename(root_path) == "testthat") {
   root_path <- dirname(dirname(root_path))
 }
 # Use new modular TTM implementation for evaluation
-source(file.path(root_path, "R/ttm_bases.R"))
-source(file.path(root_path, "R/ttm_core.R"))
-source(file.path(root_path, "R/ttm_marginal.R"))
-source(file.path(root_path, "R/ttm_separable.R"))
-source(file.path(root_path, "R/ttm_crossterm.R"))
+source(file.path(root_path, "models/ttm/ttm_bases.R"))
+source(file.path(root_path, "models/ttm/ttm_core.R"))
+source(file.path(root_path, "models/ttm/ttm_marginal.R"))
+source(file.path(root_path, "models/ttm/ttm_separable.R"))
+source(file.path(root_path, "models/ttm/ttm_crossterm.R"))
 source(file.path(root_path, "models/true_joint_model.R"))
+source(file.path(root_path, "models/copula_np.R"))
 
 # Local stderr helper (avoid base::stderr connection)
 stderr <- function(x) stats::sd(x) / sqrt(length(x))
@@ -237,7 +238,7 @@ eval_halfmoon <- function(mods, S, out_csv_path = NULL) {
   dir.create("results", showWarnings = FALSE)
   N <- nrow(S$X_te)
   K <- ncol(S$X_te)
-  need <- c("true", "trtf", "ttm", "ttm_sep", "ttm_cross")
+  need <- c("true", "trtf", "ttm", "ttm_sep", "ttm_cross", "copula_np")
   config_moon <- list(list(distr = "norm"), list(distr = "norm"))
   if (missing(mods) || length(mods) == 0 || !all(need %in% names(mods))) {
     seed <- if (!is.null(S$meta$seed)) as.integer(S$meta$seed) else 42L
@@ -247,7 +248,8 @@ eval_halfmoon <- function(mods, S, out_csv_path = NULL) {
       trtf = fit_TRTF(S, config_moon, seed = seed),
       ttm = trainMarginalMap(S, seed = seed)$S,
       ttm_sep = trainSeparableMap(S, seed = seed)$S,
-      ttm_cross = trainCrossTermMap(S, seed = seed)$S
+      ttm_cross = trainCrossTermMap(S, seed = seed)$S,
+      copula_np = fit_copula_np(S, seed = seed)
     )
   }
   rows <- list()
@@ -257,6 +259,8 @@ eval_halfmoon <- function(mods, S, out_csv_path = NULL) {
       source("scripts/true_halfmoon_density.R")
       te_true <- true_logdensity(S$X_te, S, Q = 32L)
       LD <- te_true$by_dim
+    } else if (m == "copula_np") {
+      LD <- predict(mod, S$X_te, y = S$y_te, type = "logdensity_by_dim")
     } else {
       LD <- predict(mod, S$X_te, "logdensity_by_dim")
     }

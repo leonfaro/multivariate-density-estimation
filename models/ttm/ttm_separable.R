@@ -1,8 +1,23 @@
 # Separable triangular map: S_k(x) = g_k(x_<k>) + f_k(x_k)
 # Maps-from-samples (Eq. 38/39). Uses unified bases and core predictor.
 
-source(file.path("models", "ttm", "ttm_bases.R"))
-source(file.path("models", "ttm", "ttm_core.R"))
+# Be robust to different working directories in tests/scripts
+if (!exists("build_f") || !exists("d_build_f") || !exists("build_g")) {
+  if (exists("root_path")) {
+    src1 <- file.path(root_path, "models", "ttm", "ttm_bases.R")
+  } else {
+    src1 <- file.path("models", "ttm", "ttm_bases.R")
+  }
+  if (file.exists(src1)) source(src1)
+}
+if (!exists("ttm_forward")) {
+  if (exists("root_path")) {
+    src2 <- file.path(root_path, "models", "ttm", "ttm_core.R")
+  } else {
+    src2 <- file.path("models", "ttm", "ttm_core.R")
+  }
+  if (file.exists(src2)) source(src2)
+}
 
 .std_stats <- function(X) {
   mu <- colMeans(X)
