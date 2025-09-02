@@ -96,7 +96,10 @@ predict_ttm <- function(model, X, type = c("transform", "jac_diag", "logdensity_
   }
   stopifnot(is.matrix(X))
   # Delegate to core
-  if (!exists("ttm_forward")) source(file.path("models", "ttm", "ttm_core.R"))
+  if (!exists("ttm_forward")) {
+    src <- if (exists("root_path")) file.path(root_path, "models", "ttm", "ttm_core.R") else file.path("models", "ttm", "ttm_core.R")
+    if (file.exists(src)) source(src)
+  }
   forward <- ttm_forward(m, X)
   if (type == "transform") return(forward$Z)
   if (type == "jac_diag") return(forward$J)

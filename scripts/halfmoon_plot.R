@@ -9,7 +9,12 @@ fit_halfmoon_models <- function(S, seed = NULL, order_mode = "as-is") {
   cfg <- list(list(distr = "norm"), list(distr = "norm"))
   M_true <- fit_TRUE(S, cfg)
   class(M_true) <- c("true_marginal_model", class(M_true))
-  list(
+  # Ensure copula_np fitter is available without side effects
+  if (!exists("fit_copula_np", mode = "function")) {
+    src <- file.path("models", "copula_np.R")
+    if (file.exists(src)) source(src)
+  }
+  mods <- list(
     true = M_true,
     trtf = fit_TRTF(S, cfg, seed = seed),
     ttm = fit_ttm(S, algo = "marginal",  seed = seed)$S,
@@ -17,6 +22,11 @@ fit_halfmoon_models <- function(S, seed = NULL, order_mode = "as-is") {
     ttm_cross = fit_ttm(S, algo = "crossterm", seed = seed,
                         deg_g = 2L, df_t = 6L, Q = 16L, lambda = 1e-3, maxit = 50L)$S
   )
+  # Add nonparametric copula baseline (deterministic under same seed)
+  if (exists("fit_copula_np", mode = "function")) {
+    mods$copula_np <- fit_copula_np(S, seed = seed)
+  }
+  mods
 }
 
 compute_limits <- function(S, pad = 0.05) {
@@ -195,8 +205,8 @@ eval_density_grid <- function(model, G, xlim, ylim, grid_side, seed,
     })
     parallel::clusterEvalQ(cl, {
       source("00_globals.R")
-      source("R/ttm_bases.R"); source("R/ttm_core.R")
-      source("R/ttm_marginal.R"); source("R/ttm_separable.R"); source("R/ttm_crossterm.R")
+      source("models/ttm/ttm_bases.R"); source("models/ttm/ttm_core.R")
+      source("models/ttm/ttm_marginal.R"); source("models/ttm/ttm_separable.R"); source("models/ttm/ttm_crossterm.R")
       source("models/trtf_model.R"); source("models/true_model.R")
       source("scripts/halfmoon_plot.R")
       NULL

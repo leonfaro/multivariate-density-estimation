@@ -1,7 +1,7 @@
 context("Unified bases: build_f/d_build_f, build_g, build_h, GL nodes")
 
 test_that("build_f and d_build_f shapes and derivative numeric check", {
-  source(file.path(root_path, "R/ttm_bases.R"))
+  source(file.path(root_path, "models/ttm/ttm_bases.R"))
   set.seed(7)
   x <- rnorm(100)
   F <- build_f(x)
@@ -18,7 +18,7 @@ test_that("build_f and d_build_f shapes and derivative numeric check", {
 })
 
 test_that("build_g constructs dense polynomial features with correct dims", {
-  source(file.path(root_path, "R/ttm_bases.R"))
+  source(file.path(root_path, "models/ttm/ttm_bases.R"))
   set.seed(3)
   N <- 20L; p <- 3L; deg <- 3L
   Xp <- matrix(rnorm(N * p), ncol = p)
@@ -28,7 +28,7 @@ test_that("build_g constructs dense polynomial features with correct dims", {
 })
 
 test_that("build_h returns tensor of B-splines(t) and poly(X_prev)", {
-  source(file.path(root_path, "R/ttm_bases.R"))
+  source(file.path(root_path, "models/ttm/ttm_bases.R"))
   set.seed(9)
   N <- 25L; p <- 2L
   t <- runif(N)
@@ -41,7 +41,7 @@ test_that("build_h returns tensor of B-splines(t) and poly(X_prev)", {
 })
 
 test_that("Gauss–Legendre nodes on [0,1] sum weights to 1 and are in (0,1)", {
-  source(file.path(root_path, "R/ttm_bases.R"))
+  source(file.path(root_path, "models/ttm/ttm_bases.R"))
   gl1 <- gauss_legendre_nodes(1L)
   expect_equal(gl1$nodes, 0.5)
   expect_equal(gl1$weights, 1.0)
@@ -49,4 +49,3 @@ test_that("Gauss–Legendre nodes on [0,1] sum weights to 1 and are in (0,1)", {
   expect_true(all(gl$nodes > 0 & gl$nodes < 1))
   expect_lt(abs(sum(gl$weights) - 1), 1e-12)
 })
-

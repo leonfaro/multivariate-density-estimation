@@ -14,10 +14,10 @@ options(error = function(e) { message("ERROR: ", conditionMessage(e)); quit(stat
 
 suppressMessages({
   source("00_globals.R")
-  source("R/ttm_bases.R")
-  source("R/ttm_core.R")
-  source("R/ttm_separable.R")
-  source("R/ttm_crossterm.R")
+  source("models/ttm/ttm_bases.R")
+  source("models/ttm/ttm_core.R")
+  source("models/ttm/ttm_separable.R")
+  source("models/ttm/ttm_crossterm.R")
 })
 
 # Helper: read first N numeric rows from CSV

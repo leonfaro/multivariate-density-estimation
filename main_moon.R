@@ -31,26 +31,10 @@ source("models/trtf_model.R")
 S <- make_halfmoon_splits(n_train = N, n_test = N, noise = NOISE, seed = SEED, val_frac = 0.2)
 dir.create("results", showWarnings = FALSE)
 saveRDS(S, sprintf("results/splits_halfmoon2d_seed%03d.rds", SEED))
-# Fit models and write NLL CSV via evaluation helper
+# Fit models and write NLL CSV via evaluation helper (no plotting)
 mods <- fit_halfmoon_models(S, seed = SEED, order_mode = if (!is.na(order_arg)) order_arg else "as-is")
-tab_nll <- eval_halfmoon(mods, S)
+tab <- eval_halfmoon(mods, S)
 csv <- sprintf("results/nll_halfmoon_seed%03d.csv", SEED)
-clamp <- function(x, lo, hi) pmax(lo, pmin(hi, x))
-N_tr <- nrow(S$X_tr)
-grid_side <- if (!is.na(grid_side_arg)) grid_side_arg else clamp(floor(sqrt(100 * N_tr)), 80L, 200L)
-default_cores <- tryCatch(min(10L, parallel::detectCores()), error = function(e) 1L)
-cores <- if (!is.na(cores_arg) && cores_arg >= 1L) cores_arg else default_cores
-timeout_sec <- if (!is.na(timeout_sec_arg) && timeout_sec_arg > 0L) timeout_sec_arg else NA_integer_
-if (!is.na(cores)) cat(sprintf("Using %d workers\n", cores))
-source("scripts/halfmoon_plot.R"); mods <- fit_halfmoon_models(S, seed = SEED,
-                                                                order_mode = if (!is.na(order_arg)) order_arg else "as-is")
-res <- plot_halfmoon_models(mods, S, grid_side = grid_side, save_png = TRUE,
-                            show_plot = FALSE, no_cache = no_cache, cores = cores,
-                            timeout_sec = timeout_sec, abort_file = abort_file,
-                            order_mode = if (!is.na(order_arg)) order_arg else "as-is")
-png_file <- res$png
-stopifnot(file.exists(png_file))
-stopifnot(identical(tab, results_table))
+cat(sprintf("n=%d (Half-moon)\n", N))
 print(tab)
-message("Panel PNG: ", png_file)
-message("Half-moon NLL (nats): ", csv)
+message("Half-moon NLL (nats) CSV: ", csv)

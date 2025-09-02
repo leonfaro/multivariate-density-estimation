@@ -1,8 +1,22 @@
 # Cross-term triangular map: S_k(x) = g_k(x_<k>) + ∫_0^{x_k} exp(h_k(t, x_<k})) dt
 # Minimal maps-from-samples fit using unified bases and core predictor.
 
-source(file.path("R", "ttm_bases.R"))
-source(file.path("R", "ttm_core.R"))
+if (!exists("build_f") || !exists("d_build_f") || !exists("build_g")) {
+  if (exists("root_path")) {
+    src1 <- file.path(root_path, "models", "ttm", "ttm_bases.R")
+  } else {
+    src1 <- file.path("models", "ttm", "ttm_bases.R")
+  }
+  if (file.exists(src1)) source(src1)
+}
+if (!exists("ttm_forward")) {
+  if (exists("root_path")) {
+    src2 <- file.path(root_path, "models", "ttm", "ttm_core.R")
+  } else {
+    src2 <- file.path("models", "ttm", "ttm_core.R")
+  }
+  if (file.exists(src2)) source(src2)
+}
 
 .std_stats <- function(X) {
   mu <- colMeans(X)
@@ -12,7 +26,7 @@ source(file.path("R", "ttm_core.R"))
 
 .standardize <- function(X, mu, sigma) sweep(sweep(X, 2, mu, "-"), 2, sigma, "/")
 
-fit_ttm_crossterm <- function(data, deg_g = 2L, df_t = 6L, lambda = 1e-3, Q = 16L, Hmax = 20, maxit = 50L, seed = 42) {
+fit_ttm_crossterm <- function(data, deg_g = 2L, df_t = 6L, lambda = 1e-3, Q = 16L, Hmax = 20, maxit = 50L, seed = 42, ...) {
   set.seed(seed)
   suppressWarnings(try({ RNGkind("L'Ecuyer-CMRG") }, silent = TRUE))
   S_in <- if (is.list(data) && !is.null(data$X_tr) && !is.null(data$X_te)) data else {
@@ -231,20 +245,21 @@ fit_ttm_crossterm <- function(data, deg_g = 2L, df_t = 6L, lambda = 1e-3, Q = 16
     }
 
     workers <- .get_cross_workers()
+    if (!is.finite(workers) || is.na(workers) || workers < 1L) workers <- 1L
     k_idx <- seq_len(K)
     t_run0 <- proc.time()[3]
     results <- NULL
     try_mc <- try({ parallel::mclapply(k_idx, train_one_k, mc.cores = workers, mc.set.seed = TRUE) }, silent = TRUE)
     if (!inherits(try_mc, "try-error") && is.list(try_mc)) {
       results <- try_mc
-    } else if (workers > 1L) {
+    } else if (is.finite(workers) && workers > 1L) {
       # PSOCK fallback
       cl <- parallel::makeCluster(workers, type = "PSOCK")
       on.exit({ try(parallel::stopCluster(cl), silent = TRUE) }, add = TRUE)
       # Load dependencies on workers
-      parallel::clusterEvalQ(cl, { source("R/ttm_bases.R"); source("R/ttm_core.R") })
+      parallel::clusterEvalQ(cl, { source("models/ttm/ttm_bases.R"); source("models/ttm/ttm_core.R") })
       parallel::clusterExport(cl, varlist = c("Xs","N","K","deg_g","spec_h","Hmax","Q_used","nodes","weights","lambda","train_one_k",".get_cross_lambda_non",".get_cross_lambda_mon",".use_cross_analytic_grad"), envir = environment())
-      try({ parallel::clusterSetRNGStream(cl, is.null(seed) ? 42L : seed) }, silent = TRUE)
+      try({ parallel::clusterSetRNGStream(cl, if (is.null(seed)) 42L else seed) }, silent = TRUE)
       results <- parallel::parLapply(cl, k_idx, train_one_k)
     } else {
       results <- lapply(k_idx, train_one_k)

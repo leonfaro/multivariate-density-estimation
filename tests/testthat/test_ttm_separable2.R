@@ -1,8 +1,8 @@
 context("Separable TTM via core: invariants and deg=0 equivalence to marginal")
 
 test_that("ldb_dim invariants; deg=0 matches marginal within 1e-10", {
-  source(file.path(root_path, "R/ttm_marginal.R"))
-  source(file.path(root_path, "R/ttm_separable.R"))
+  source(file.path(root_path, "models/ttm/ttm_marginal.R"))
+  source(file.path(root_path, "models/ttm/ttm_separable.R"))
   set.seed(77)
   N <- 1000L; K <- 3L
   X <- matrix(rnorm(N * K), ncol = K)
@@ -21,4 +21,3 @@ test_that("ldb_dim invariants; deg=0 matches marginal within 1e-10", {
   # Equivalence to marginal under deg=0
   expect_lte(max(abs(LDm - LDs)), 1e-10)
 })
-
