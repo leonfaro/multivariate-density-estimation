@@ -121,6 +121,10 @@ build_g <- function(X_prev, deg = 3L) {
   B
 }
 
+if (!exists(".bspline_basis_open_knots")) {
+  pth_ct <- file.path("models", "ttm", "crossterm_basis.R"); if (file.exists(pth_ct)) source(pth_ct)
+}
+
 # build_h: tensor basis between B-splines in t and polynomial features in X_prev
 build_h <- function(t, X_prev, spec = list(df = 8L, degree = 3L, deg_g = 3L)) {
   t <- as.numeric(t)
@@ -130,8 +134,18 @@ build_h <- function(t, X_prev, spec = list(df = 8L, degree = 3L, deg_g = 3L)) {
   df <- if (!is.null(spec$df)) as.integer(spec$df) else 8L
   degree <- if (!is.null(spec$degree)) as.integer(spec$degree) else 3L
   deg_g <- if (!is.null(spec$deg_g)) as.integer(spec$deg_g) else 3L
-  Bt <- .bspline_basis_uniform(t, df = df, degree = degree)
+  # Support symmetric knots and constant tails if provided in spec
+  if (!is.null(spec$knots_t) || !is.null(spec$boundary_t)) {
+    interior <- spec$knots_t %||% numeric(0)
+    boundary <- spec$boundary_t %||% range(t)
+    Bt <- .bspline_basis_open_knots(t, interior = interior, degree = degree, boundary = boundary)
+    if (isTRUE(spec$tail_const %||% TRUE)) {
+      Tfeat <- tail_plateau_features(t, boundary)
+      Bt <- cbind(Bt, Tfeat)
+    }
+  } else {
+    Bt <- .bspline_basis_uniform(t, df = df, degree = degree)
+  }
   Gx <- if (ncol(X_prev) > 0L) build_g(X_prev, deg = deg_g) else matrix(1, nrow = N, ncol = 1L)
   .kr_rowwise(Bt, Gx)
 }
-

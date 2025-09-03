@@ -1,0 +1,34 @@
+2025-09-02 17:19:25 [SETUP] CWD=/Users/leonkiafaro/Documents/Masterthesis
+2025-09-02 17:19:25 [SETUP] R=R version 4.4.2 (2024-10-31)
+2025-09-02 17:19:25 [SETUP] Session:
+R version 4.4.2 (2024-10-31)
+Platform: aarch64-apple-darwin20
+Running under: macOS Sequoia 15.6
+
+Matrix products: default
+BLAS:   /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRblas.0.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
+
+locale:
+[1] C/UTF-8/C/C/C/C
+
+time zone: Europe/Zurich
+tzcode source: internal
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+loaded via a namespace (and not attached):
+[1] compiler_4.4.2
+2025-09-02 17:19:25 [GIT] HEAD=375919114ccec9a5cd5955d258699d8b2dd784e0
+[WIRE] sourced=/Users/leonkiafaro/Documents/Masterthesis/models/ttm/fit_ttm_crossterm.R
+2025-09-02 17:19:26 [WIRE] fit_hash(crossterm)=54c2bcf540148af6d82dd372722f1d81
+2025-09-02 17:19:26 [ARGS] N=50, perm=4,3,1,2, deg_g=2, df_t=6, Q=16, lambda=0.001, clip_H=20
+2025-09-02 17:19:26 [SPLIT] N_tr=40, N_te=10
+[CTM][k=1] n_clipped_pos=0 n_clipped_neg=0 max|h|=6.72874 max|h_raw|=6.72874 max exp(h~)=10.0979
+[CTM][k=2] n_clipped_pos=0 n_clipped_neg=2 max|h|=8 max|h_raw|=8.45069 max exp(h~)=2579.19
+[CTM][k=3] n_clipped_pos=0 n_clipped_neg=0 max|h|=7.02796 max|h_raw|=7.02796 max exp(h~)=1127.73
+[CTM][k=4] n_clipped_pos=0 n_clipped_neg=14 max|h|=8 max|h_raw|=33.0768 max exp(h~)=917.483
+Fehler in fit_ttm_crossterm(S, seed = seed, deg_g = deg_g, df_t = df_t,  : 
+  Monotonicity-of-integral violated in 14 cases
+Ruft auf: main_diag -> fit_ttm_crossterm

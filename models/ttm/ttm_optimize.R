@@ -54,7 +54,7 @@ source(file.path("models", "ttm", "ttm_core.R"))
 }
 
 .opt_crossterm_k <- function(x_prev, xk, deg_g = 2L, df_t = 6L, lambda = 1e-3, Q = 16L, Hmax = 20, k = NULL,
-                             lam_non = NA_real_, lam_mon = NA_real_) {
+                             lam_non = NA_real_, lam_mon = NA_real_, spec_h = NULL, nodes_override = NULL, weights_override = NULL) {
   N <- length(xk)
   # Expand g-degree to at least cross.deg_g, but keep h-basis degree unchanged
   deg_g_used <- max(as.integer(deg_g), .get_cross_deg_g())
@@ -66,10 +66,14 @@ source(file.path("models", "ttm", "ttm_core.R"))
   df_opt <- .get_cross_df_t(df_t)
   df_eff <- as.integer(min(df_opt, max(4L, floor(N / 10))))
   df_t_alt <- as.integer(df_t)
-  spec_h <- list(df = df_eff, degree = 3L, deg_g = as.integer(deg_g))
+  if (is.null(spec_h)) spec_h <- list(df = df_eff, degree = 3L, deg_g = as.integer(deg_g))
   Q_used <- .get_cross_quad_nodes(Q)
-  gl <- gauss_legendre_nodes(Q_used)
-  nodes <- gl$nodes; weights <- gl$weights
+  if (is.null(nodes_override) || is.null(weights_override)) {
+    gl <- gauss_legendre_nodes(Q_used)
+    nodes <- gl$nodes; weights <- gl$weights
+  } else {
+    nodes <- as.numeric(nodes_override); weights <- as.numeric(weights_override)
+  }
   Hstar <- build_h(xk, x_prev, spec_h)
   m_h <- ncol(Hstar)
   integ_calls <- 0L; integ_time <- 0
@@ -107,7 +111,7 @@ source(file.path("models", "ttm", "ttm_core.R"))
       HqL <- vector("list", length(nodes)); EVL <- vector("list", length(nodes))
       for (q in seq_along(nodes)) {
         tq <- xk * nodes[q]
-        Hq <- build_h(tq, x_prev, spec_h)
+      Hq <- build_h(tq, x_prev, spec_h)
         v <- as.numeric(Hq %*% b)
         v <- pmax(pmin(v, Hmax), -Hmax)
         ev <- exp(v)

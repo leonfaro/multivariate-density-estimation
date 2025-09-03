@@ -30,7 +30,7 @@ mytrtf <- function(data, ntree, minsplit, minbucket, maxdepth, seed, cores = NC)
     
     # KORRIGIERTER AUFRUF: min_update und update wurden entfernt
     forests[[k - 1L]] <- traforest(ymod[[k]], formula = fm, data = df,
-                                   trace = TRUE, ntree = ntree,
+                                   trace = FALSE, ntree = ntree,
                                    mltargs = list(), mtry = current_mtry,
                                    cores = cores, control = ctrl)
   }
@@ -43,7 +43,7 @@ mytrtf <- function(data, ntree, minsplit, minbucket, maxdepth, seed, cores = NC)
 
 predict.mytrtf <- function(object, newdata,
                            type = c("logdensity", "logdensity_by_dim"),
-                           cores = NC, trace = TRUE) {
+                           cores = NC, trace = FALSE) {
   type <- match.arg(type)
   stopifnot(inherits(object, "mytrtf"), is.matrix(newdata))
   K <- length(object$ymod)
@@ -59,7 +59,7 @@ predict.mytrtf <- function(object, newdata,
     resp <- paste0("X", j + 1L)
     q <- df_new[[resp]]
     pr <- predict(fr, newdata = df_new, type = "logdensity", q = q,
-                  cores = cores, trace = trace)
+                  cores = cores, trace = FALSE)
     if (is.numeric(pr) && length(pr) == N) {
       ld_j <- pr
     } else {
@@ -86,14 +86,14 @@ predict.mytrtf <- function(object, newdata,
 
 logL_TRTF <- function(model, X, cores = NC) {
   nll_value <- -mean(predict(model, X, type = "logdensity",
-                             cores = cores, trace = TRUE))
+                             cores = cores, trace = FALSE))
   if (!is.finite(nll_value)) stop("log-likelihood not finite")
   nll_value
 }
 
 logL_TRTF_dim <- function(model, X, cores = NC) {
   ll <- predict(model, X, type = "logdensity_by_dim",
-                cores = cores, trace = TRUE)
+                cores = cores, trace = FALSE)
   res <- -colMeans(ll)
   if (!all(is.finite(res))) stop("log-likelihood not finite")
   res
@@ -121,7 +121,7 @@ fit_TRTF <- function(S, config, seed = NULL, cores = NC) {
   nll_te_dim <- logL_TRTF_dim(mod, X_te, cores = cores)
   nll_te <- sum(nll_te_dim)
   se_te <- {
-    v <- rowSums(-predict(mod, X_te, type = "logdensity_by_dim", cores = cores, trace = TRUE))
+    v <- rowSums(-predict(mod, X_te, type = "logdensity_by_dim", cores = cores, trace = FALSE))
     stats::sd(v) / sqrt(length(v))
   }
   mod$NLL_train <- nll_tr

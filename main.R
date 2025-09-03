@@ -51,6 +51,28 @@ source(file.path(.repo_root, "models/ttm/ttm_crossterm.R"))
 source(file.path(.repo_root, "models/true_joint_model.R"))
 source(file.path(.repo_root, "04_evaluation.R"))
 
+# Wire checks and signatures (no proxies): require concrete cross-term API
+safe_digest <- function(x) {
+  if (requireNamespace("digest", quietly = TRUE)) return(digest::digest(x))
+  paste(sample(letters, 8L, replace = TRUE), collapse = "")
+}
+if (!exists("fit_ttm_crossterm")) stop("fit_ttm_crossterm must be defined (models/ttm/fit_ttm_crossterm.R)")
+if (!exists("predict_ttm_crossterm")) stop("predict_ttm_crossterm must be defined (models/ttm/fit_ttm_crossterm.R)")
+try({
+  msg <- sprintf("[WIRE] fn_hash(crossterm)=%s fn_hash(separable)=%s",
+                 safe_digest(body(fit_ttm_crossterm)), safe_digest(body(fit_ttm_separable)))
+  message(msg)
+}, silent = TRUE)
+try({ dir.create(file.path(.repo_root, "artifacts"), showWarnings = FALSE) }, silent = TRUE)
+try({
+  sig_df <- data.frame(
+    kind = c("crossterm","separable"),
+    fn_hash = c(safe_digest(body(fit_ttm_crossterm)), safe_digest(body(fit_ttm_separable))),
+    stringsAsFactors = FALSE
+  )
+  utils::write.csv(sig_df, file = file.path(.repo_root, "artifacts", "model_signatures.csv"), row.names = FALSE)
+}, silent = TRUE)
+
 perm <- c(1, 2, 3, 4)
 n <- 50
 config <- list(
@@ -110,7 +132,7 @@ main <- function() {
   t_kern_te  <- system.time(predict_kernel_marginal(mod_kern, S$X_te, type = "logdensity_by_dim"))[['elapsed']]
   t_ttm_te   <- system.time(predict_ttm(mod_ttm$S,       S$X_te, type = "logdensity_by_dim"))[['elapsed']]
   t_sep_te   <- system.time(predict_ttm(mod_ttm_sep$S,   S$X_te, type = "logdensity_by_dim"))[['elapsed']]
-  t_ct_te    <- system.time(predict_ttm(mod_ttm_cross$S, S$X_te, type = "logdensity_by_dim"))[['elapsed']]
+  t_ct_te    <- system.time(predict_ttm_crossterm(mod_ttm_cross$S, S$X_te, type = "logdensity_by_dim"))[['elapsed']]
 
   mods <- list(
     true = mod_true,
