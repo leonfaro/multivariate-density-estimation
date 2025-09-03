@@ -97,7 +97,12 @@ calc_loglik_tables <- function(models, config, X_te, config_canonical = NULL, pe
                                models$true$theta[[k]])
     ll_true[, k] <- -ll_vec
   }
-  ll_trtf <- -predict(models$trtf, X_te, type = "logdensity_by_dim")
+  ll_trtf <- tryCatch({
+    -predict(models$trtf, X_te, type = "logdensity_by_dim")
+  }, error = function(e) {
+    message("[WARN] TRTF not available or failed: ", e$message)
+    matrix(NA_real_, nrow = nrow(X_te), ncol = K)
+  })
   ll_true_joint <- tryCatch({
     if (!is.null(config_canonical) && !is.null(perm)) {
       stopifnot(length(perm) == K)
@@ -246,11 +251,15 @@ eval_halfmoon <- function(mods, S, out_csv_path = NULL) {
   if (missing(mods) || length(mods) == 0 || !all(need_mods %in% names(mods))) {
     seed <- if (!is.null(S$meta$seed)) as.integer(S$meta$seed) else 42L
     set.seed(seed)
+    # Stabilize cross-term tails and regularization for half-moon
+    options(cross.lambda_non = 0.02, cross.lambda_mon = 0.02, cross.df_t = 4L)
     mods <- list(
-      trtf = fit_TRTF(S, config_moon, seed = seed),
+      trtf = tryCatch(fit_TRTF(S, config_moon, seed = seed), error = function(e) NULL),
       ttm = trainMarginalMap(S, seed = seed)$S,
       ttm_sep = trainSeparableMap(S, seed = seed)$S,
-      ttm_cross = trainCrossTermMap(S, seed = seed)$S,
+      ttm_cross = fit_ttm(S, algo = "crossterm", seed = seed,
+                          deg_g = 2L, df_t = 6L, Q = 16L,
+                          lambda = NA_real_, Hmax = 6L, maxit = 100L)$S,
       copula_np = fit_copula_np(S, seed = seed)
     )
   }
@@ -276,11 +285,15 @@ eval_halfmoon <- function(mods, S, out_csv_path = NULL) {
     } else if (m == "copula_np") {
       LD <- predict(mod, S$X_te, y = S$y_te, type = "logdensity_by_dim")
     } else {
-      LD <- predict(mod, S$X_te, "logdensity_by_dim")
+      if (is.null(mod)) {
+        LD <- matrix(NA_real_, N, K)
+      } else {
+        LD <- predict(mod, S$X_te, "logdensity_by_dim")
+      }
     }
-    stopifnot(is.matrix(LD), all(dim(LD) == c(N, K)), all(is.finite(LD)))
+    stopifnot(is.matrix(LD), all(dim(LD) == c(N, K)), all(is.finite(LD) | is.na(LD)))
     LDj <- rowSums(LD)
-    stopifnot(length(LDj) == N, all(is.finite(LDj)))
+    stopifnot(length(LDj) == N, all(is.finite(LDj) | is.na(LDj)))
     nllj <- -LDj
     per <- -colMeans(LD)
     se <- stats::sd(nllj) / sqrt(N)

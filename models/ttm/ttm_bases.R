@@ -1,5 +1,28 @@
 # Unified design/basis builders for TTM variants (pure base R)
 
+# Robust repo-local source helper (works from tests or scripts)
+.source_repo_file <- function(rel_path) {
+  cand <- character(0)
+  # 1) relative to current working directory
+  cand <- c(cand, rel_path)
+  # 2) relative to this file if available
+  this_file <- tryCatch(normalizePath(sys.frames()[[1]]$ofile, winslash = "/", mustWork = FALSE), error = function(e) NA_character_)
+  if (is.character(this_file) && nzchar(this_file) && !is.na(this_file)) {
+    cand <- c(cand, file.path(dirname(this_file), basename(rel_path)))
+  }
+  # 3) via root_path if defined
+  if (exists("root_path")) cand <- c(cand, file.path(root_path, rel_path))
+  # 4) walk up to find 00_globals.R as repo root
+  p <- normalizePath(getwd(), winslash = "/", mustWork = FALSE)
+  for (i in 1:8) {
+    if (file.exists(file.path(p, "00_globals.R"))) { cand <- c(cand, file.path(p, rel_path)); break }
+    np <- dirname(p); if (identical(np, p)) break; p <- np
+  }
+  cand <- unique(cand)
+  for (pth in cand) { if (file.exists(pth)) { source(pth); return(invisible(TRUE)) } }
+  invisible(FALSE)
+}
+
 # Helper: replicate a row vector into an n-row matrix
 rep_row <- function(vec, n) {
   v <- as.numeric(vec)
@@ -42,7 +65,7 @@ d_build_f <- function(x) {
 
 # Polynomial features in predecessors (without x_k)
 # Returns intercept + powers up to degree 'deg' for each column in X_prev
-build_g <- function(X_prev, deg = 3L) {
+build_g <- function(X_prev, deg = 3L, mask = NULL) {
   X_prev <- as.matrix(X_prev)
   stopifnot(deg == as.integer(deg), deg >= 0)
   N <- nrow(X_prev)
@@ -54,6 +77,25 @@ build_g <- function(X_prev, deg = 3L) {
       xj <- X_prev[, j]
       for (d in seq_len(deg)) {
         out <- cbind(out, xj^d)
+      }
+    }
+  }
+  # Optional masking of polynomial powers per predecessor (p x deg logical)
+  if (!is.null(mask)) {
+    M <- try(as.matrix(mask), silent = TRUE)
+    if (is.matrix(M) && nrow(M) == p && ncol(M) == deg) {
+      # Columns layout after intercept: for j=1..p, blocks of size 'deg' in order d=1..deg
+      keep <- rep(TRUE, 1 + p * deg)
+      idx <- 2L
+      for (j in seq_len(p)) {
+        for (d in seq_len(deg)) {
+          if (isFALSE(M[j, d])) keep[idx] <- FALSE
+          idx <- idx + 1L
+        }
+      }
+      # Zero-out excluded columns to keep API/stats consistent (avoid changing dims)
+      if (any(!keep)) {
+        out[, !keep, drop = FALSE] <- 0
       }
     }
   }
@@ -121,8 +163,11 @@ build_g <- function(X_prev, deg = 3L) {
   B
 }
 
-if (!exists(".bspline_basis_open_knots")) {
-  pth_ct <- file.path("models", "ttm", "crossterm_basis.R"); if (file.exists(pth_ct)) source(pth_ct)
+if (!exists(".bspline_basis_open_knots") || !exists("build_symmetric_knots")) {
+  .source_repo_file(file.path("models", "ttm", "crossterm_basis.R"))
+}
+if (!exists("build_t_rbf")) {
+  .source_repo_file(file.path("models", "ttm", "rbf_basis.R"))
 }
 
 # build_h: tensor basis between B-splines in t and polynomial features in X_prev
@@ -134,17 +179,24 @@ build_h <- function(t, X_prev, spec = list(df = 8L, degree = 3L, deg_g = 3L)) {
   df <- if (!is.null(spec$df)) as.integer(spec$df) else 8L
   degree <- if (!is.null(spec$degree)) as.integer(spec$degree) else 3L
   deg_g <- if (!is.null(spec$deg_g)) as.integer(spec$deg_g) else 3L
-  # Support symmetric knots and constant tails if provided in spec
-  if (!is.null(spec$knots_t) || !is.null(spec$boundary_t)) {
-    interior <- spec$knots_t %||% numeric(0)
-    boundary <- spec$boundary_t %||% range(t)
-    Bt <- .bspline_basis_open_knots(t, interior = interior, degree = degree, boundary = boundary)
-    if (isTRUE(spec$tail_const %||% TRUE)) {
-      Tfeat <- tail_plateau_features(t, boundary)
-      Bt <- cbind(Bt, Tfeat)
-    }
+  # Basis in t: switch on spec$kind; default is B-spline
+  kind <- if (!is.null(spec$kind)) as.character(spec$kind) else "bspline"
+  if (identical(kind, "rbf") && exists("build_t_rbf")) {
+    # RBF integrated basis with smooth tail-linear behavior internally
+    Bt <- build_t_rbf(t, df = df, prob_hi = 0.999)
   } else {
-    Bt <- .bspline_basis_uniform(t, df = df, degree = degree)
+    # Support symmetric knots and constant tails if provided in spec
+    if (!is.null(spec$knots_t) || !is.null(spec$boundary_t)) {
+      interior <- spec$knots_t %||% numeric(0)
+      boundary <- spec$boundary_t %||% range(t)
+      Bt <- .bspline_basis_open_knots(t, interior = interior, degree = degree, boundary = boundary)
+      if (isTRUE(spec$tail_const %||% TRUE)) {
+        Tfeat <- tail_plateau_features(t, boundary)
+        Bt <- cbind(Bt, Tfeat)
+      }
+    } else {
+      Bt <- .bspline_basis_uniform(t, df = df, degree = degree)
+    }
   }
   Gx <- if (ncol(X_prev) > 0L) build_g(X_prev, deg = deg_g) else matrix(1, nrow = N, ncol = 1L)
   .kr_rowwise(Bt, Gx)

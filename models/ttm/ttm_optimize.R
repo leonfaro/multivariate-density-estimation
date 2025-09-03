@@ -1,8 +1,27 @@
 # Per-k training driver for TTM variants (maps-from-samples, Eq. 38/39)
 # Returns parameter list per dimension and meta.
 
-source(file.path("models", "ttm", "ttm_bases.R"))
-source(file.path("models", "ttm", "ttm_core.R"))
+# Robust source helper (works when called from tests/scripts)
+if (!exists(".source_repo_file")) {
+  .source_repo_file <- function(rel_path) {
+    cand <- character(0)
+    cand <- c(cand, rel_path)
+    this_file <- tryCatch(normalizePath(sys.frames()[[1]]$ofile, winslash = "/", mustWork = FALSE), error = function(e) NA_character_)
+    if (is.character(this_file) && nzchar(this_file) && !is.na(this_file)) cand <- c(cand, file.path(dirname(this_file), basename(rel_path)))
+    if (exists("root_path")) cand <- c(cand, file.path(root_path, rel_path))
+    p <- normalizePath(getwd(), winslash = "/", mustWork = FALSE)
+    for (i in 1:8) {
+      if (file.exists(file.path(p, "00_globals.R"))) { cand <- c(cand, file.path(p, rel_path)); break }
+      np <- dirname(p); if (identical(np, p)) break; p <- np
+    }
+    cand <- unique(cand)
+    for (pth in cand) { if (file.exists(pth)) { source(pth); return(invisible(TRUE)) } }
+    invisible(FALSE)
+  }
+}
+
+.source_repo_file(file.path("models", "ttm", "ttm_bases.R"))
+.source_repo_file(file.path("models", "ttm", "ttm_core.R"))
 
 .opt_marginal_k <- function(xk, lambda = 0.0, eps = 1e-6) {
   # Closed-form matching marginal fit implementation (uses sample variance)
@@ -56,8 +75,8 @@ source(file.path("models", "ttm", "ttm_core.R"))
 .opt_crossterm_k <- function(x_prev, xk, deg_g = 2L, df_t = 6L, lambda = 1e-3, Q = 16L, Hmax = 20, k = NULL,
                              lam_non = NA_real_, lam_mon = NA_real_, spec_h = NULL, nodes_override = NULL, weights_override = NULL) {
   N <- length(xk)
-  # Expand g-degree to at least cross.deg_g, but keep h-basis degree unchanged
-  deg_g_used <- max(as.integer(deg_g), .get_cross_deg_g())
+  # Respect user-specified degree for g (predecessor polys)
+  deg_g_used <- as.integer(deg_g)
   Gx <- if (ncol(x_prev) > 0) build_g(x_prev, deg = deg_g_used) else matrix(1, N, 1L)
   m_g <- ncol(Gx)
   p_prev <- ncol(x_prev)
@@ -80,6 +99,84 @@ source(file.path("models", "ttm", "ttm_core.R"))
   # Separate ridge weights for g/h
   ln <- .get_cross_lambda_non(length(nodes), N, fallback = if (is.finite(lambda)) lambda else NA_real_)
   lm <- .get_cross_lambda_mon(ln, length(nodes), N, fallback = if (is.finite(lambda)) lambda else NA_real_)
+  # Short scalar search when lambda is NA and no explicit option overrides are set
+  opt_ln_over <- getOption("cross.lambda_non", NULL)
+  opt_lm_over <- getOption("cross.lambda_mon", NULL)
+  if (!is.finite(lambda) && is.null(opt_ln_over) && is.null(opt_lm_over)) {
+    lambda0 <- .get_cross_lambda_non(length(nodes), N, fallback = NA_real_)
+    cands <- as.numeric(c(0.5 * lambda0, lambda0, 2 * lambda0))
+    target <- 0.12
+    best <- list(L = lambda0, err = Inf, ln = ln, lm = lm)
+    # helper: quick reg_share evaluation with reduced maxit
+    quick_share <- function(ln_q, lm_q, maxit_q = 25L) {
+      fn_q <- function(theta) {
+        a <- if (m_g > 0) theta[seq_len(m_g)] else numeric(0)
+        b <- theta[(m_g + 1L):length(theta)]
+        g <- if (m_g > 0) as.numeric(Gx %*% a) else rep(0, N)
+        I <- rep(0, N)
+        for (q in seq_along(nodes)) {
+          tq <- xk * nodes[q]
+          Hq <- build_h(tq, x_prev, spec_h)
+          v <- as.numeric(Hq %*% b)
+          v <- pmax(pmin(v, Hmax), -Hmax)
+          I <- I + weights[q] * exp(v)
+        }
+        I <- sign(xk) * abs(xk) * I
+        S <- g + I
+        h_star <- as.numeric(Hstar %*% b)
+        h_star <- pmax(pmin(h_star, Hmax), -Hmax)
+        0.5 * sum(S^2) - sum(h_star) + 0.5 * (ln_q * sum(a^2) + lm_q * sum(b^2))
+      }
+      grad_q <- NULL
+      if (.use_cross_analytic_grad()) {
+        grad_q <- function(theta) {
+          a <- if (m_g > 0) theta[seq_len(m_g)] else numeric(0)
+          b <- theta[(m_g + 1L):length(theta)]
+          g <- if (m_g > 0) as.numeric(Gx %*% a) else rep(0, N)
+          I <- rep(0, N)
+          HqL <- vector("list", length(nodes)); EVL <- vector("list", length(nodes))
+          for (q in seq_along(nodes)) {
+            tq <- xk * nodes[q]
+            Hq <- build_h(tq, x_prev, spec_h)
+            v <- as.numeric(Hq %*% b)
+            v <- pmax(pmin(v, Hmax), -Hmax)
+            ev <- exp(v)
+            I <- I + weights[q] * ev
+            HqL[[q]] <- Hq; EVL[[q]] <- ev
+          }
+          I <- sign(xk) * abs(xk) * I
+          S <- g + I
+          ga <- if (m_g > 0) as.numeric(t(Gx) %*% S) + ln_q * a else numeric(0)
+          gb <- rep(0, m_h)
+          sgnx <- sign(xk) * abs(xk)
+          for (q in seq_along(nodes)) {
+            wfac <- weights[q] * EVL[[q]] * sgnx * S
+            gb <- gb + as.numeric(t(HqL[[q]]) %*% wfac)
+          }
+          gb <- gb - colSums(Hstar) + lm_q * b
+          c(ga, gb)
+        }
+      }
+      theta0 <- c(rep(0, m_g), rep(0, m_h))
+      ctrl_q <- list(maxit = as.integer(max(1L, min(.get_cross_maxit(), maxit_q))), trace = 0L)
+      opt_q <- if (is.null(grad_q)) optim(theta0, fn_q, method = "L-BFGS-B", control = ctrl_q)
+               else optim(theta0, fn_q, gr = grad_q, method = "L-BFGS-B", control = ctrl_q)
+      a_hat <- if (m_g > 0) opt_q$par[seq_len(m_g)] else numeric(0)
+      b_hat <- opt_q$par[(m_g + 1L):length(opt_q$par)]
+      reg <- 0.5 * (ln_q * sum(a_hat^2) + lm_q * sum(b_hat^2))
+      if (isTRUE(is.finite(opt_q$value)) && opt_q$value != 0) reg / opt_q$value else NA_real_
+    }
+    for (L in cands) {
+      ln_q <- .get_cross_lambda_non(length(nodes), N, fallback = L)
+      lm_q <- .get_cross_lambda_mon(ln_q, length(nodes), N, fallback = L)
+      rs <- tryCatch(quick_share(ln_q, lm_q, maxit_q = 25L), error = function(e) NA_real_)
+      if (is.finite(rs)) {
+        err <- abs(rs - target)
+        if (err < best$err) best <- list(L = L, err = err, ln = ln_q, lm = lm_q)
+      }
+    }
+    ln <- best$ln; lm <- best$lm
+  }
   fn <- function(theta) {
     a <- if (m_g > 0) theta[seq_len(m_g)] else numeric(0)
     b <- theta[(m_g + 1L):length(theta)]

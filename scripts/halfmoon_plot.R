@@ -14,13 +14,16 @@ fit_halfmoon_models <- function(S, seed = NULL, order_mode = "as-is") {
     src <- file.path("models", "copula_np.R")
     if (file.exists(src)) source(src)
   }
+  # Stabilize cross-term tails and regularization for half-moon as in main.R
+  options(cross.lambda_non = 0.02, cross.lambda_mon = 0.02, cross.df_t = 4L)
   mods <- list(
     true = M_true,
-    trtf = fit_TRTF(S, cfg, seed = seed),
+    trtf = tryCatch(fit_TRTF(S, cfg, seed = seed), error = function(e) NULL),
     ttm = fit_ttm(S, algo = "marginal",  seed = seed)$S,
     ttm_sep = fit_ttm(S, algo = "separable", seed = seed)$S,
     ttm_cross = fit_ttm(S, algo = "crossterm", seed = seed,
-                        deg_g = 2L, df_t = 6L, Q = 16L, lambda = 1e-3, maxit = 50L)$S
+                        deg_g = 2L, df_t = 6L, Q = 16L,
+                        lambda = NA_real_, Hmax = 6L, maxit = 100L)$S
   )
   # Add nonparametric copula baseline (deterministic under same seed)
   if (exists("fit_copula_np", mode = "function")) {

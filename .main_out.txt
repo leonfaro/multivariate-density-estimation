@@ -1,0 +1,177 @@
+> get_repo_root <- function() {
++   p <- normalizePath(getwd(), winslash = "/", mustWork = FALSE)
++   for (i in 1:10) {
++     if (file.exists(file.path(p, "ALGORITHM_SPEC.md")) && file.exists(file.path(p, "00_globals.R"))) return(p)
++     parent <- dirname(p)
++     if (identical(parent, p)) break
++     p <- parent
++   }
++   normalizePath(getwd(), winslash = "/", mustWork = FALSE)
++ }
+> .repo_root <- if (exists("root_path")) root_path else get_repo_root()
+> source(file.path(.repo_root, "00_globals.R"))
+> source(file.path(.repo_root, "01_data_generation.R"))
+> source(file.path(.repo_root, "02_split.R"))
+> source(file.path(.repo_root, "models/true_model.R"))
+> source(file.path(.repo_root, "models/trtf_model.R"))
+> source(file.path(.repo_root, "models/ttm/ttm_bases.R"))
+> source(file.path(.repo_root, "models/ttm/ttm_core.R"))
+> source(file.path(.repo_root, "models/ttm/ttm_marginal.R"))
+> source(file.path(.repo_root, "models/ttm/ttm_separable.R"))
+> source(file.path(.repo_root, "models/ttm/ttm_crossterm.R"))
+[WIRE] sourced=/Users/leonkiafaro/Documents/Masterthesis/models/ttm/fit_ttm_crossterm.R
+> source(file.path(.repo_root, "models/true_joint_model.R"))
+> source(file.path(.repo_root, "04_evaluation.R"))
+> ## Optional nonparametric copula baseline
+> if (file.exists(file.path(.repo_root, "models", "copula_np.R"))) {
++   source(file.path(.repo_root, "models", "copula_np.R"))
++ }
+> 
+> 
+> perm <- c(1, 2, 3, 4)
+> n <- 50
+> # Optional: allow overriding n via environment variable N_OVERRIDE
+> nv <- suppressWarnings(as.integer(Sys.getenv("N_OVERRIDE", "")))
+> if (is.finite(nv) && !is.na(nv) && nv > 0L) n <- nv
+> config <- list(
++   list(distr = "norm", parm = NULL),
++   list(distr = "exp",  parm = function(d) list(rate = softplus(d$X1))),
++   list(distr = "beta",
++        parm = function(d) list(shape1 = softplus(d$X2),
++                                shape2 = softplus(d$X1))),
++   list(distr = "gamma",
++        parm = function(d) list(shape = softplus(d$X3),
++                                scale = softplus(d$X2)))
++ )
+> 
+> #' @export
+> main <- function() {
++   seed <- as.integer(Sys.getenv("SEED", 42))
++   set.seed(seed)
++   prep <- prepare_data(n, config, seed = seed)
++   S0 <- prep$S
++   S <- list(
++     X_tr  = S0$X_tr[, perm, drop = FALSE],
++     X_te  = S0$X_te[, perm, drop = FALSE]
++   )
++   cfg <- config[perm]
++   
++   t_true_tr  <- system.time(mod_true      <- fit_TRUE(S, cfg))[['elapsed']]
++   t_joint_tr <- 0
++   mod_true_joint <- tryCatch({
++     fit_TRUE_JOINT(S, cfg)
++   }, error = function(e) {
++     message("[WARN] Skipping True (Joint) for this permutation: ", e$message)
++     NULL
++   })
++   t_trtf_tr  <- system.time(mod_trtf      <- fit_TRTF(S, cfg, seed = seed))[['elapsed']]
++   # Copula NP baseline (robust: 2D-labeled copula or KDE product fallback)
++   t_cop_tr   <- tryCatch(system.time(mod_cop      <- fit_copula_np(S, seed = seed))[["elapsed"]], error = function(e) NA_real_)
++   # New TTM fits (maps-from-samples, forward-KL)
++   mod_ttm      <- fit_ttm(S, algo = "marginal",  seed = seed);  t_ttm_tr <- mod_ttm$time_train
++   mod_ttm_sep  <- fit_ttm(S, algo = "separable", seed = seed);  t_sep_tr <- mod_ttm_sep$time_train
++   # Cross-term with moderate expressiveness and accuracy
++   # Stabilize cross-term tails and regularization
++   df_t_opt <- as.integer(max(16L, floor(n / 10)))
++   options(cross.lambda_non = 0.02, cross.lambda_mon = 0.02, cross.df_t = df_t_opt)
++   mod_ttm_cross<- fit_ttm(S, algo = "crossterm", seed = seed,
++                           deg_g = 2L, df_t = 6L, Q = 16L,
++                           lambda = NA_real_, Hmax = 6L, maxit = 200L);
++   t_ct_tr  <- mod_ttm_cross$time_train
++ 
++   t_true_te  <- system.time(logL_TRUE(mod_true, S$X_te))[['elapsed']]
++   t_joint_te <- tryCatch({
++     system.time(true_joint_logdensity_by_dim(config, S0$X_te))[['elapsed']]
++   }, error = function(e) NA_real_)
++   t_trtf_te  <- tryCatch(system.time(predict(mod_trtf, S$X_te, type = "logdensity_by_dim"))[['elapsed']], error = function(e) NA_real_)
++   t_cop_te   <- tryCatch(system.time(predict(mod_cop, S$X_te, type = "logdensity_by_dim"))[['elapsed']], error = function(e) NA_real_)
++   t_ttm_te   <- system.time(predict_ttm(mod_ttm$S,       S$X_te, type = "logdensity_by_dim"))[['elapsed']]
++   t_sep_te   <- system.time(predict_ttm(mod_ttm_sep$S,   S$X_te, type = "logdensity_by_dim"))[['elapsed']]
++   t_ct_te    <- system.time(predict_ttm_crossterm(mod_ttm_cross$S, S$X_te, type = "logdensity_by_dim"))[['elapsed']]
++ 
++   mods <- list(
++     true = mod_true,
++     true_joint = mod_true_joint,
++     trtf = tryCatch(mod_trtf, error = function(e) NULL),
++     ttm  = mod_ttm,
++     ttm_sep = mod_ttm_sep,
++     ttm_cross = mod_ttm_cross
++   )
++   tab <- calc_loglik_tables(mods, cfg, S$X_te, config_canonical = config, perm = perm)
++   if ("train_test_policy" %in% names(tab)) {
++     tab$train_test_policy <- NULL
++   }
++   fmt <- function(m, se) sprintf("%.2f ± %.2f", round(m, 2), round(2 * se, 2))
++   # Append Copula NP column using the unified predict API
++   LD_cop <- tryCatch(predict(mod_cop, S$X_te, type = "logdensity_by_dim"), error = function(e) NULL)
++   if (!is.null(LD_cop) && is.matrix(LD_cop) && all(dim(LD_cop) == dim(S$X_te))) {
++     per_cop <- -colMeans(LD_cop)
++     se_cop  <- apply(-LD_cop, 2, stderr)
++     tab[["Copula NP"]] <- c(
++       fmt(per_cop, se_cop),
++       fmt(sum(per_cop), stats::sd(rowSums(-LD_cop)) / sqrt(nrow(S$X_te)))
++     )
++   } else {
++     tab[["Copula NP"]] <- c(rep("NA", ncol(S$X_te)), "NA")
++   }
++   cat(sprintf("n=%d\n", n))
++   print(tab)
++   cat(sprintf("Permutation order %s (train/test only)\n", paste(perm, collapse = ",")))
++   time_tab <- data.frame(
++     model = c("True (marginal)", "True (Joint)", "Random Forest",
++               "Copula NP", "Marginal Map", "Separable Map", "Cross-term Map"),
++     train_sec = c(t_true_tr, t_joint_tr, t_trtf_tr,
++                   t_cop_tr, t_ttm_tr, t_sep_tr, t_ct_tr),
++     test_sec = c(t_true_te, t_joint_te, t_trtf_te,
++                  t_cop_te, t_ttm_te, t_sep_te, t_ct_te),
++     stringsAsFactors = FALSE
++   )
++   time_tab$total_sec <- with(time_tab, train_sec + test_sec)
++   stopifnot(all.equal(time_tab$total_sec,
++                       time_tab$train_sec + time_tab$test_sec))
++   print(time_tab)
++   timing_table <<- time_tab
++   results_table <<- tab
++   stopifnot(identical(results_table, tab))
++   return(tab)
++ }
+> 
+> if (sys.nframe() == 0L) {
++   invisible(main())
++ }
+[CTM][k=1] n_clipped_pos=0 n_clipped_neg=0 max|h|=0.418677 max|h_raw|=0.418677 max exp(h~)=1.51995
+[CTM][k=2] n_clipped_pos=0 n_clipped_neg=1 max|h|=6 max|h_raw|=7.71351 max exp(h~)=36.9798
+[CTM][k=3] n_clipped_pos=0 n_clipped_neg=9 max|h|=6 max|h_raw|=23.4797 max exp(h~)=249.717
+[CTM][k=4] n_clipped_pos=1 n_clipped_neg=8 max|h|=6 max|h_raw|=16.4576 max exp(h~)=403.429
+[WARN] Monotonicity-of-integral violated in 3 cases
+[TAIL][k=1] no samples with |u|>=4 in test set
+[TAIL][k=2] no samples with |u|>=4 in test set
+[TAIL][k=3] no samples with |u|>=4 in test set
+[TAIL][k=4] |u|>=4 slope b range: [0.720774, 0.720774]
+Ergebnis (NLL in nats; lower is better) [train/test only]
+n=100
+  dim distribution True (marginal) True (Joint) Random Forest Marginal Map
+1   1         norm     1.40 ± 0.18  1.36 ± 0.22   1.39 ± 0.16  1.40 ± 0.18
+2   2          exp     1.96 ± 0.82  1.42 ± 0.58   1.47 ± 0.64  2.71 ± 0.40
+3   3         beta    -0.40 ± 0.83 -0.83 ± 1.12  -0.12 ± 0.37  0.28 ± 0.22
+4   4        gamma     1.95 ± 0.91  1.60 ± 0.72   1.91 ± 0.68  3.33 ± 1.34
+5   k          SUM     4.91 ± 1.19  3.55 ± 1.03   4.65 ± 1.08  7.72 ± 1.61
+  Separable Map Cross-term Map   Copula NP
+1   1.40 ± 0.18    1.45 ± 0.16 1.43 ± 0.15
+2   2.06 ± 0.88    1.70 ± 1.31 2.13 ± 0.99
+3   0.01 ± 0.21   -0.37 ± 0.68 0.16 ± 0.19
+4   2.55 ± 0.99    2.83 ± 1.55 2.30 ± 0.92
+5   6.02 ± 1.59    5.61 ± 1.91 6.02 ± 1.68
+Permutation order 1,2,3,4 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.036    0.000     0.036
+2    True (Joint)     0.000    0.009     0.009
+3   Random Forest     9.696    0.546    10.242
+4       Copula NP     0.038    0.023     0.061
+5    Marginal Map     0.003    0.001     0.004
+6   Separable Map     0.011    0.000     0.011
+7  Cross-term Map     4.246    0.013     4.259
+Warnmeldung:
+In fit_ttm_crossterm(data, seed = seed, ...) :
+  Monotonicity-of-integral violated in 3 cases
+> 

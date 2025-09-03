@@ -1,8 +1,9 @@
-# Nonparametric Copula Baseline (per-class)
+# Nonparametric Copula Baseline (robust runner)
 #
-# Fits per-class univariate KDE marginals (dims 1 and 2) on train and a
-# bivariate kernel copula on the empirical PIT via mid-ranks. Deterministic
-# given the same inputs and seed; no side effects or installations.
+# Primary mode (2D, labeled): per-class univariate KDE marginals (dims 1 and 2)
+# and a bivariate kernel copula on the empirical PIT (kde1d + kdecopula).
+# Fallback mode (generic K-D, unlabeled or missing packages): independent
+# kernel density product using base::density per dimension (no extra deps).
 
 #' Fit per-class nonparametric copula (2D)
 #'
@@ -17,24 +18,26 @@
 #' - fits a kernel copula (kdecopula::kdecop) on U with method='TLL2'
 #' The returned object stores for each class y: list(m1, m2, cop, n_tr, eps).
 fit_copula_np <- function(S, seed = 42) {
-  # Dependency checks (no installs here)
-  if (!requireNamespace("kde1d", quietly = TRUE)) {
-    stop("Package 'kde1d' is required. Please install it via install.packages(\"kde1d\").")
-  }
-  if (!requireNamespace("kdecopula", quietly = TRUE)) {
-    stop("Package 'kdecopula' is required. Please install it via install.packages(\"kdecopula\").")
-  }
-
   stopifnot(is.list(S))
-  X_tr <- S$X_tr; y_tr <- S$y_tr
-  if (!(is.matrix(X_tr) && is.numeric(X_tr) && ncol(X_tr) == 2L)) {
-    stop("S$X_tr must be a numeric matrix with exactly 2 columns")
-  }
-  if (is.null(y_tr) || length(y_tr) != nrow(X_tr)) {
-    stop("S$y_tr must be provided and have the same length as nrow(S$X_tr)")
-  }
+  X_tr <- as.matrix(S$X_tr)
+  y_tr <- S$y_tr
+  K <- ncol(X_tr)
+  has_pkgs <- (requireNamespace("kde1d", quietly = TRUE) && requireNamespace("kdecopula", quietly = TRUE))
+  use_cop <- (K == 2L && !is.null(y_tr) && length(y_tr) == nrow(X_tr) && has_pkgs)
 
   set.seed(as.integer(seed))
+  if (!use_cop) {
+    # Fallback: product of univariate KDEs (base::density)
+    dens <- vector("list", K)
+    for (k in seq_len(K)) {
+      dk <- stats::density(X_tr[, k], bw = "nrd0", n = 2048,
+                           from = min(X_tr[, k]), to = max(X_tr[, k]))
+      dens[[k]] <- list(x = dk$x, y = pmax(dk$y, .Machine$double.xmin))
+    }
+    return(structure(list(mode = "kde_product", dens = dens, seed = as.integer(seed)),
+                    class = "copula_np"))
+  }
+
   lbl <- sort(unique(as.vector(y_tr)))
   by_class <- setNames(vector("list", length(lbl)), as.character(lbl))
 
@@ -87,7 +90,7 @@ fit_copula_np <- function(S, seed = 42) {
     }
   }
 
-  structure(list(classes = lbl, by_class = by_class, seed = as.integer(seed)),
+  structure(list(mode = "copula2d", classes = lbl, by_class = by_class, seed = as.integer(seed)),
             class = "copula_np")
 }
 
@@ -114,23 +117,36 @@ predict.copula_np <- function(object, newdata, y, type = c("logdensity", "logden
   type <- match.arg(type)
   stopifnot(inherits(object, "copula_np"))
   X <- as.matrix(newdata)
-  if (!(is.matrix(X) && is.numeric(X) && ncol(X) == 2L)) {
-    stop("newdata must be a numeric matrix with exactly 2 columns")
-  }
   N <- nrow(X)
+  if (!is.character(object$mode)) object$mode <- if (!is.null(object$by_class)) "copula2d" else "kde_product"
+
+  if (identical(object$mode, "kde_product")) {
+    # Ignore labels; per-dim KDE product
+    K <- ncol(X)
+    LD <- matrix(NA_real_, N, K)
+    for (k in seq_len(K)) {
+      d <- object$dens[[k]]
+      fx <- stats::approx(d$x, d$y, xout = X[, k], rule = 2, ties = "ordered")$y
+      LD[, k] <- log(pmax(fx, .Machine$double.xmin))
+    }
+    if (type == "logdensity_by_dim") return(LD)
+    return(rowSums(LD))
+  }
+
+  # copula2d mode
+  if (!(is.matrix(X) && is.numeric(X) && ncol(X) == 2L)) {
+    stop("copula2d: newdata must be a numeric matrix with exactly 2 columns")
+  }
   if (missing(y) || length(y) != N) {
-    stop("y must be provided and have the same length as nrow(newdata)")
+    stop("copula2d: y must be provided and have the same length as nrow(newdata)")
   }
   if (!requireNamespace("kde1d", quietly = TRUE) || !requireNamespace("kdecopula", quietly = TRUE)) {
-    stop("Predict requires packages 'kde1d' and 'kdecopula' to be installed")
+    stop("copula2d: packages 'kde1d' and 'kdecopula' are required")
   }
   LD <- matrix(0.0, N, 2L)
   yv <- as.vector(y)
   classes <- object$classes
-  # Optional: validate classes
-  if (any(!(unique(yv) %in% classes))) {
-    stop("y contains labels not present in model$classes")
-  }
+  if (any(!(unique(yv) %in% classes))) stop("copula2d: label not in model$classes")
   tiny <- .Machine$double.xmin
   for (yy in classes) {
     id <- which(yv == yy)
