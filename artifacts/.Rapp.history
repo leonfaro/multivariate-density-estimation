@@ -1,2 +1,0 @@
-load("/Users/leonkiafaro/Documents/Masterthesis/artifacts/models_ttm_separable.rds")
-load("/Users/leonkiafaro/Documents/Masterthesis/artifacts/models_ttm_crossterm.rds")
