@@ -1,0 +1,1104 @@
+
+=== Permutation 1,2,3,4 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1         norm     2.80 ± 1.91  2.35 ± 1.54   2.62 ± 1.49   2.73 ± 1.81
+2   2          exp     6.32 ± 9.03  2.28 ± 1.31 31.27 ± 58.50 42.17 ± 80.80
+3   3         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.17 ± 0.28   0.72 ± 0.20
+4   4        gamma     3.36 ± 1.63  2.80 ± 1.53   3.28 ± 1.63   3.73 ± 1.56
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 37.34 ± 60.48 49.36 ± 82.60
+        Separable Map   Copula NP
+1         2.75 ± 1.76 2.13 ± 0.75
+2      76.69 ± 149.07 2.14 ± 0.88
+3  8132.55 ± 16265.25 0.27 ± 0.06
+4   3154.86 ± 6303.96 4.47 ± 2.85
+5 11366.85 ± 22719.89 9.02 ± 4.14
+Permutation order 1,2,3,4 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.042    0.020     0.062
+2    True (Joint)     0.000    0.027     0.027
+3   Random Forest     1.457    0.259     1.716
+4       Copula NP     0.037    0.022     0.059
+5    Marginal Map     0.003    0.000     0.003
+6   Separable Map     0.017    0.000     0.017
+
+=== Permutation 1,2,4,3 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1         norm     2.80 ± 1.91  2.35 ± 1.54   2.62 ± 1.49   2.73 ± 1.81
+2   2          exp     6.32 ± 9.03  2.28 ± 1.31 31.27 ± 58.50 42.17 ± 80.80
+3   3        gamma     3.36 ± 1.63  2.80 ± 1.53   3.42 ± 1.80   3.73 ± 1.56
+4   4         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.09 ± 0.37   0.72 ± 0.20
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 37.40 ± 60.52 49.36 ± 82.60
+        Separable Map   Copula NP
+1         2.75 ± 1.76 2.13 ± 0.75
+2      76.69 ± 149.07 2.14 ± 0.88
+3   2939.72 ± 5873.65 4.47 ± 2.85
+4  7844.72 ± 15689.53 0.27 ± 0.06
+5 10863.88 ± 21713.87 9.02 ± 4.14
+Permutation order 1,2,4,3 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.033    0.017     0.050
+2    True (Joint)     0.000    0.022     0.022
+3   Random Forest     1.522    0.227     1.749
+4       Copula NP     0.002    0.000     0.002
+5    Marginal Map     0.000    0.001     0.001
+6   Separable Map     0.001    0.000     0.001
+
+=== Permutation 1,3,2,4 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1         norm     2.80 ± 1.91  2.35 ± 1.54   2.62 ± 1.49   2.73 ± 1.81
+2   2         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.15 ± 0.29   0.72 ± 0.20
+3   3          exp     6.32 ± 9.03  2.28 ± 1.31 34.05 ± 63.99 42.17 ± 80.80
+4   4        gamma     3.36 ± 1.63  2.80 ± 1.53   3.28 ± 1.63   3.73 ± 1.56
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 40.09 ± 65.96 49.36 ± 82.60
+      Separable Map   Copula NP
+1       2.75 ± 1.76 2.13 ± 0.75
+2       0.13 ± 0.46 0.27 ± 0.06
+3   134.08 ± 263.13 2.14 ± 0.88
+4 3154.86 ± 6303.96 4.47 ± 2.85
+5 3291.82 ± 6569.09 9.02 ± 4.14
+Permutation order 1,3,2,4 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.030    0.018     0.048
+2    True (Joint)     0.000    0.020     0.020
+3   Random Forest     1.374    0.267     1.641
+4       Copula NP     0.002    0.000     0.002
+5    Marginal Map     0.000    0.000     0.000
+6   Separable Map     0.001    0.001     0.002
+
+=== Permutation 1,3,4,2 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1         norm     2.80 ± 1.91  2.35 ± 1.54   2.62 ± 1.49   2.73 ± 1.81
+2   2         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.15 ± 0.29   0.72 ± 0.20
+3   3        gamma     3.36 ± 1.63  2.80 ± 1.53   3.42 ± 1.80   3.73 ± 1.56
+4   4          exp     6.32 ± 9.03  2.28 ± 1.31 31.28 ± 58.63 42.17 ± 80.80
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 37.47 ± 60.67 49.36 ± 82.60
+    Separable Map   Copula NP
+1     2.75 ± 1.76 2.13 ± 0.75
+2     0.13 ± 0.46 0.27 ± 0.06
+3     3.13 ± 1.56 4.47 ± 2.85
+4 137.04 ± 268.72 2.14 ± 0.88
+5 143.05 ± 271.02 9.02 ± 4.14
+Permutation order 1,3,4,2 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.028    0.016     0.044
+2    True (Joint)     0.000    0.023     0.023
+3   Random Forest     1.424    0.243     1.667
+4       Copula NP     0.003    0.001     0.004
+5    Marginal Map     0.000    0.000     0.000
+6   Separable Map     0.001    0.000     0.001
+
+=== Permutation 1,4,2,3 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1         norm     2.80 ± 1.91  2.35 ± 1.54   2.62 ± 1.49   2.73 ± 1.81
+2   2        gamma     3.36 ± 1.63  2.80 ± 1.53   3.36 ± 1.75   3.73 ± 1.56
+3   3          exp     6.32 ± 9.03  2.28 ± 1.31 34.05 ± 63.99 42.17 ± 80.80
+4   4         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.09 ± 0.37   0.72 ± 0.20
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 40.12 ± 65.99 49.36 ± 82.60
+       Separable Map   Copula NP
+1        2.75 ± 1.76 2.13 ± 0.75
+2        3.35 ± 1.70 4.47 ± 2.85
+3     85.55 ± 166.38 2.14 ± 0.88
+4 7844.72 ± 15689.53 0.27 ± 0.06
+5 7936.37 ± 15857.96 9.02 ± 4.14
+Permutation order 1,4,2,3 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.033    0.020     0.053
+2    True (Joint)     0.000    0.025     0.025
+3   Random Forest     1.444    0.227     1.671
+4       Copula NP     0.002    0.000     0.002
+5    Marginal Map     0.001    0.000     0.001
+6   Separable Map     0.001    0.000     0.001
+
+=== Permutation 1,4,3,2 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1         norm     2.80 ± 1.91  2.35 ± 1.54   2.62 ± 1.49   2.73 ± 1.81
+2   2        gamma     3.36 ± 1.63  2.80 ± 1.53   3.36 ± 1.75   3.73 ± 1.56
+3   3         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.17 ± 0.28   0.72 ± 0.20
+4   4          exp     6.32 ± 9.03  2.28 ± 1.31 31.28 ± 58.63 42.17 ± 80.80
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 37.44 ± 60.65 49.36 ± 82.60
+    Separable Map   Copula NP
+1     2.75 ± 1.76 2.13 ± 0.75
+2     3.35 ± 1.70 4.47 ± 2.85
+3     0.12 ± 0.51 0.27 ± 0.06
+4 137.04 ± 268.72 2.14 ± 0.88
+5 143.25 ± 271.25 9.02 ± 4.14
+Permutation order 1,4,3,2 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.030    0.018     0.048
+2    True (Joint)     0.000    0.030     0.030
+3   Random Forest     1.526    0.253     1.779
+4       Copula NP     0.002    0.000     0.002
+5    Marginal Map     0.000    0.000     0.000
+6   Separable Map     0.001    0.001     0.002
+
+=== Permutation 2,1,3,4 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1          exp     6.32 ± 9.03  2.28 ± 1.31 31.69 ± 59.38 42.17 ± 80.80
+2   2         norm     2.80 ± 1.91  2.35 ± 1.54   2.57 ± 1.49   2.73 ± 1.81
+3   3         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.17 ± 0.28   0.72 ± 0.20
+4   4        gamma     3.36 ± 1.63  2.80 ± 1.53   3.28 ± 1.63   3.73 ± 1.56
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 37.71 ± 61.36 49.36 ± 82.60
+        Separable Map   Copula NP
+1       33.90 ± 64.29 2.14 ± 0.88
+2   3545.37 ± 7086.06 2.13 ± 0.75
+3  8132.55 ± 16265.25 0.27 ± 0.06
+4   3154.86 ± 6303.96 4.47 ± 2.85
+5 14866.68 ± 29719.56 9.02 ± 4.14
+Permutation order 2,1,3,4 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.034    0.021     0.055
+2    True (Joint)     0.000    0.024     0.024
+3   Random Forest     1.384    0.222     1.606
+4       Copula NP     0.002    0.000     0.002
+5    Marginal Map     0.000    0.000     0.000
+6   Separable Map     0.001    0.000     0.001
+
+=== Permutation 2,1,4,3 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1          exp     6.32 ± 9.03  2.28 ± 1.31 31.69 ± 59.38 42.17 ± 80.80
+2   2         norm     2.80 ± 1.91  2.35 ± 1.54   2.57 ± 1.49   2.73 ± 1.81
+3   3        gamma     3.36 ± 1.63  2.80 ± 1.53   3.42 ± 1.80   3.73 ± 1.56
+4   4         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.09 ± 0.37   0.72 ± 0.20
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 37.78 ± 61.41 49.36 ± 82.60
+        Separable Map   Copula NP
+1       33.90 ± 64.29 2.14 ± 0.88
+2   3545.37 ± 7086.06 2.13 ± 0.75
+3   2939.72 ± 5873.65 4.47 ± 2.85
+4  7844.72 ± 15689.53 0.27 ± 0.06
+5 14363.71 ± 28713.54 9.02 ± 4.14
+Permutation order 2,1,4,3 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.031    0.018     0.049
+2    True (Joint)     0.000    0.022     0.022
+3   Random Forest     1.407    0.233     1.640
+4       Copula NP     0.002    0.000     0.002
+5    Marginal Map     0.000    0.001     0.001
+6   Separable Map     0.001    0.001     0.002
+
+=== Permutation 2,3,1,4 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1          exp     6.32 ± 9.03  2.28 ± 1.31 31.69 ± 59.38 42.17 ± 80.80
+2   2         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.15 ± 0.29   0.72 ± 0.20
+3   3         norm     2.80 ± 1.91  2.35 ± 1.54   2.66 ± 1.66   2.73 ± 1.81
+4   4        gamma     3.36 ± 1.63  2.80 ± 1.53   3.28 ± 1.63   3.73 ± 1.56
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 37.78 ± 61.53 49.36 ± 82.60
+        Separable Map   Copula NP
+1       33.90 ± 64.29 2.14 ± 0.88
+2   3233.70 ± 6467.12 0.27 ± 0.06
+3  6693.38 ± 13382.89 2.13 ± 0.75
+4   3154.86 ± 6303.96 4.47 ± 2.85
+5 13115.84 ± 26218.25 9.02 ± 4.14
+Permutation order 2,3,1,4 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.028    0.017     0.045
+2    True (Joint)     0.000    0.021     0.021
+3   Random Forest     1.429    0.242     1.671
+4       Copula NP     0.002    0.000     0.002
+5    Marginal Map     0.000    0.001     0.001
+6   Separable Map     0.001    0.000     0.001
+
+=== Permutation 2,3,4,1 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1          exp     6.32 ± 9.03  2.28 ± 1.31 31.69 ± 59.38 42.17 ± 80.80
+2   2         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.15 ± 0.29   0.72 ± 0.20
+3   3        gamma     3.36 ± 1.63  2.80 ± 1.53   3.42 ± 1.80   3.73 ± 1.56
+4   4         norm     2.80 ± 1.91  2.35 ± 1.54   2.58 ± 1.28   2.73 ± 1.81
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 37.84 ± 61.22 49.36 ± 82.60
+       Separable Map   Copula NP
+1      33.90 ± 64.29 2.14 ± 0.88
+2  3233.70 ± 6467.12 0.27 ± 0.06
+3      38.46 ± 70.25 4.47 ± 2.85
+4 5653.07 ± 11303.21 2.13 ± 0.75
+5 8959.12 ± 17904.85 9.02 ± 4.14
+Permutation order 2,3,4,1 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.030    0.017     0.047
+2    True (Joint)     0.000    0.020     0.020
+3   Random Forest     1.401    0.236     1.637
+4       Copula NP     0.002    0.000     0.002
+5    Marginal Map     0.000    0.001     0.001
+6   Separable Map     0.000    0.000     0.000
+
+=== Permutation 2,4,1,3 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1          exp     6.32 ± 9.03  2.28 ± 1.31 31.69 ± 59.38 42.17 ± 80.80
+2   2        gamma     3.36 ± 1.63  2.80 ± 1.53   3.36 ± 1.75   3.73 ± 1.56
+3   3         norm     2.80 ± 1.91  2.35 ± 1.54   2.66 ± 1.66   2.73 ± 1.81
+4   4         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.09 ± 0.37   0.72 ± 0.20
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 37.81 ± 61.56 49.36 ± 82.60
+        Separable Map   Copula NP
+1       33.90 ± 64.29 2.14 ± 0.88
+2      93.02 ± 179.13 4.47 ± 2.85
+3   3099.10 ± 6194.66 2.13 ± 0.75
+4  7844.72 ± 15689.53 0.27 ± 0.06
+5 11070.74 ± 22127.61 9.02 ± 4.14
+Permutation order 2,4,1,3 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.030    0.018     0.048
+2    True (Joint)     0.000    0.020     0.020
+3   Random Forest     1.409    0.220     1.629
+4       Copula NP     0.002    0.000     0.002
+5    Marginal Map     0.000    0.001     0.001
+6   Separable Map     0.001    0.001     0.002
+
+=== Permutation 2,4,3,1 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1          exp     6.32 ± 9.03  2.28 ± 1.31 31.69 ± 59.38 42.17 ± 80.80
+2   2        gamma     3.36 ± 1.63  2.80 ± 1.53   3.36 ± 1.75   3.73 ± 1.56
+3   3         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.17 ± 0.28   0.72 ± 0.20
+4   4         norm     2.80 ± 1.91  2.35 ± 1.54   2.58 ± 1.28   2.73 ± 1.81
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 37.81 ± 61.20 49.36 ± 82.60
+       Separable Map   Copula NP
+1      33.90 ± 64.29 2.14 ± 0.88
+2     93.02 ± 179.13 4.47 ± 2.85
+3  3228.15 ± 6456.19 0.27 ± 0.06
+4 5653.07 ± 11303.21 2.13 ± 0.75
+5 9008.14 ± 18002.81 9.02 ± 4.14
+Permutation order 2,4,3,1 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.031    0.016     0.047
+2    True (Joint)     0.000    0.019     0.019
+3   Random Forest     1.365    0.221     1.586
+4       Copula NP     0.002    0.000     0.002
+5    Marginal Map     0.000    0.001     0.001
+6   Separable Map     0.001    0.000     0.001
+
+=== Permutation 3,1,2,4 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.14 ± 0.33   0.72 ± 0.20
+2   2         norm     2.80 ± 1.91  2.35 ± 1.54   2.57 ± 1.49   2.73 ± 1.81
+3   3          exp     6.32 ± 9.03  2.28 ± 1.31 34.05 ± 63.99 42.17 ± 80.80
+4   4        gamma     3.36 ± 1.63  2.80 ± 1.53   3.28 ± 1.63   3.73 ± 1.56
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 40.04 ± 65.95 49.36 ± 82.60
+      Separable Map   Copula NP
+1       0.74 ± 0.21 0.27 ± 0.06
+2       1.73 ± 1.41 2.13 ± 0.75
+3   134.08 ± 263.13 2.14 ± 0.88
+4 3154.86 ± 6303.96 4.47 ± 2.85
+5 3291.41 ± 6568.52 9.02 ± 4.14
+Permutation order 3,1,2,4 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.034    0.018     0.052
+2    True (Joint)     0.000    0.020     0.020
+3   Random Forest     1.379    0.212     1.591
+4       Copula NP     0.002    0.000     0.002
+5    Marginal Map     0.000    0.000     0.000
+6   Separable Map     0.000    0.000     0.000
+
+=== Permutation 3,1,4,2 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.14 ± 0.33   0.72 ± 0.20
+2   2         norm     2.80 ± 1.91  2.35 ± 1.54   2.57 ± 1.49   2.73 ± 1.81
+3   3        gamma     3.36 ± 1.63  2.80 ± 1.53   3.42 ± 1.80   3.73 ± 1.56
+4   4          exp     6.32 ± 9.03  2.28 ± 1.31 31.28 ± 58.63 42.17 ± 80.80
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 37.41 ± 60.67 49.36 ± 82.60
+    Separable Map   Copula NP
+1     0.74 ± 0.21 0.27 ± 0.06
+2     1.73 ± 1.41 2.13 ± 0.75
+3     3.13 ± 1.56 4.47 ± 2.85
+4 137.04 ± 268.72 2.14 ± 0.88
+5 142.64 ± 270.44 9.02 ± 4.14
+Permutation order 3,1,4,2 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.029    0.018     0.047
+2    True (Joint)     0.000    0.021     0.021
+3   Random Forest     1.379    0.234     1.613
+4       Copula NP     0.002    0.000     0.002
+5    Marginal Map     0.000    0.001     0.001
+6   Separable Map     0.001    0.001     0.002
+
+=== Permutation 3,2,1,4 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.14 ± 0.33   0.72 ± 0.20
+2   2          exp     6.32 ± 9.03  2.28 ± 1.31 31.27 ± 58.50 42.17 ± 80.80
+3   3         norm     2.80 ± 1.91  2.35 ± 1.54   2.66 ± 1.66   2.73 ± 1.81
+4   4        gamma     3.36 ± 1.63  2.80 ± 1.53   3.28 ± 1.63   3.73 ± 1.56
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 37.35 ± 60.64 49.36 ± 82.60
+       Separable Map   Copula NP
+1        0.74 ± 0.21 0.27 ± 0.06
+2      46.04 ± 89.97 2.14 ± 0.88
+3 6693.38 ± 13382.89 2.13 ± 0.75
+4  3154.86 ± 6303.96 4.47 ± 2.85
+5 9895.02 ± 19776.90 9.02 ± 4.14
+Permutation order 3,2,1,4 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.032    0.017     0.049
+2    True (Joint)     0.000    0.022     0.022
+3   Random Forest     1.366    0.242     1.608
+4       Copula NP     0.002    0.000     0.002
+5    Marginal Map     0.000    0.000     0.000
+6   Separable Map     0.001    0.000     0.001
+
+=== Permutation 3,2,4,1 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.14 ± 0.33   0.72 ± 0.20
+2   2          exp     6.32 ± 9.03  2.28 ± 1.31 31.27 ± 58.50 42.17 ± 80.80
+3   3        gamma     3.36 ± 1.63  2.80 ± 1.53   3.42 ± 1.80   3.73 ± 1.56
+4   4         norm     2.80 ± 1.91  2.35 ± 1.54   2.58 ± 1.28   2.73 ± 1.81
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 37.41 ± 60.33 49.36 ± 82.60
+       Separable Map   Copula NP
+1        0.74 ± 0.21 0.27 ± 0.06
+2      46.04 ± 89.97 2.14 ± 0.88
+3      38.46 ± 70.25 4.47 ± 2.85
+4 5653.07 ± 11303.21 2.13 ± 0.75
+5 5738.31 ± 11463.49 9.02 ± 4.14
+Permutation order 3,2,4,1 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.033    0.019     0.052
+2    True (Joint)     0.000    0.021     0.021
+3   Random Forest     1.364    0.249     1.613
+4       Copula NP     0.002    0.001     0.003
+5    Marginal Map     0.000    0.000     0.000
+6   Separable Map     0.001    0.001     0.002
+
+=== Permutation 3,4,1,2 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.14 ± 0.33   0.72 ± 0.20
+2   2        gamma     3.36 ± 1.63  2.80 ± 1.53   3.36 ± 1.75   3.73 ± 1.56
+3   3         norm     2.80 ± 1.91  2.35 ± 1.54   2.66 ± 1.66   2.73 ± 1.81
+4   4          exp     6.32 ± 9.03  2.28 ± 1.31 31.28 ± 58.63 42.17 ± 80.80
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 37.45 ± 60.82 49.36 ± 82.60
+    Separable Map   Copula NP
+1     0.74 ± 0.21 0.27 ± 0.06
+2     3.48 ± 1.69 4.47 ± 2.85
+3     1.20 ± 0.96 2.13 ± 0.75
+4 137.04 ± 268.72 2.14 ± 0.88
+5 142.45 ± 270.22 9.02 ± 4.14
+Permutation order 3,4,1,2 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.032    0.016     0.048
+2    True (Joint)     0.000    0.021     0.021
+3   Random Forest     1.348    0.220     1.568
+4       Copula NP     0.002    0.000     0.002
+5    Marginal Map     0.000    0.000     0.000
+6   Separable Map     0.001    0.000     0.001
+
+=== Permutation 3,4,2,1 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.14 ± 0.33   0.72 ± 0.20
+2   2        gamma     3.36 ± 1.63  2.80 ± 1.53   3.36 ± 1.75   3.73 ± 1.56
+3   3          exp     6.32 ± 9.03  2.28 ± 1.31 34.05 ± 63.99 42.17 ± 80.80
+4   4         norm     2.80 ± 1.91  2.35 ± 1.54   2.58 ± 1.28   2.73 ± 1.81
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 40.13 ± 65.79 49.36 ± 82.60
+       Separable Map   Copula NP
+1        0.74 ± 0.21 0.27 ± 0.06
+2        3.48 ± 1.69 4.47 ± 2.85
+3     57.09 ± 111.63 2.14 ± 0.88
+4 5653.07 ± 11303.21 2.13 ± 0.75
+5 5714.37 ± 11415.38 9.02 ± 4.14
+Permutation order 3,4,2,1 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.028    0.019     0.047
+2    True (Joint)     0.000    0.020     0.020
+3   Random Forest     1.449    0.224     1.673
+4       Copula NP     0.002    0.000     0.002
+5    Marginal Map     0.001    0.001     0.002
+6   Separable Map     0.000    0.000     0.000
+
+=== Permutation 4,1,2,3 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1        gamma     3.36 ± 1.63  2.80 ± 1.53   3.37 ± 1.74   3.73 ± 1.56
+2   2         norm     2.80 ± 1.91  2.35 ± 1.54   2.57 ± 1.49   2.73 ± 1.81
+3   3          exp     6.32 ± 9.03  2.28 ± 1.31 34.05 ± 63.99 42.17 ± 80.80
+4   4         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.09 ± 0.37   0.72 ± 0.20
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 40.08 ± 65.99 49.36 ± 82.60
+       Separable Map   Copula NP
+1        3.97 ± 1.78 4.47 ± 2.85
+2        1.37 ± 0.81 2.13 ± 0.75
+3     85.55 ± 166.38 2.14 ± 0.88
+4 7844.72 ± 15689.53 0.27 ± 0.06
+5 7935.61 ± 15857.23 9.02 ± 4.14
+Permutation order 4,1,2,3 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.031    0.016     0.047
+2    True (Joint)     0.000    0.019     0.019
+3   Random Forest     1.369    0.233     1.602
+4       Copula NP     0.002    0.001     0.003
+5    Marginal Map     0.000    0.001     0.001
+6   Separable Map     0.001    0.000     0.001
+
+=== Permutation 4,1,3,2 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1        gamma     3.36 ± 1.63  2.80 ± 1.53   3.37 ± 1.74   3.73 ± 1.56
+2   2         norm     2.80 ± 1.91  2.35 ± 1.54   2.57 ± 1.49   2.73 ± 1.81
+3   3         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.17 ± 0.28   0.72 ± 0.20
+4   4          exp     6.32 ± 9.03  2.28 ± 1.31 31.28 ± 58.63 42.17 ± 80.80
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 37.40 ± 60.66 49.36 ± 82.60
+    Separable Map   Copula NP
+1     3.97 ± 1.78 4.47 ± 2.85
+2     1.37 ± 0.81 2.13 ± 0.75
+3     0.12 ± 0.51 0.27 ± 0.06
+4 137.04 ± 268.72 2.14 ± 0.88
+5 142.49 ± 270.51 9.02 ± 4.14
+Permutation order 4,1,3,2 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.033    0.018     0.051
+2    True (Joint)     0.000    0.020     0.020
+3   Random Forest     1.364    0.253     1.617
+4       Copula NP     0.002    0.000     0.002
+5    Marginal Map     0.000    0.000     0.000
+6   Separable Map     0.001    0.001     0.002
+
+=== Permutation 4,2,1,3 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1        gamma     3.36 ± 1.63  2.80 ± 1.53   3.37 ± 1.74   3.73 ± 1.56
+2   2          exp     6.32 ± 9.03  2.28 ± 1.31 31.27 ± 58.50 42.17 ± 80.80
+3   3         norm     2.80 ± 1.91  2.35 ± 1.54   2.66 ± 1.66   2.73 ± 1.81
+4   4         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.09 ± 0.37   0.72 ± 0.20
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 37.39 ± 60.68 49.36 ± 82.60
+        Separable Map   Copula NP
+1         3.97 ± 1.78 4.47 ± 2.85
+2       42.96 ± 83.34 2.14 ± 0.88
+3   3099.10 ± 6194.66 2.13 ± 0.75
+4  7844.72 ± 15689.53 0.27 ± 0.06
+5 10990.74 ± 21968.06 9.02 ± 4.14
+Permutation order 4,2,1,3 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.032    0.017     0.049
+2    True (Joint)     0.000    0.021     0.021
+3   Random Forest     1.533    0.243     1.776
+4       Copula NP     0.002    0.001     0.003
+5    Marginal Map     0.001    0.000     0.001
+6   Separable Map     0.001    0.000     0.001
+
+=== Permutation 4,2,3,1 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1        gamma     3.36 ± 1.63  2.80 ± 1.53   3.37 ± 1.74   3.73 ± 1.56
+2   2          exp     6.32 ± 9.03  2.28 ± 1.31 31.27 ± 58.50 42.17 ± 80.80
+3   3         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.17 ± 0.28   0.72 ± 0.20
+4   4         norm     2.80 ± 1.91  2.35 ± 1.54   2.58 ± 1.28   2.73 ± 1.81
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 37.39 ± 60.32 49.36 ± 82.60
+       Separable Map   Copula NP
+1        3.97 ± 1.78 4.47 ± 2.85
+2      42.96 ± 83.34 2.14 ± 0.88
+3  3228.15 ± 6456.19 0.27 ± 0.06
+4 5653.07 ± 11303.21 2.13 ± 0.75
+5 8928.14 ± 17843.27 9.02 ± 4.14
+Permutation order 4,2,3,1 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.032    0.019     0.051
+2    True (Joint)     0.000    0.021     0.021
+3   Random Forest     1.609    0.233     1.842
+4       Copula NP     0.002    0.000     0.002
+5    Marginal Map     0.000    0.000     0.000
+6   Separable Map     0.001    0.000     0.001
+
+=== Permutation 4,3,1,2 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1        gamma     3.36 ± 1.63  2.80 ± 1.53   3.37 ± 1.74   3.73 ± 1.56
+2   2         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.15 ± 0.29   0.72 ± 0.20
+3   3         norm     2.80 ± 1.91  2.35 ± 1.54   2.66 ± 1.66   2.73 ± 1.81
+4   4          exp     6.32 ± 9.03  2.28 ± 1.31 31.28 ± 58.63 42.17 ± 80.80
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 37.46 ± 60.83 49.36 ± 82.60
+    Separable Map   Copula NP
+1     3.97 ± 1.78 4.47 ± 2.85
+2    -0.04 ± 0.26 0.27 ± 0.06
+3     1.20 ± 0.96 2.13 ± 0.75
+4 137.04 ± 268.72 2.14 ± 0.88
+5 142.16 ± 270.10 9.02 ± 4.14
+Permutation order 4,3,1,2 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.032    0.016     0.048
+2    True (Joint)     0.000    0.020     0.020
+3   Random Forest     1.372    0.242     1.614
+4       Copula NP     0.002    0.000     0.002
+5    Marginal Map     0.001    0.000     0.001
+6   Separable Map     0.001    0.000     0.001
+
+=== Permutation 4,3,2,1 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1        gamma     3.36 ± 1.63  2.80 ± 1.53   3.37 ± 1.74   3.73 ± 1.56
+2   2         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.15 ± 0.29   0.72 ± 0.20
+3   3          exp     6.32 ± 9.03  2.28 ± 1.31 34.05 ± 63.99 42.17 ± 80.80
+4   4         norm     2.80 ± 1.91  2.35 ± 1.54   2.58 ± 1.28   2.73 ± 1.81
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 40.14 ± 65.80 49.36 ± 82.60
+       Separable Map   Copula NP
+1        3.97 ± 1.78 4.47 ± 2.85
+2       -0.04 ± 0.26 0.27 ± 0.06
+3     57.09 ± 111.63 2.14 ± 0.88
+4 5653.07 ± 11303.21 2.13 ± 0.75
+5 5714.08 ± 11415.27 9.02 ± 4.14
+Permutation order 4,3,2,1 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.029    0.017     0.046
+2    True (Joint)     0.000    0.020     0.020
+3   Random Forest     1.599    0.239     1.838
+4       Copula NP     0.002    0.000     0.002
+5    Marginal Map     0.001    0.000     0.001
+6   Separable Map     0.001    0.001     0.002
+
+=== Permutation 1,2,3,4 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1         norm     2.80 ± 1.91  2.35 ± 1.54   2.62 ± 1.49   2.73 ± 1.81
+2   2          exp     6.32 ± 9.03  2.28 ± 1.31 31.27 ± 58.50 42.17 ± 80.80
+3   3         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.17 ± 0.28   0.72 ± 0.20
+4   4        gamma     3.36 ± 1.63  2.80 ± 1.53   3.28 ± 1.63   3.73 ± 1.56
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 37.34 ± 60.48 49.36 ± 82.60
+        Separable Map   Copula NP
+1         2.75 ± 1.76 2.13 ± 0.75
+2      76.69 ± 149.07 2.14 ± 0.88
+3  8132.55 ± 16265.25 0.27 ± 0.06
+4   3154.86 ± 6303.96 4.47 ± 2.85
+5 11366.85 ± 22719.89 9.02 ± 4.14
+Permutation order 1,2,3,4 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.042    0.018     0.060
+2    True (Joint)     0.000    0.023     0.023
+3   Random Forest     1.453    0.256     1.709
+4       Copula NP     0.038    0.021     0.059
+5    Marginal Map     0.002    0.000     0.002
+6   Separable Map     0.018    0.000     0.018
+
+=== Permutation 1,2,4,3 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1         norm     2.80 ± 1.91  2.35 ± 1.54   2.62 ± 1.49   2.73 ± 1.81
+2   2          exp     6.32 ± 9.03  2.28 ± 1.31 31.27 ± 58.50 42.17 ± 80.80
+3   3        gamma     3.36 ± 1.63  2.80 ± 1.53   3.42 ± 1.80   3.73 ± 1.56
+4   4         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.09 ± 0.37   0.72 ± 0.20
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 37.40 ± 60.52 49.36 ± 82.60
+        Separable Map   Copula NP
+1         2.75 ± 1.76 2.13 ± 0.75
+2      76.69 ± 149.07 2.14 ± 0.88
+3   2939.72 ± 5873.65 4.47 ± 2.85
+4  7844.72 ± 15689.53 0.27 ± 0.06
+5 10863.88 ± 21713.87 9.02 ± 4.14
+Permutation order 1,2,4,3 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.035    0.016     0.051
+2    True (Joint)     0.000    0.025     0.025
+3   Random Forest     1.517    0.234     1.751
+4       Copula NP     0.002    0.000     0.002
+5    Marginal Map     0.000    0.000     0.000
+6   Separable Map     0.001    0.001     0.002
+
+=== Permutation 1,3,2,4 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1         norm     2.80 ± 1.91  2.35 ± 1.54   2.62 ± 1.49   2.73 ± 1.81
+2   2         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.15 ± 0.29   0.72 ± 0.20
+3   3          exp     6.32 ± 9.03  2.28 ± 1.31 34.05 ± 63.99 42.17 ± 80.80
+4   4        gamma     3.36 ± 1.63  2.80 ± 1.53   3.28 ± 1.63   3.73 ± 1.56
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 40.09 ± 65.96 49.36 ± 82.60
+      Separable Map   Copula NP
+1       2.75 ± 1.76 2.13 ± 0.75
+2       0.13 ± 0.46 0.27 ± 0.06
+3   134.08 ± 263.13 2.14 ± 0.88
+4 3154.86 ± 6303.96 4.47 ± 2.85
+5 3291.82 ± 6569.09 9.02 ± 4.14
+Permutation order 1,3,2,4 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.031    0.018     0.049
+2    True (Joint)     0.000    0.021     0.021
+3   Random Forest     1.394    0.256     1.650
+4       Copula NP     0.002    0.000     0.002
+5    Marginal Map     0.000    0.000     0.000
+6   Separable Map     0.001    0.000     0.001
+
+=== Permutation 1,3,4,2 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1         norm     2.80 ± 1.91  2.35 ± 1.54   2.62 ± 1.49   2.73 ± 1.81
+2   2         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.15 ± 0.29   0.72 ± 0.20
+3   3        gamma     3.36 ± 1.63  2.80 ± 1.53   3.42 ± 1.80   3.73 ± 1.56
+4   4          exp     6.32 ± 9.03  2.28 ± 1.31 31.28 ± 58.63 42.17 ± 80.80
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 37.47 ± 60.67 49.36 ± 82.60
+    Separable Map   Copula NP
+1     2.75 ± 1.76 2.13 ± 0.75
+2     0.13 ± 0.46 0.27 ± 0.06
+3     3.13 ± 1.56 4.47 ± 2.85
+4 137.04 ± 268.72 2.14 ± 0.88
+5 143.05 ± 271.02 9.02 ± 4.14
+Permutation order 1,3,4,2 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.030    0.019     0.049
+2    True (Joint)     0.000    0.021     0.021
+3   Random Forest     1.407    0.260     1.667
+4       Copula NP     0.002    0.000     0.002
+5    Marginal Map     0.000    0.000     0.000
+6   Separable Map     0.001    0.001     0.002
+
+=== Permutation 1,4,2,3 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1         norm     2.80 ± 1.91  2.35 ± 1.54   2.62 ± 1.49   2.73 ± 1.81
+2   2        gamma     3.36 ± 1.63  2.80 ± 1.53   3.36 ± 1.75   3.73 ± 1.56
+3   3          exp     6.32 ± 9.03  2.28 ± 1.31 34.05 ± 63.99 42.17 ± 80.80
+4   4         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.09 ± 0.37   0.72 ± 0.20
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 40.12 ± 65.99 49.36 ± 82.60
+       Separable Map   Copula NP
+1        2.75 ± 1.76 2.13 ± 0.75
+2        3.35 ± 1.70 4.47 ± 2.85
+3     85.55 ± 166.38 2.14 ± 0.88
+4 7844.72 ± 15689.53 0.27 ± 0.06
+5 7936.37 ± 15857.96 9.02 ± 4.14
+Permutation order 1,4,2,3 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.032    0.017     0.049
+2    True (Joint)     0.000    0.020     0.020
+3   Random Forest     1.420    0.234     1.654
+4       Copula NP     0.002    0.000     0.002
+5    Marginal Map     0.000    0.001     0.001
+6   Separable Map     0.001    0.000     0.001
+
+=== Permutation 1,4,3,2 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1         norm     2.80 ± 1.91  2.35 ± 1.54   2.62 ± 1.49   2.73 ± 1.81
+2   2        gamma     3.36 ± 1.63  2.80 ± 1.53   3.36 ± 1.75   3.73 ± 1.56
+3   3         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.17 ± 0.28   0.72 ± 0.20
+4   4          exp     6.32 ± 9.03  2.28 ± 1.31 31.28 ± 58.63 42.17 ± 80.80
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 37.44 ± 60.65 49.36 ± 82.60
+    Separable Map   Copula NP
+1     2.75 ± 1.76 2.13 ± 0.75
+2     3.35 ± 1.70 4.47 ± 2.85
+3     0.12 ± 0.51 0.27 ± 0.06
+4 137.04 ± 268.72 2.14 ± 0.88
+5 143.25 ± 271.25 9.02 ± 4.14
+Permutation order 1,4,3,2 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.036    0.026     0.062
+2    True (Joint)     0.000    0.023     0.023
+3   Random Forest     1.731    0.224     1.955
+4       Copula NP     0.002    0.000     0.002
+5    Marginal Map     0.001    0.000     0.001
+6   Separable Map     0.001    0.000     0.001
+
+=== Permutation 2,1,3,4 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1          exp     6.32 ± 9.03  2.28 ± 1.31 31.69 ± 59.38 42.17 ± 80.80
+2   2         norm     2.80 ± 1.91  2.35 ± 1.54   2.57 ± 1.49   2.73 ± 1.81
+3   3         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.17 ± 0.28   0.72 ± 0.20
+4   4        gamma     3.36 ± 1.63  2.80 ± 1.53   3.28 ± 1.63   3.73 ± 1.56
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 37.71 ± 61.36 49.36 ± 82.60
+        Separable Map   Copula NP
+1       33.90 ± 64.29 2.14 ± 0.88
+2   3545.37 ± 7086.06 2.13 ± 0.75
+3  8132.55 ± 16265.25 0.27 ± 0.06
+4   3154.86 ± 6303.96 4.47 ± 2.85
+5 14866.68 ± 29719.56 9.02 ± 4.14
+Permutation order 2,1,3,4 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.056    0.020     0.076
+2    True (Joint)     0.000    0.027     0.027
+3   Random Forest     1.584    0.337     1.921
+4       Copula NP     0.002    0.000     0.002
+5    Marginal Map     0.000    0.001     0.001
+6   Separable Map     0.001    0.006     0.007
+
+=== Permutation 2,1,4,3 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1          exp     6.32 ± 9.03  2.28 ± 1.31 31.69 ± 59.38 42.17 ± 80.80
+2   2         norm     2.80 ± 1.91  2.35 ± 1.54   2.57 ± 1.49   2.73 ± 1.81
+3   3        gamma     3.36 ± 1.63  2.80 ± 1.53   3.42 ± 1.80   3.73 ± 1.56
+4   4         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.09 ± 0.37   0.72 ± 0.20
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 37.78 ± 61.41 49.36 ± 82.60
+        Separable Map   Copula NP
+1       33.90 ± 64.29 2.14 ± 0.88
+2   3545.37 ± 7086.06 2.13 ± 0.75
+3   2939.72 ± 5873.65 4.47 ± 2.85
+4  7844.72 ± 15689.53 0.27 ± 0.06
+5 14363.71 ± 28713.54 9.02 ± 4.14
+Permutation order 2,1,4,3 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.036    0.018     0.054
+2    True (Joint)     0.000    0.022     0.022
+3   Random Forest     1.445    0.236     1.681
+4       Copula NP     0.002    0.000     0.002
+5    Marginal Map     0.000    0.001     0.001
+6   Separable Map     0.001    0.000     0.001
+
+=== Permutation 2,3,1,4 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1          exp     6.32 ± 9.03  2.28 ± 1.31 31.69 ± 59.38 42.17 ± 80.80
+2   2         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.15 ± 0.29   0.72 ± 0.20
+3   3         norm     2.80 ± 1.91  2.35 ± 1.54   2.66 ± 1.66   2.73 ± 1.81
+4   4        gamma     3.36 ± 1.63  2.80 ± 1.53   3.28 ± 1.63   3.73 ± 1.56
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 37.78 ± 61.53 49.36 ± 82.60
+        Separable Map   Copula NP
+1       33.90 ± 64.29 2.14 ± 0.88
+2   3233.70 ± 6467.12 0.27 ± 0.06
+3  6693.38 ± 13382.89 2.13 ± 0.75
+4   3154.86 ± 6303.96 4.47 ± 2.85
+5 13115.84 ± 26218.25 9.02 ± 4.14
+Permutation order 2,3,1,4 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.034    0.018     0.052
+2    True (Joint)     0.000    0.022     0.022
+3   Random Forest     1.423    0.231     1.654
+4       Copula NP     0.002    0.000     0.002
+5    Marginal Map     0.000    0.000     0.000
+6   Separable Map     0.001    0.001     0.002
+
+=== Permutation 2,3,4,1 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1          exp     6.32 ± 9.03  2.28 ± 1.31 31.69 ± 59.38 42.17 ± 80.80
+2   2         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.15 ± 0.29   0.72 ± 0.20
+3   3        gamma     3.36 ± 1.63  2.80 ± 1.53   3.42 ± 1.80   3.73 ± 1.56
+4   4         norm     2.80 ± 1.91  2.35 ± 1.54   2.58 ± 1.28   2.73 ± 1.81
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 37.84 ± 61.22 49.36 ± 82.60
+       Separable Map   Copula NP
+1      33.90 ± 64.29 2.14 ± 0.88
+2  3233.70 ± 6467.12 0.27 ± 0.06
+3      38.46 ± 70.25 4.47 ± 2.85
+4 5653.07 ± 11303.21 2.13 ± 0.75
+5 8959.12 ± 17904.85 9.02 ± 4.14
+Permutation order 2,3,4,1 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.032    0.018     0.050
+2    True (Joint)     0.000    0.020     0.020
+3   Random Forest     1.437    0.238     1.675
+4       Copula NP     0.002    0.000     0.002
+5    Marginal Map     0.001    0.000     0.001
+6   Separable Map     0.001    0.000     0.001
+
+=== Permutation 2,4,1,3 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1          exp     6.32 ± 9.03  2.28 ± 1.31 31.69 ± 59.38 42.17 ± 80.80
+2   2        gamma     3.36 ± 1.63  2.80 ± 1.53   3.36 ± 1.75   3.73 ± 1.56
+3   3         norm     2.80 ± 1.91  2.35 ± 1.54   2.66 ± 1.66   2.73 ± 1.81
+4   4         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.09 ± 0.37   0.72 ± 0.20
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 37.81 ± 61.56 49.36 ± 82.60
+        Separable Map   Copula NP
+1       33.90 ± 64.29 2.14 ± 0.88
+2      93.02 ± 179.13 4.47 ± 2.85
+3   3099.10 ± 6194.66 2.13 ± 0.75
+4  7844.72 ± 15689.53 0.27 ± 0.06
+5 11070.74 ± 22127.61 9.02 ± 4.14
+Permutation order 2,4,1,3 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.032    0.018     0.050
+2    True (Joint)     0.000    0.023     0.023
+3   Random Forest     1.443    0.222     1.665
+4       Copula NP     0.003    0.000     0.003
+5    Marginal Map     0.000    0.000     0.000
+6   Separable Map     0.001    0.001     0.002
+
+=== Permutation 2,4,3,1 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1          exp     6.32 ± 9.03  2.28 ± 1.31 31.69 ± 59.38 42.17 ± 80.80
+2   2        gamma     3.36 ± 1.63  2.80 ± 1.53   3.36 ± 1.75   3.73 ± 1.56
+3   3         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.17 ± 0.28   0.72 ± 0.20
+4   4         norm     2.80 ± 1.91  2.35 ± 1.54   2.58 ± 1.28   2.73 ± 1.81
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 37.81 ± 61.20 49.36 ± 82.60
+       Separable Map   Copula NP
+1      33.90 ± 64.29 2.14 ± 0.88
+2     93.02 ± 179.13 4.47 ± 2.85
+3  3228.15 ± 6456.19 0.27 ± 0.06
+4 5653.07 ± 11303.21 2.13 ± 0.75
+5 9008.14 ± 18002.81 9.02 ± 4.14
+Permutation order 2,4,3,1 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.033    0.018     0.051
+2    True (Joint)     0.000    0.021     0.021
+3   Random Forest     1.394    0.230     1.624
+4       Copula NP     0.002    0.001     0.003
+5    Marginal Map     0.001    0.000     0.001
+6   Separable Map     0.001    0.000     0.001
+
+=== Permutation 3,1,2,4 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.14 ± 0.33   0.72 ± 0.20
+2   2         norm     2.80 ± 1.91  2.35 ± 1.54   2.57 ± 1.49   2.73 ± 1.81
+3   3          exp     6.32 ± 9.03  2.28 ± 1.31 34.05 ± 63.99 42.17 ± 80.80
+4   4        gamma     3.36 ± 1.63  2.80 ± 1.53   3.28 ± 1.63   3.73 ± 1.56
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 40.04 ± 65.95 49.36 ± 82.60
+      Separable Map   Copula NP
+1       0.74 ± 0.21 0.27 ± 0.06
+2       1.73 ± 1.41 2.13 ± 0.75
+3   134.08 ± 263.13 2.14 ± 0.88
+4 3154.86 ± 6303.96 4.47 ± 2.85
+5 3291.41 ± 6568.52 9.02 ± 4.14
+Permutation order 3,1,2,4 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.039    0.020     0.059
+2    True (Joint)     0.000    0.023     0.023
+3   Random Forest     1.390    0.226     1.616
+4       Copula NP     0.002    0.001     0.003
+5    Marginal Map     0.001    0.000     0.001
+6   Separable Map     0.001    0.000     0.001
+
+=== Permutation 3,1,4,2 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.14 ± 0.33   0.72 ± 0.20
+2   2         norm     2.80 ± 1.91  2.35 ± 1.54   2.57 ± 1.49   2.73 ± 1.81
+3   3        gamma     3.36 ± 1.63  2.80 ± 1.53   3.42 ± 1.80   3.73 ± 1.56
+4   4          exp     6.32 ± 9.03  2.28 ± 1.31 31.28 ± 58.63 42.17 ± 80.80
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 37.41 ± 60.67 49.36 ± 82.60
+    Separable Map   Copula NP
+1     0.74 ± 0.21 0.27 ± 0.06
+2     1.73 ± 1.41 2.13 ± 0.75
+3     3.13 ± 1.56 4.47 ± 2.85
+4 137.04 ± 268.72 2.14 ± 0.88
+5 142.64 ± 270.44 9.02 ± 4.14
+Permutation order 3,1,4,2 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.031    0.019     0.050
+2    True (Joint)     0.000    0.022     0.022
+3   Random Forest     1.421    0.241     1.662
+4       Copula NP     0.002    0.000     0.002
+5    Marginal Map     0.000    0.001     0.001
+6   Separable Map     0.001    0.001     0.002
+
+=== Permutation 3,2,1,4 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.14 ± 0.33   0.72 ± 0.20
+2   2          exp     6.32 ± 9.03  2.28 ± 1.31 31.27 ± 58.50 42.17 ± 80.80
+3   3         norm     2.80 ± 1.91  2.35 ± 1.54   2.66 ± 1.66   2.73 ± 1.81
+4   4        gamma     3.36 ± 1.63  2.80 ± 1.53   3.28 ± 1.63   3.73 ± 1.56
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 37.35 ± 60.64 49.36 ± 82.60
+       Separable Map   Copula NP
+1        0.74 ± 0.21 0.27 ± 0.06
+2      46.04 ± 89.97 2.14 ± 0.88
+3 6693.38 ± 13382.89 2.13 ± 0.75
+4  3154.86 ± 6303.96 4.47 ± 2.85
+5 9895.02 ± 19776.90 9.02 ± 4.14
+Permutation order 3,2,1,4 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.035    0.019     0.054
+2    True (Joint)     0.000    0.021     0.021
+3   Random Forest     1.373    0.244     1.617
+4       Copula NP     0.002    0.000     0.002
+5    Marginal Map     0.000    0.000     0.000
+6   Separable Map     0.001    0.000     0.001
+
+=== Permutation 3,2,4,1 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.14 ± 0.33   0.72 ± 0.20
+2   2          exp     6.32 ± 9.03  2.28 ± 1.31 31.27 ± 58.50 42.17 ± 80.80
+3   3        gamma     3.36 ± 1.63  2.80 ± 1.53   3.42 ± 1.80   3.73 ± 1.56
+4   4         norm     2.80 ± 1.91  2.35 ± 1.54   2.58 ± 1.28   2.73 ± 1.81
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 37.41 ± 60.33 49.36 ± 82.60
+       Separable Map   Copula NP
+1        0.74 ± 0.21 0.27 ± 0.06
+2      46.04 ± 89.97 2.14 ± 0.88
+3      38.46 ± 70.25 4.47 ± 2.85
+4 5653.07 ± 11303.21 2.13 ± 0.75
+5 5738.31 ± 11463.49 9.02 ± 4.14
+Permutation order 3,2,4,1 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.030    0.017     0.047
+2    True (Joint)     0.000    0.025     0.025
+3   Random Forest     1.417    0.244     1.661
+4       Copula NP     0.002    0.000     0.002
+5    Marginal Map     0.001    0.000     0.001
+6   Separable Map     0.001    0.000     0.001
+
+=== Permutation 3,4,1,2 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.14 ± 0.33   0.72 ± 0.20
+2   2        gamma     3.36 ± 1.63  2.80 ± 1.53   3.36 ± 1.75   3.73 ± 1.56
+3   3         norm     2.80 ± 1.91  2.35 ± 1.54   2.66 ± 1.66   2.73 ± 1.81
+4   4          exp     6.32 ± 9.03  2.28 ± 1.31 31.28 ± 58.63 42.17 ± 80.80
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 37.45 ± 60.82 49.36 ± 82.60
+    Separable Map   Copula NP
+1     0.74 ± 0.21 0.27 ± 0.06
+2     3.48 ± 1.69 4.47 ± 2.85
+3     1.20 ± 0.96 2.13 ± 0.75
+4 137.04 ± 268.72 2.14 ± 0.88
+5 142.45 ± 270.22 9.02 ± 4.14
+Permutation order 3,4,1,2 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.032    0.018     0.050
+2    True (Joint)     0.000    0.020     0.020
+3   Random Forest     1.378    0.240     1.618
+4       Copula NP     0.002    0.000     0.002
+5    Marginal Map     0.000    0.000     0.000
+6   Separable Map     0.001    0.001     0.002
+
+=== Permutation 3,4,2,1 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.14 ± 0.33   0.72 ± 0.20
+2   2        gamma     3.36 ± 1.63  2.80 ± 1.53   3.36 ± 1.75   3.73 ± 1.56
+3   3          exp     6.32 ± 9.03  2.28 ± 1.31 34.05 ± 63.99 42.17 ± 80.80
+4   4         norm     2.80 ± 1.91  2.35 ± 1.54   2.58 ± 1.28   2.73 ± 1.81
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 40.13 ± 65.79 49.36 ± 82.60
+       Separable Map   Copula NP
+1        0.74 ± 0.21 0.27 ± 0.06
+2        3.48 ± 1.69 4.47 ± 2.85
+3     57.09 ± 111.63 2.14 ± 0.88
+4 5653.07 ± 11303.21 2.13 ± 0.75
+5 5714.37 ± 11415.38 9.02 ± 4.14
+Permutation order 3,4,2,1 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.032    0.018     0.050
+2    True (Joint)     0.000    0.022     0.022
+3   Random Forest     1.472    0.249     1.721
+4       Copula NP     0.002    0.000     0.002
+5    Marginal Map     0.000    0.000     0.000
+6   Separable Map     0.001    0.000     0.001
+
+=== Permutation 4,1,2,3 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1        gamma     3.36 ± 1.63  2.80 ± 1.53   3.37 ± 1.74   3.73 ± 1.56
+2   2         norm     2.80 ± 1.91  2.35 ± 1.54   2.57 ± 1.49   2.73 ± 1.81
+3   3          exp     6.32 ± 9.03  2.28 ± 1.31 34.05 ± 63.99 42.17 ± 80.80
+4   4         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.09 ± 0.37   0.72 ± 0.20
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 40.08 ± 65.99 49.36 ± 82.60
+       Separable Map   Copula NP
+1        3.97 ± 1.78 4.47 ± 2.85
+2        1.37 ± 0.81 2.13 ± 0.75
+3     85.55 ± 166.38 2.14 ± 0.88
+4 7844.72 ± 15689.53 0.27 ± 0.06
+5 7935.61 ± 15857.23 9.02 ± 4.14
+Permutation order 4,1,2,3 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.033    0.019     0.052
+2    True (Joint)     0.000    0.020     0.020
+3   Random Forest     1.423    0.262     1.685
+4       Copula NP     0.002    0.000     0.002
+5    Marginal Map     0.001    0.000     0.001
+6   Separable Map     0.001    0.000     0.001
+
+=== Permutation 4,1,3,2 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1        gamma     3.36 ± 1.63  2.80 ± 1.53   3.37 ± 1.74   3.73 ± 1.56
+2   2         norm     2.80 ± 1.91  2.35 ± 1.54   2.57 ± 1.49   2.73 ± 1.81
+3   3         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.17 ± 0.28   0.72 ± 0.20
+4   4          exp     6.32 ± 9.03  2.28 ± 1.31 31.28 ± 58.63 42.17 ± 80.80
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 37.40 ± 60.66 49.36 ± 82.60
+    Separable Map   Copula NP
+1     3.97 ± 1.78 4.47 ± 2.85
+2     1.37 ± 0.81 2.13 ± 0.75
+3     0.12 ± 0.51 0.27 ± 0.06
+4 137.04 ± 268.72 2.14 ± 0.88
+5 142.49 ± 270.51 9.02 ± 4.14
+Permutation order 4,1,3,2 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.031    0.019     0.050
+2    True (Joint)     0.000    0.023     0.023
+3   Random Forest     1.432    0.238     1.670
+4       Copula NP     0.002    0.000     0.002
+5    Marginal Map     0.001    0.001     0.002
+6   Separable Map     0.001    0.000     0.001
+
+=== Permutation 4,2,1,3 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1        gamma     3.36 ± 1.63  2.80 ± 1.53   3.37 ± 1.74   3.73 ± 1.56
+2   2          exp     6.32 ± 9.03  2.28 ± 1.31 31.27 ± 58.50 42.17 ± 80.80
+3   3         norm     2.80 ± 1.91  2.35 ± 1.54   2.66 ± 1.66   2.73 ± 1.81
+4   4         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.09 ± 0.37   0.72 ± 0.20
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 37.39 ± 60.68 49.36 ± 82.60
+        Separable Map   Copula NP
+1         3.97 ± 1.78 4.47 ± 2.85
+2       42.96 ± 83.34 2.14 ± 0.88
+3   3099.10 ± 6194.66 2.13 ± 0.75
+4  7844.72 ± 15689.53 0.27 ± 0.06
+5 10990.74 ± 21968.06 9.02 ± 4.14
+Permutation order 4,2,1,3 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.033    0.019     0.052
+2    True (Joint)     0.000    0.023     0.023
+3   Random Forest     1.583    0.236     1.819
+4       Copula NP     0.002    0.000     0.002
+5    Marginal Map     0.000    0.001     0.001
+6   Separable Map     0.001    0.001     0.002
+
+=== Permutation 4,2,3,1 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1        gamma     3.36 ± 1.63  2.80 ± 1.53   3.37 ± 1.74   3.73 ± 1.56
+2   2          exp     6.32 ± 9.03  2.28 ± 1.31 31.27 ± 58.50 42.17 ± 80.80
+3   3         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.17 ± 0.28   0.72 ± 0.20
+4   4         norm     2.80 ± 1.91  2.35 ± 1.54   2.58 ± 1.28   2.73 ± 1.81
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 37.39 ± 60.32 49.36 ± 82.60
+       Separable Map   Copula NP
+1        3.97 ± 1.78 4.47 ± 2.85
+2      42.96 ± 83.34 2.14 ± 0.88
+3  3228.15 ± 6456.19 0.27 ± 0.06
+4 5653.07 ± 11303.21 2.13 ± 0.75
+5 8928.14 ± 17843.27 9.02 ± 4.14
+Permutation order 4,2,3,1 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.035    0.018     0.053
+2    True (Joint)     0.000    0.021     0.021
+3   Random Forest     1.667    0.250     1.917
+4       Copula NP     0.002    0.001     0.003
+5    Marginal Map     0.000    0.000     0.000
+6   Separable Map     0.001    0.001     0.002
+
+=== Permutation 4,3,1,2 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1        gamma     3.36 ± 1.63  2.80 ± 1.53   3.37 ± 1.74   3.73 ± 1.56
+2   2         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.15 ± 0.29   0.72 ± 0.20
+3   3         norm     2.80 ± 1.91  2.35 ± 1.54   2.66 ± 1.66   2.73 ± 1.81
+4   4          exp     6.32 ± 9.03  2.28 ± 1.31 31.28 ± 58.63 42.17 ± 80.80
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 37.46 ± 60.83 49.36 ± 82.60
+    Separable Map   Copula NP
+1     3.97 ± 1.78 4.47 ± 2.85
+2    -0.04 ± 0.26 0.27 ± 0.06
+3     1.20 ± 0.96 2.13 ± 0.75
+4 137.04 ± 268.72 2.14 ± 0.88
+5 142.16 ± 270.10 9.02 ± 4.14
+Permutation order 4,3,1,2 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.031    0.017     0.048
+2    True (Joint)     0.000    0.021     0.021
+3   Random Forest     1.441    0.249     1.690
+4       Copula NP     0.003    0.001     0.004
+5    Marginal Map     0.000    0.000     0.000
+6   Separable Map     0.001    0.000     0.001
+
+=== Permutation 4,3,2,1 ===
+n=25
+  dim distribution True (marginal) True (Joint) Random Forest  Marginal Map
+1   1        gamma     3.36 ± 1.63  2.80 ± 1.53   3.37 ± 1.74   3.73 ± 1.56
+2   2         beta    -1.98 ± 1.97 -3.08 ± 4.04   0.15 ± 0.29   0.72 ± 0.20
+3   3          exp     6.32 ± 9.03  2.28 ± 1.31 34.05 ± 63.99 42.17 ± 80.80
+4   4         norm     2.80 ± 1.91  2.35 ± 1.54   2.58 ± 1.28   2.73 ± 1.81
+5   k          SUM    10.50 ± 9.79  4.35 ± 1.81 40.14 ± 65.80 49.36 ± 82.60
+       Separable Map   Copula NP
+1        3.97 ± 1.78 4.47 ± 2.85
+2       -0.04 ± 0.26 0.27 ± 0.06
+3     57.09 ± 111.63 2.14 ± 0.88
+4 5653.07 ± 11303.21 2.13 ± 0.75
+5 5714.08 ± 11415.27 9.02 ± 4.14
+Permutation order 4,3,2,1 (train/test only)
+            model train_sec test_sec total_sec
+1 True (marginal)     0.033    0.018     0.051
+2    True (Joint)     0.000    0.021     0.021
+3   Random Forest     1.673    0.231     1.904
+4       Copula NP     0.003    0.000     0.003
+5    Marginal Map     0.000    0.000     0.000
+6   Separable Map     0.001    0.000     0.001

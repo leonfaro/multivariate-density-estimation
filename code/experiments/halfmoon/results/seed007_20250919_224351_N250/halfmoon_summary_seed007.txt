@@ -1,0 +1,14 @@
+Half-moon evaluation run (20250919_224351)
+Seed: 7
+N_train=250, N_val=50, N_test=250, noise=0.150
+Grid side=24
+
+Model timings (seconds):
+  True (Joint): train=0.000 s, test=0.001 s
+  TRTF: train=13.662 s, test=1.566 s
+  TTM Marginal: train=0.003 s, test=0.001 s
+  TTM Separable: train=0.020 s, test=0.001 s
+  Copula NP: train=0.180 s, test=0.001 s
+
+Evaluation table CSV: /Users/leonkiafaro/Documents/Masterthesis/code/experiments/halfmoon/results/seed007_20250919_224351_N250/nll_halfmoon_seed007.csv
+Contour PNG: /Users/leonkiafaro/Documents/Masterthesis/code/experiments/halfmoon/results/seed007_20250919_224351_N250/halfmoon_panels_seed007_20250919_224351_N250.png

@@ -1,0 +1,39 @@
+% LaTeX file for Chapter 01
+<<'preamble01',include=FALSE>>=
+library(knitr)
+opts_chunk$set(
+    fig.path = 'figure/ch01_fig',
+    self.contained = FALSE,
+    cache = TRUE
+)
+@
+
+\chapter{Introduction}\label{ch:intro}
+
+Estimating the joint density $\pi_X(x)$ of a random vector $x \in \mathbb{R}^K$ underpins probabilistic modelling, anomaly detection, simulation-based inference, and decision making under uncertainty. Modern applications combine high dimension with structure that changes across contexts: conditional variance may grow with predictors, skewness can flip sign across regions, and mixtures can create multimodal slices. A coherent response is \emph{measure transport}: we couple the unknown target with a simple reference through an invertible transformation and exploit that coupling to compute likelihoods, draw samples, and evaluate conditionals. Throughout we adopt the notation established in a recent tutorial; Chapter~\ref{ch:background} summarises the relevant background. We standardise observations, learn monotone triangular maps to a Gaussian reference, and report log densities on the original scale using a fixed affine correction. All Jacobians and partial derivatives involving the transport are taken in the standardised space unless stated otherwise.
+
+This thesis compares three model classes that realise the transport programme with different inductive biases: triangular transport maps parameterised directly, transformation random forests that induce transports via the probability integral transform, and copulas that decouple marginals from dependence. Each offers a distinct view on conditional density estimation and raises the question of when separable structure suffices and when richer cross-term capacity is required. The following sections outline our contributions, the research questions we address, and the scope of the work.
+
+\section{Contributions and research questions}
+
+We make three contributions within a single, notation-coherent framework.
+\begin{enumerate}
+  \item \emph{Theory.} We clarify the link between transformation forests and triangular transport and formalise when the induced maps are separable \citep{hothorn2017transformation,hothorn2021transformation,hothorn2018conditional}.
+  \item \emph{Empirics.} We compare separable and cross-term triangular maps, transformation forests under additive predictors, and copulas on synthetic and real tabular data through a unified evaluation protocol that reports likelihoods in nats alongside calibration diagnostics.
+  \item \emph{Implementation.} We document the practical choices that matter in transport-based modelling, including standardisation, variable ordering, and numerical safeguards for cross-term training, while keeping the introductory chapter focused on the high-level problem.
+\end{enumerate}
+
+Two questions motivate the empirical study.
+\begin{enumerate}
+  \item \emph{Practical performance.} How do transformation forests perform on synthetic and real tabular data relative to triangular transport maps, copulas, and published normalising-flow baselines? We ask when separable transports reach the performance of high-capacity references and where they fall short once conditional shape depends on context \citep{rezende2015variational,dinh2017real,papamakarios2021normalizing,hothorn2017transformation,hothorn2021transformation}.
+  \item \emph{Trade offs.} What are the trade offs among fit (test NLL), computational efficiency (training wall clock time and per-sample evaluation cost), and calibration diagnostics (probability integral transforms)? We examine where separable transports deliver the best speed-accuracy ratio and where cross-term capacity justifies its added complexity.
+\end{enumerate}
+
+\section{Scope and positioning}
+
+We focus on triangular transport maps, transformation random forests, and copulas. Transport maps let us ablate separable versus cross-term capacity under a common objective and shared Jacobian conventions. Transformation forests bring a mature non-parametric estimator whose monotonicity is guaranteed by design and whose induced transport has a clear likelihood interpretation when additive predictors are used. Copulas provide semiparametric and non-parametric dependence models with transparent marginals, serving as interpretable baselines and highlighting elliptical dependence limits in higher dimensions. Normalising flows remain an important reference: we use them for context and draw on published tabular benchmarks because they represent high-capacity autoregressive and coupling architectures widely adopted in density estimation \citep{rezende2015variational,dinh2017real,papamakarios2021normalizing}.
+
+\section{Takeaways and roadmap}
+
+A unified transport perspective enables direct comparisons across models with different inductive biases while keeping the introduction free of technical detail. Chapter~\ref{ch:background} develops the methodological background on monotone triangular transports, separable versus cross-term structure, and the transport interpretation of transformation forests. Chapter~\ref{ch:dataanalysis} describes the modelling procedures, data handling, and evaluation protocol before presenting empirical results. Chapter~\ref{ch:conclusion} synthesises the findings, discusses limitations, and outlines future work.
+

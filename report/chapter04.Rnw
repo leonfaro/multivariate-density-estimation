@@ -1,0 +1,42 @@
+% LaTeX file for Chapter 04
+<<'preamble04',include=FALSE>>=
+library(knitr)
+opts_chunk$set(
+    fig.path = 'figure/ch04_fig',
+    self.contained = FALSE,
+    cache = FALSE
+)
+@
+
+\chapter{Interpretation and Conclusion}\label{ch:conclusion}
+
+This chapter synthesizes the empirical evidence gathered in Chapter~\ref{ch:dataanalysis}, highlights methodological insights, and outlines practical guidance and future work.
+% Checklist: [x] US spelling [x] Sentence splits [x] Bold list lead-ins
+
+\section{Summary of Findings and Trade-offs}
+
+\subsection{Synthetic benchmarks}
+
+For the Half-Moon dataset ($K=2$), cross-term triangular transport maps (TTM-X) outperform separable transports and transformation forests. This performance confirms the need for context-dependent shape when slices through the data change modality along the curve (Table~\ref{tab:halfmoon-nll}). A low-dimensional nonparametric copula performs competitively in two dimensions, as expected for a flexible bivariate dependence model with well-calibrated marginals. In the four-dimensional autoregressive generator, the canonical permutation $(1,2,3,4)$ at $n=250$ reveals that TRTF tracks the exponential component more faithfully than the separable transports, yet residual multimodality persists in the beta and gamma conditionals (Table~\ref{tab:autoregressive-nll}). Averaging across all permutations (Table~\ref{tab:autoregressive-perm-avg}) shows that separable transports remain sensitive to ordering, whereas the copula and TRTF smooth out after modest sample sizes. Conditional NLL decompositions highlight which dimensions drive residual error for separable transports.
+
+\subsection{MINIBOONE}
+
+The additive-predictor transformation forest (TRTF-AP) improves over an independent baseline on the real-world MINIBOONE dataset ($K=43$). The estimator remains behind state-of-the-art normalizing flows, consistent with the separable Jacobian constraint (Table~\ref{tab:miniboone-ll}). Cross-term TTM variants reduce the remaining gap. These variants require additional optimization safeguards such as quadrature, clipping, and regularization. Probability integral transform (PIT) diagnostics show that models with context-dependent shape deliver more uniform conditional PITs than separable alternatives.
+
+Cross-term parameterizations improve fit and calibration across datasets by allowing the log-derivative to depend on context. Separable transports, including TRTF-AP, remain attractive when structure is approximately separable or when computational stability is paramount. Copulas serve as interpretable dependence baselines but lag in higher dimensions where elliptical or low-dimensional assumptions are violated.
+
+\section{Methodological Insights}
+
+Transformation forests and triangular transport are tightly linked in this modeling framework. With additive predictors, TRTF induces separable maps that guarantee monotonicity and interpretability but cannot capture heteroskedasticity or multimodal conditionals. Cross-term triangular maps restore context-dependent shape through log-derivatives and require safeguards such as quadrature, clipping, mild ridge penalties, and tail linearization. Copulas decouple marginals from dependence and are most useful when elliptical structure is adequate.
+
+\section{Practical Guidance}
+
+First, use separable transports or TRTF-AP when conditional shapes are approximately invariant across contexts, or when interpretability and stability take priority. Then, deploy cross-term maps when calibration or likelihood diagnostics indicate context-dependent variance, skewness, or multimodality, and enable quadrature, clipping, and mild regularization. Moreover, treat copulas as interpretable baselines and diagnostic tools for elliptical or low-dimensional dependence. Finally, keep train-only standardization, consistent Jacobian conventions, and the diagonal affine correction so reported log-densities remain comparable.
+
+\section{Limitations and Future Work}
+
+Key limitations center on ordering sensitivity, richer parameterizations, extended TRTF variants, and high-dimensional copulas. Triangular transports are anisotropic; data-driven ordering heuristics or permutation-invariant architectures may reduce variance and improve scalability. Richer neural parameterizations could bridge the gap to modern flows while preserving exact likelihoods. Non-additive predictors in transformation forests could restore cross-term capacity while retaining ensemble robustness. Copulas with context-aware dependence may offer interpretable yet flexible alternatives in higher dimensions.
+
+\section{Concluding Remarks}
+
+This thesis established a unified transport-based framework for comparing triangular transport maps, transformation forests, and copulas on synthetic and real tabular data. Recognizing when separability suffices and when cross-term capacity is necessary helps practitioners balance interpretability, computational cost, and statistical performance. Continued advances in transport parameterizations, ensemble methods, and hybrid copulas promise further gains in modeling complex conditional densities.

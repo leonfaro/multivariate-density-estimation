@@ -1,0 +1,111 @@
+% LaTeX file for Chapter 02
+<<'preamble02',include=FALSE>>=
+library(knitr) 
+opts_chunk$set( 
+    fig.path='figure/ch02_fig',    
+    self.contained=FALSE,
+    cache=TRUE
+) 
+@
+
+\chapter{Methodological Background}\label{ch:background}
+
+We adopt the tutorial's directionality and notation throughout: data are standardized to $u=(x-\mu)\oslash\sigma$, we learn a monotone triangular map $S:u\mapsto z$ that pushes the standardized target $\pi_U$ to the reference $\eta=\mathcal{N}(0,I)$, and we evaluate or sample on the original scale via the composition $M(x)=S(T_{\mathrm{std}}(x))$ with the usual affine Jacobian correction when reporting $\log \pi_X(x)$ (subtract $\sum_{k=1}^K \log \sigma_k$). All Jacobians and partial derivatives involving $S$ are taken in $u$-space unless explicitly stated. This chapter develops the minimal change-of-variables machinery, explains why triangular structure is effective, makes precise the contrast between separable and cross-term triangular maps, and shows how transformation random forests (TRTF) instantiate the same transport with an immediate likelihood identity \citep{rosenblatt1952remarks,knothe1957contributions,hothorn2017transformation,hothorn2021transformation,hothorn2018conditional,ramgraber2025friendly}.
+
+\section{Change of Variables in Standardized Coordinates}
+
+The pullback of $\eta$ by $S$ is the central identity that turns transport into a likelihood,
+\begin{equation}
+  \pi_U(u) = \eta\big(S(u)\big)\, \big|\det \nabla_u S(u)\big|.
+  \label{eq:pullback}
+\end{equation}
+Because we learn $S$ on standardized inputs $u$, Equation~\eqref{eq:pullback} is the form we optimize and evaluate. Reporting on the original scale $x$ applies the diagonal Jacobian of $T_{\mathrm{std}}$: $\log \pi_X(x)=\log \pi_U(u)-\sum_{k=1}^K \log \sigma_k$ with $u=T_{\mathrm{std}}(x)$. The reference factorizes as $\eta(z)=\prod_{k=1}^K \phi(z_k)$, so once $S$ is triangular the log pullback expands as a sum over dimensions. This linear-in-$K$ structure underpins all evaluation and training in later chapters \citep{ramgraber2025friendly}.
+
+It is useful to record the complementary pushforward statement. If $u\sim \pi_U$ and $z=S(u)$, then $S_{\#}\pi_U=\eta$. The pair $(S^{\sharp}\eta, S_{\#}\pi_U)$ clarifies that the same map both defines the model density in $u$-space via Equation~\eqref{eq:pullback} and certifies exact sampling by inversion. In what follows we always compute derivatives of $S$ with respect to $u$, keep the pullback in standardized coordinates, and only apply the affine correction when moving results back to the original scale.
+
+\section{Triangular Structure and Its Consequences}
+
+A triangular map decomposes component-wise,
+\begin{equation}
+  S(u) = \big(S_1(u_1),\,S_2(u_{1:2}),\,\ldots,\,S_K(u_{1:K})\big),
+  \label{eq:triangular-map}
+\end{equation}
+and enforces strict monotonicity in the last argument of each component: $\partial_{u_k}S_k(u_{1:k})>0$ for all feasible $u$. The Jacobian $\nabla_u S(u)$ is lower triangular, hence
+\begin{equation}
+  \det\nabla_u S(u)=\prod_{k=1}^K \partial_{u_k}S_k(u_{1:k}),
+  \qquad
+  \log \big|\det\nabla_u S(u)\big| = \sum_{k=1}^K \log \partial_{u_k}S_k(u_{1:k}).
+  \label{eq:triangular-det}
+\end{equation}
+
+Three consequences matter in practice. First, likelihoods are efficient: the log determinant in Equation~\eqref{eq:triangular-det} is a sum of one-dimensional terms, so evaluating Equation~\eqref{eq:pullback} scales in $\mathcal{O}(K)$. Second, invertibility is exact: strict monotonicity implies global bijectivity, and inversion reduces to sequential one-dimensional root finding; compute $u_1=S_1^{-1}(z_1)$, then $u_2=S_2^{-1}(z_2;u_1)$, and proceed coordinate by coordinate \citep{rosenblatt1952remarks,knothe1957contributions}. Third, triangularity yields transparent conditionals: to sample $u_{m:K}\mid u_{1:m-1}=u^{\star}_{1:m-1}$, fix the early coordinates at $u^{\star}$ and invert only the trailing components. Equivalently, the map aligns with the chain-rule factorization $\pi_U(u)=\prod_{k=1}^K \pi(u_k\mid u_{1:k-1})$ and exposes each conditional as a one-dimensional transformation \citep{ramgraber2025friendly}.
+
+Existence and anisotropy deserve a brief remark. For any ordering of the variables there exists a monotone triangular rearrangement that couples $\pi_U$ and $\eta$ under weak regularity conditions; this is the Knothe--Rosenblatt rearrangement \citep{rosenblatt1952remarks,knothe1957contributions}. Different orderings induce different maps. While all are valid, their sparsity and approximation difficulty may vary with order. When conditional independence makes some inputs irrelevant for a component, omitting those arguments sparsifies $\nabla_u S$, lowers variance, and improves scaling. In high dimension, such sparsity often drives both statistical efficiency and computational cost \citep{ramgraber2025friendly}.
+
+Finally, we keep terminology consistent. A log density is $\log \hat\pi(\cdot)$ at a point. A (test) log likelihood is the dataset average of log densities. Its negative is the negative log likelihood (NLL) in nats; lower is better. These conventions are used uniformly in Chapters~\ref{ch:methods} and \ref{ch:results}.
+
+\section{Separable and Cross-Term Triangular Transports}
+
+A triangular component is most interpretable once we separate how it depends on the last coordinate $u_k$ versus the context $u_{1:k-1}$. Two parameterizations recur.
+
+\paragraph{Separable triangular maps.} A separable component decomposes into a context-dependent shift and a univariate monotone shape,
+\begin{equation}
+  S_k(u_{1:k}) = g_k(u_{1:k-1}) + h_k(u_k),
+  \qquad
+  \partial_{u_k}S_k(u_{1:k}) = h_k'(u_k) > 0,
+  \label{eq:separable-component}
+\end{equation}
+so the log Jacobian depends only on $u_k$:
+\begin{equation}
+  \log \partial_{u_k}S_k(u_{1:k}) = \log h_k'(u_k).
+  \label{eq:separable-jacobian}
+\end{equation}
+The context $u_{1:k-1}$ can move the conditional through $g_k$, but it cannot reshape it. Scale, skewness, tail thickness, and modality remain fixed across contexts because the log-Jacobian contribution depends only on $u_k$. Separable transports capture nonlinear location shifts across contexts with a context-invariant shape.
+
+\paragraph{Cross-term triangular maps.} A cross-term component uses an integrated rectifier,
+\begin{equation}
+  S_k(u_{1:k})=\int^{u_k}\exp\big(h_k(t,u_{1:k-1})\big)\, \mathrm{d}t + c_k(u_{1:k-1}),
+  \qquad
+  \log \partial_{u_k}S_k(u_{1:k}) = h_k(u_k,u_{1:k-1}),
+  \label{eq:cross-component}
+\end{equation}
+so the log Jacobian, and thus the shape of the conditional, depends on the context. This structure captures conditional heteroskedasticity, skew that flips with predictors, or mode splitting that appears only for certain $u_{1:k-1}$.
+
+Two small examples make the contrast concrete. Suppose $U_2\mid U_1=u_1$ is normal with mean $m(u_1)$ and variance $\sigma^2(u_1)$. A separable map can absorb $m(u_1)$ through $g_2$, but cannot make the slope $\partial_{u_2}S_2$ depend on $u_1$, so it cannot represent the variance change $\sigma^2(u_1)$. A cross-term map sets $\log\partial_{u_2}S_2=h_2(u_2,u_1)$ and can encode variance inflation or contraction with $u_1$. As a second example, let $U_2\mid U_1$ be unimodal for some $u_1$ and bimodal for others. Separable maps preserve modality across contexts; cross terms allow the derivative to bend with $u_1$ and can introduce or remove modes as the context varies. Cross-term training requires careful numerical safeguards; details follow in Chapter~\ref{ch:methods}.
+
+\paragraph{Implementation notes.} The integrated rectifier guarantees positivity of $\partial_{u_k}S_k$ and supports rich context dependence, but typically requires one-dimensional quadrature and regularization to remain stable. Separable maps often admit linear-in-coefficient parameterizations with convex subproblems for the monotone part; they are fast and robust, but limited to context-invariant conditional shape \citep{ramgraber2025friendly}.
+
+\section{Transformation Forests as Triangular Transport}
+
+Transformation models posit a strictly increasing transformation $h(y\mid w)$ such that $\Phi\big(h(Y\mid W)\big)$ is standard, letting predictors act through $h$ while preserving monotonicity \citep{hothorn2018conditional}. A transformation random forest aggregates local transformation models over an adaptive partition of the predictor space to produce a strictly monotone conditional CDF $\widehat F_k(\cdot \mid u_{1:k-1})$ for each coordinate $u_k$ given $u_{1:k-1}$ \citep{hothorn2017transformation,hothorn2021transformation}. This induces a triangular transport component via the probability integral transform,
+\begin{equation}
+  S_k(u_{1:k}) = \Phi^{-1}\big(\widehat F_k(u_k\mid u_{1:k-1})\big).
+  \label{eq:trtf-map-theory}
+\end{equation}
+
+\paragraph{Per-component likelihood identity.} Differentiating $\Phi\big(S_k(u_{1:k})\big)=\widehat F_k(u_k\mid u_{1:k-1})$ in $u_k$ gives
+\begin{equation}
+  \widehat\pi_k(u_k\mid u_{1:k-1}) = \phi\big(S_k(u_{1:k})\big)\, \partial_{u_k}S_k(u_{1:k}),
+  \label{eq:trtf-likelihood-theory}
+\end{equation}
+showing that the TRTF conditional density equals the pullback factor one would obtain by parameterizing $S$ directly. Summing over $k$ yields the joint log likelihood from Equation~\eqref{eq:pullback} with the triangular log determinant in Equation~\eqref{eq:triangular-det}. TRTF therefore implements the same transport likelihood once standardized \citep{hothorn2017transformation,hothorn2021transformation,ramgraber2025friendly}.
+
+\paragraph{Additive predictor implies separability.} Under the common additive predictor implementation (TRTF-AP),
+\begin{equation}
+  \widehat F_k(u_k\mid u_{1:k-1}) = \Phi\big(h_k(u_k)+g_k(u_{1:k-1})\big),
+  \label{eq:trtf-additive}
+\end{equation}
+so
+\begin{equation}
+  S_k(u_{1:k}) = h_k(u_k)+g_k(u_{1:k-1}),
+  \qquad
+  \partial_{u_k}S_k(u_{1:k}) = h_k'(u_k),
+  \label{eq:trtf-separable}
+\end{equation}
+and the induced transport is separable: $\log \partial_{u_k}S_k$ depends only on $u_k$. Monotonicity in $u_k$ is ensured by construction, and the Jacobian term carries no context dependence. TRTF-AP therefore excels when conditional shapes are stable and context acts primarily through location; it is structurally limited when shape varies with predictors \citep{hothorn2017transformation,hothorn2021transformation,hothorn2018conditional}.
+
+A short note on reporting closes the loop. TRTF evaluates conditional densities in standardized coordinates. Reported log densities on the original scale apply the affine correction $-\sum_{k=1}^K \log \sigma_k$ that accompanies $T_{\mathrm{std}}$, matching the convention set at the beginning of this chapter. With this alignment, comparisons between TRTF, direct triangular maps, and copulas are numerically coherent.
+
+\section{Takeaways}
+
+We learn $S:u\mapsto z$ in standardized coordinates and evaluate $\log \pi_X$ via a simple affine correction. Triangularity turns the log determinant into a sum of one-dimensional terms, guarantees exact inversion, and exposes conditionals through back substitution; these properties make likelihoods linear time in dimension and conditional simulation straightforward \citep{rosenblatt1952remarks,knothe1957contributions,ramgraber2025friendly}. Separable transports move locations but keep shape fixed across contexts; cross-term transports allow context-dependent shape and capture heteroskedastic or multimodal conditionals at the cost of more delicate optimization. TRTF provides a nonparametric route to the same triangular transport with a per-component likelihood identity and the important specialization that TRTF-AP is separable by construction \citep{hothorn2017transformation,hothorn2021transformation,hothorn2018conditional}. These foundations justify the objectives and implementations developed in Chapter~\ref{ch:methods} and frame the empirical comparisons that follow.

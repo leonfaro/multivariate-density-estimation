@@ -1,0 +1,96 @@
+
+=== Permutation 1,2,3,4 ===
+
+[ERROR] Permutation 1,2,3,4: System ist für den Rechner singulär: reziproke Konditionszahl = 1.97718e-17
+
+=== Permutation 1,2,4,3 ===
+
+[ERROR] Permutation 1,2,4,3: System ist für den Rechner singulär: reziproke Konditionszahl = 1.97718e-17
+
+=== Permutation 1,3,2,4 ===
+
+[ERROR] Permutation 1,3,2,4: System ist für den Rechner singulär: reziproke Konditionszahl = 4.35931e-19
+
+=== Permutation 1,3,4,2 ===
+
+[ERROR] Permutation 1,3,4,2: System ist für den Rechner singulär: reziproke Konditionszahl = 4.35931e-19
+
+=== Permutation 1,4,2,3 ===
+
+[ERROR] Permutation 1,4,2,3: System ist für den Rechner singulär: reziproke Konditionszahl = 3.46797e-18
+
+=== Permutation 1,4,3,2 ===
+
+[ERROR] Permutation 1,4,3,2: System ist für den Rechner singulär: reziproke Konditionszahl = 3.46797e-18
+
+=== Permutation 2,1,3,4 ===
+
+[ERROR] Permutation 2,1,3,4: System ist für den Rechner singulär: reziproke Konditionszahl = 8.77495e-18
+
+=== Permutation 2,1,4,3 ===
+
+[ERROR] Permutation 2,1,4,3: System ist für den Rechner singulär: reziproke Konditionszahl = 8.77495e-18
+
+=== Permutation 2,3,1,4 ===
+
+[ERROR] Permutation 2,3,1,4: System ist für den Rechner singulär: reziproke Konditionszahl = 3.02523e-17
+
+=== Permutation 2,3,4,1 ===
+
+[ERROR] Permutation 2,3,4,1: System ist für den Rechner singulär: reziproke Konditionszahl = 3.02523e-17
+
+=== Permutation 2,4,1,3 ===
+
+[ERROR] Permutation 2,4,1,3: System ist für den Rechner singulär: reziproke Konditionszahl = 4.2751e-19
+
+=== Permutation 2,4,3,1 ===
+
+[ERROR] Permutation 2,4,3,1: System ist für den Rechner singulär: reziproke Konditionszahl = 4.2751e-19
+
+=== Permutation 3,1,2,4 ===
+
+[ERROR] Permutation 3,1,2,4: System ist für den Rechner singulär: reziproke Konditionszahl = 5.49857e-18
+
+=== Permutation 3,1,4,2 ===
+
+[ERROR] Permutation 3,1,4,2: System ist für den Rechner singulär: reziproke Konditionszahl = 5.49857e-18
+
+=== Permutation 3,2,1,4 ===
+
+[ERROR] Permutation 3,2,1,4: System ist für den Rechner singulär: reziproke Konditionszahl = 1.58056e-17
+
+=== Permutation 3,2,4,1 ===
+
+[ERROR] Permutation 3,2,4,1: System ist für den Rechner singulär: reziproke Konditionszahl = 1.58056e-17
+
+=== Permutation 3,4,1,2 ===
+
+[ERROR] Permutation 3,4,1,2: System ist für den Rechner singulär: reziproke Konditionszahl = 7.02524e-18
+
+=== Permutation 3,4,2,1 ===
+
+[ERROR] Permutation 3,4,2,1: System ist für den Rechner singulär: reziproke Konditionszahl = 7.02524e-18
+
+=== Permutation 4,1,2,3 ===
+
+[ERROR] Permutation 4,1,2,3: System ist für den Rechner singulär: reziproke Konditionszahl = 1.51256e-18
+
+=== Permutation 4,1,3,2 ===
+
+[ERROR] Permutation 4,1,3,2: System ist für den Rechner singulär: reziproke Konditionszahl = 1.51256e-18
+
+=== Permutation 4,2,1,3 ===
+
+[ERROR] Permutation 4,2,1,3: System ist für den Rechner singulär: reziproke Konditionszahl = 3.53184e-18
+
+=== Permutation 4,2,3,1 ===
+
+[ERROR] Permutation 4,2,3,1: System ist für den Rechner singulär: reziproke Konditionszahl = 3.53184e-18
+
+=== Permutation 4,3,1,2 ===
+
+[ERROR] Permutation 4,3,1,2: System ist für den Rechner singulär: reziproke Konditionszahl = 3.40682e-18
+
+=== Permutation 4,3,2,1 ===
+
+[ERROR] Permutation 4,3,2,1: System ist für den Rechner singulär: reziproke Konditionszahl = 3.40682e-18

@@ -1,0 +1,66 @@
+\documentclass[11pt,a4paper,twoside]{book}
+\input{header.sty}   % packages, layout and standard macros
+
+\begin{document}
+\input{TitelblattMABiostatistics}
+
+<<'main-setup',include=FALSE,purl=FALSE>>=
+library(knitr)
+opts_chunk$set(
+    concordance=TRUE,
+    child.command = 'include',
+    cache=TRUE)
+@
+
+
+\graphicspath{{./figure/}}
+\DeclareGraphicsExtensions{.pdf,.png}
+\frontmatter
+\pagenumbering{roman}
+\setcounter{tocdepth}{1}
+
+\chapter*{Abstract}
+% TODO: add abstract text.
+
+\chapter*{Acknowledgments}
+% TODO: add acknowledgments.
+
+\tableofcontents
+\setkeys{Gin}{width=.8\textwidth}
+
+\cleardoublepage
+\mainmatter
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+<<'child-chapter01', child='chapter01.Rnw'>>=
+@
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+<<'child-chapter02', child='chapter02.Rnw'>>=
+@
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+<<'child-chapter03', child='chapter03.Rnw'>>=
+@
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+<<'child-chapter04', child='chapter04.Rnw'>>=
+@
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+<<'child-chapter05', child='chapter05.Rnw'>>=
+@
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\appendix
+<<'child-chapterA1', child='chapterA1.Rnw'>>=
+@
+
+\end{document}
