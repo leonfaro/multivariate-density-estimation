@@ -1,0 +1,33 @@
+Half-moon evaluation run (20250921_195430)
+Seed: 19
+N_train=100, N_val=20, N_test=100, noise=0.150
+Grid side=16, cores=8
+Evaluation elapsed=0.331 s
+Contour grid eval=54.732 s
+Contour plotting total=54.809 s, PNG write=0.026 s
+
+Model timings (seconds):
+  True (Joint): train=0.000 s, test=0.001 s
+  TRTF: train=2.775 s, test=0.205 s
+  TTM Marginal: train=0.003 s, test=0.039 s
+  TTM Separable: train=0.018 s, test=0.000 s
+  Copula NP: train=0.165 s, test=0.001 s
+
+Evaluation table CSV: /Users/leonkiafaro/Documents/Masterthesis/code/experiments/halfmoon/results/seed019_20250921_195430/nll_halfmoon_seed019.csv
+Contour PNG: /Users/leonkiafaro/Documents/Masterthesis/code/experiments/halfmoon/results/seed019_20250921_195430/halfmoon_panels_seed019_20250921_195430.png
+
+Evaluation table (raw values):
+               model mean_joint_nll   se_joint train_test_policy per_dim_nll_1
+1 true_unconditional      1.4651917 0.06089021   train_test_only     0.7325958
+2   true_conditional      0.8157208 0.07153379   train_test_only     0.4078604
+3               trtf      1.8447096 0.04928166   train_test_only     1.2633830
+4                ttm      2.0335096 0.05548180   train_test_only     1.2748525
+5            ttm_sep      1.9400761 0.06063273   train_test_only     1.2731266
+6          copula_np      1.5657288 0.04976847   train_test_only     0.7828644
+  per_dim_nll_2
+1     0.7325958
+2     0.4078604
+3     0.5813266
+4     0.7586571
+5     0.6669495
+6     0.7828644

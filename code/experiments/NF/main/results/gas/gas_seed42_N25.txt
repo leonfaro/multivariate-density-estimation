@@ -1,0 +1,14 @@
+dataset: gas
+hyperparameters: ntree=200, minsplit=200, minbucket=100, maxdepth=5, seed=42, train_cores=8
+seed=42, N=25
+LL_per_dim:
+dim01: -1.131279
+dim02: 0.388800
+dim03: -1.414263
+dim04: -1.482586
+dim05: -1.465150
+dim06: -1.318230
+dim07: -1.448529
+dim08: -1.408063
+sum: -9.279302
+time_sec: train=0s, test=0s, total=1s

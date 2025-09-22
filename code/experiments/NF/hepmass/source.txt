@@ -1,0 +1,10 @@
+HEPMASS:  # Bulk (alle Dateien als ZIP)
+https://archive.ics.uci.edu/static/public/347/hepmass.zip
+
+# Einzeldateien
+https://archive.ics.uci.edu/ml/machine-learning-databases/00347/all_train.csv.gz
+https://archive.ics.uci.edu/ml/machine-learning-databases/00347/all_test.csv.gz
+https://archive.ics.uci.edu/ml/machine-learning-databases/00347/1000_train.csv.gz
+https://archive.ics.uci.edu/ml/machine-learning-databases/00347/1000_test.csv.gz
+https://archive.ics.uci.edu/ml/machine-learning-databases/00347/not1000_train.csv.gz
+https://archive.ics.uci.edu/ml/machine-learning-databases/00347/not1000_test.csv.gz

@@ -8,11 +8,13 @@
 \usepackage{geometry}
 
 \usepackage[T1]{fontenc}       % provides fonts having  accented characters 
-\usepackage[latin1]{inputenc}  % allows the user to input accented characters directly from the keyboard
+\usepackage[utf8]{inputenc}  % allows the user to input accented characters directly from the keyboard
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \renewcommand{\baselinestretch}{1.2}
+\setlength{\parskip}{0.55\baselineskip}
+\setlength{\parindent}{0pt}
 \renewcommand{\textfraction}{0}%0.2     % placement of figures
 \renewcommand{\topfraction}{1}%.3
 \renewcommand{\bottomfraction}{1}%.3
@@ -74,6 +76,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \usepackage{float}
 \usepackage{graphicx}
+\usepackage{pdflscape}
 \usepackage[margin=2em,labelfont=bf]{caption}
 
 
@@ -84,6 +87,8 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % now math stuff and other details...
 \usepackage{amsmath,amsthm,amssymb}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,matrix}
 
 \newtheorem{pro}{Property}[chapter]
 \theoremstyle{definition}

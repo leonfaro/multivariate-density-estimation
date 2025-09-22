@@ -20,10 +20,25 @@ opts_chunk$set(
 \setcounter{tocdepth}{1}
 
 \chapter*{Abstract}
-% TODO: add abstract text.
+% Checklist (Abstract): [x] integrate supplied summary [ ] confirm PDF rebuild
 
-\chapter*{Acknowledgments}
-% TODO: add acknowledgments.
+This thesis studies multivariate density estimation for tabular data within a transport-based evaluation framework.
+All models standardize features and learn a monotone lower-triangular map $S \colon \mathbf{u} \to \mathbf{z}$ to a Gaussian reference distribution.
+The estimators accumulate exact log-Jacobians in standardized space with an affine correction for reporting on the data scale.
+We compare separable triangular transport maps (TTM-Sep), additive-predictor Transformation Random Forests (TRTF), and copula baselines under the shared preprocessing pipeline.
+Additive TRTF induces the same separable triangular likelihood as TTM-Sep via the probability integral transform.
+The resulting estimator yields exact likelihoods, transparent conditionals, and linear per-sample cost but restricts context-dependent shape.
+
+Benchmarks include synthetic Half-Moon and a four-dimensional autoregressive generator, plus the UCI POWER, GAS, HEPMASS, and MINIBOONE datasets.
+For Half-Moon with $n = 250$, joint negative log-likelihoods (nats) were $1.71$ for TRTF, $1.93$ for TTM-Sep, and $1.54$ for the copula baseline.
+For the four-dimensional generator, TRTF achieved $4.53$, TTM-Sep $5.66$, and the copula baseline $5.45$.
+Permutation averages confirmed ordering sensitivity for triangular maps.
+On MINIBOONE with $K = 43$ and $N = 2{,}500$, TRTF reached $-30.01$ test log-likelihood, whereas flow baselines remained near $-11.7$.
+
+Findings indicate that TRTF narrows the gap to oracle likelihoods on low-dimensional synthetic data.
+The method trails modern flows on high-dimensional real data because separability limits context-dependent shape.
+Copula baselines remain competitive in low dimensions.
+This thesis records guidance and limitations, including ordering effects and fragility in sparse regimes.
 
 \tableofcontents
 \setkeys{Gin}{width=.8\textwidth}

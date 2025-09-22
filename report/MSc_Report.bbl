@@ -1,10 +1,5 @@
 \begin{thebibliography}{}
 
-\bibitem[Dinh {\it et~al.}, 2017]{dinh2017real}
-Dinh, L., Krueger, D., and Bengio, Y. (2017).
-\newblock Density estimation using real {NVP}.
-\newblock In {\em International Conference on Learning Representations}.
-
 \bibitem[Hothorn {\it et~al.}, 2018]{hothorn2018conditional}
 Hothorn, T., Kneib, T., and B{"u}hlmann, P. (2018).
 \newblock Conditional transformation models.
@@ -27,28 +22,11 @@ Knothe, H. (1957).
 \newblock Contributions to the theory of convex bodies.
 \newblock {\em Mathematische Zeitschrift}, {\bf66},  199--210.
 
-\bibitem[Papamakarios {\it et~al.}, 2021]{papamakarios2021normalizing}
-Papamakarios, G., Nalisnick, E., Rezende, D.~J., Mohamed, S., and
-  Lakshminarayanan, B. (2021).
-\newblock Normalizing flows for probabilistic modeling and inference.
-\newblock {\em Journal of Machine Learning Research}, {\bf22},  1--64.
-
 \bibitem[Papamakarios {\it et~al.}, 2017]{papamakarios2017masked}
 Papamakarios, G., Pavlakou, T., and Murray, I. (2017).
 \newblock Masked autoregressive flow for density estimation.
 \newblock In {\em Advances in Neural Information Processing Systems},
   volume~30.
-
-\bibitem[Ramgraber {\it et~al.}, 2025]{ramgraber2025friendly}
-Ramgraber, M.{\it et~al.} (2025).
-\newblock A friendly introduction to triangular transport.
-\newblock Preprint.
-
-\bibitem[Rezende and Mohamed, 2015]{rezende2015variational}
-Rezende, D.~J. and Mohamed, S. (2015).
-\newblock Variational inference with normalizing flows.
-\newblock In {\em Proceedings of the 32nd International Conference on Machine
-  Learning},   1530--1538.
 
 \bibitem[Rosenblatt, 1952]{rosenblatt1952remarks}
 Rosenblatt, M. (1952).

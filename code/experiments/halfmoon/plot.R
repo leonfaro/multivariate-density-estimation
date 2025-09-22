@@ -21,6 +21,7 @@ fit_halfmoon_models <- function(S, seed = NULL, order_mode = "as-is") {
 
   timing <- list()
   timing$true <- list(train = 0.0, test = NA_real_)
+  timing$true_marg <- list(train = 0.0, test = NA_real_)
 
   trtf_time <- system.time({
     M_trtf <- tryCatch(fit_TRTF(S, cfg, seed = seed), error = function(e) NULL)
@@ -40,6 +41,7 @@ fit_halfmoon_models <- function(S, seed = NULL, order_mode = "as-is") {
 
   mods <- list(
     true = M_true,
+    true_marg = M_true,
     trtf = M_trtf,
     ttm = fit_ttm_m$S,
     ttm_sep = fit_ttm_s$S,
@@ -272,7 +274,7 @@ plot_halfmoon_models <- function(mods, S, grid_side,
   xseq <- seq(xlim[1], xlim[2], length.out = grid_side)
   yseq <- seq(ylim[1], ylim[2], length.out = grid_side)
   G <- as.matrix(expand.grid(xseq, yseq))
-  panels <- c("true", "trtf", "ttm", "ttm_sep", "copula_np")
+  panels <- c("true", "true_marg", "trtf", "ttm", "ttm_sep", "copula_np")
   eval_timer_start <- proc.time()
   # TRUE-Panel: exakte Log-Dichte gem. Generator
   source(file.path(root_path, "experiments", "halfmoon", "true_density.R"))
@@ -311,8 +313,8 @@ plot_halfmoon_models <- function(mods, S, grid_side,
   ncol <- min(3L, n_panels)
   nrow <- ceiling(n_panels / ncol)
   op <- par(mfrow = c(nrow, ncol), mar = c(3, 3, 2, 1))
-  titles <- c(true = "True (Joint)", trtf = "TRTF", ttm = "TTM Marginal",
-              ttm_sep = "TTM Separable", copula_np = "Copula NP")
+  titles <- c(true = "True (Joint)", true_marg = "True (Marg)", trtf = "TRTF",
+              ttm = "TTM Marginal", ttm_sep = "TTM Separable", copula_np = "Copula NP")
   for (nm in panels) {
     Z <- matrix(LD_list[[nm]], nrow = grid_side, ncol = grid_side)
     plot(NA, xlim = xlim, ylim = ylim, xlab = "x1", ylab = "x2",
@@ -332,7 +334,7 @@ plot_halfmoon_models <- function(mods, S, grid_side,
     }
     png_file <- file.path(output_dir, paste0(file_stub, ".png"))
     png_timer_start <- proc.time()
-    png(png_file, width = 1200, height = 800)
+    png(png_file, width = 8, height = 6, units = "in", res = 400)
     op2 <- par(mfrow = c(nrow, ncol), mar = c(3, 3, 2, 1))
     for (nm in panels) {
       Z <- matrix(LD_list[[nm]], nrow = grid_side, ncol = grid_side)

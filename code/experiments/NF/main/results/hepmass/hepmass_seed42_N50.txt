@@ -1,0 +1,28 @@
+dataset: hepmass
+hyperparameters: ntree=200, minsplit=326, minbucket=163, maxdepth=4, seed=42, train_cores=8
+seed=42, N=50
+LL_per_dim:
+dim01: -1.330868
+dim02: -1.452263
+dim03: -1.300625
+dim04: -1.260017
+dim05: -1.386214
+dim06: -1.309307
+dim07: -1.494812
+dim08: -1.334555
+dim09: -1.448656
+dim10: -1.496245
+dim11: -1.321670
+dim12: -1.344721
+dim13: -1.503496
+dim14: -1.319202
+dim15: -1.382579
+dim16: -1.250906
+dim17: -1.308280
+dim18: -1.389184
+dim19: -1.310403
+dim20: -0.204359
+dim21: -1.051925
+dim22: -1.317409
+sum: -28.517695
+time_sec: train=1s, test=1s, total=2s

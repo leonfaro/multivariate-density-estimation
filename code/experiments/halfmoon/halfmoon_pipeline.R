@@ -55,6 +55,7 @@ eval_time <- system.time({
 
 # Record approximate prediction times per model (seconds)
 timing$true$test <- system.time({ true_logdensity(S$X_te, S, Q = 32L) })[["elapsed"]]
+timing$true_marg$test <- system.time({ predict(mods$true_marg, S$X_te, type = "logdensity_by_dim") })[["elapsed"]]
 timing$trtf$test <- if (!is.null(mods$trtf)) {
   system.time({ predict(mods$trtf, S$X_te, type = "logdensity_by_dim") })[["elapsed"]]
 } else NA_real_
@@ -110,7 +111,7 @@ timing$plot_png <- if (!is.null(res$png_elapsed)) res$png_elapsed else NA_real_
 # Compose run summary text
 summary_path <- file.path(run_dir, sprintf("halfmoon_summary_seed%03d.txt", SEED))
 fmt_time <- function(x) ifelse(is.na(x) || !is.finite(x), "NA", sprintf("%.3f", x))
-model_labels <- c(true = "True (Joint)", trtf = "TRTF", ttm = "TTM Marginal",
+model_labels <- c(true = "True (Joint)", true_marg = "True (Marg)", trtf = "TRTF", ttm = "TTM Marginal",
                   ttm_sep = "TTM Separable", copula_np = "Copula NP")
 timing_lines <- vapply(names(model_labels), function(nm) {
   train_t <- if (!is.null(timing[[nm]]$train)) timing[[nm]]$train else NA_real_

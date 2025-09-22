@@ -1,0 +1,12 @@
+dataset: power
+hyperparameters: ntree=200, minsplit=174, minbucket=87, maxdepth=5, seed=42, train_cores=8
+seed=42, N=2500
+LL_per_dim:
+dim01: -0.984234
+dim02: -2.461080
+dim03: -1.400803
+dim04: 0.019616
+dim05: -0.609982
+dim06: -1.733779
+sum: -7.170263
+time_sec: train=89s, test=42s, total=130s
