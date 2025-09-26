@@ -3,6 +3,62 @@
 #' Provides two helper functions for working with the two-moons data
 #' splits.
 
+if (!exists("locate_repo_loader", inherits = TRUE)) {
+  locate_repo_loader <- function() {
+    detect_script_path <- function() {
+      frames <- sys.frames()
+      for (i in rev(seq_along(frames))) {
+        fi <- frames[[i]]
+        if (!is.null(fi$ofile)) {
+          path <- tryCatch(normalizePath(fi$ofile, winslash = "/", mustWork = TRUE),
+                          error = function(e) NA_character_)
+          if (!is.na(path) && nzchar(path)) return(path)
+        }
+      }
+      args <- commandArgs(trailingOnly = FALSE)
+      file_arg <- args[grepl("^--file=", args)]
+      if (length(file_arg)) {
+        cand <- sub("^--file=", "", file_arg[1])
+        path <- tryCatch(normalizePath(cand, winslash = "/", mustWork = TRUE),
+                         error = function(e) NA_character_)
+        if (!is.na(path) && nzchar(path)) return(path)
+      }
+      NA_character_
+    }
+
+    start_dirs <- character()
+    script_path <- detect_script_path()
+    if (!is.na(script_path) && nzchar(script_path)) {
+      start_dirs <- c(start_dirs, dirname(script_path))
+    }
+    wd <- tryCatch(normalizePath(getwd(), winslash = "/", mustWork = FALSE),
+                   error = function(e) getwd())
+    start_dirs <- unique(c(start_dirs, wd))
+    checked <- character()
+    for (start in start_dirs) {
+      cur <- start
+      repeat {
+        cur <- tryCatch(normalizePath(cur, winslash = "/", mustWork = FALSE),
+                        error = function(e) cur)
+        if (!nzchar(cur) || cur %in% checked) break
+        checked <- c(checked, cur)
+        cand1 <- file.path(cur, "R", "loader.R")
+        if (file.exists(cand1)) {
+          return(normalizePath(cand1, winslash = "/", mustWork = TRUE))
+        }
+        cand2 <- file.path(cur, "code", "R", "loader.R")
+        if (file.exists(cand2)) {
+          return(normalizePath(cand2, winslash = "/", mustWork = TRUE))
+        }
+        parent <- dirname(cur)
+        if (identical(parent, cur)) break
+        cur <- parent
+      }
+    }
+    stop("Could not locate loader.R")
+  }
+}
+
 fit_halfmoon_models <- function(S, seed = NULL, order_mode = "as-is") {
   seed <- if (!is.null(seed)) as.integer(seed) else if (!is.null(S$meta$seed)) S$meta$seed else 42L
   set.seed(seed)
@@ -187,6 +243,13 @@ eval_density_grid <- function(model, G, xlim, ylim, grid_side, seed,
                               no_cache = TRUE, timeout_sec = NA_integer_,
                               abort_file = NULL) {
   stopifnot(is.matrix(G))
+  loader_path <- locate_repo_loader()
+  plot_script_path <- tryCatch(
+    normalizePath(file.path(dirname(dirname(loader_path)),
+                             "experiments", "halfmoon", "plot.R"),
+                  winslash = "/", mustWork = TRUE),
+    error = function(e) stop("Could not determine path to halfmoon/plot.R", call. = FALSE)
+  )
   model_sig <- digest::digest(utils::capture.output(str(model)))
   # Caching disabled: compute directly without reading/writing disk
   N <- nrow(G)
@@ -201,6 +264,8 @@ eval_density_grid <- function(model, G, xlim, ylim, grid_side, seed,
   if (use_cluster) {
     cl <- parallel::makeCluster(cores_use, type = "PSOCK")
     on.exit(try(parallel::stopCluster(cl), silent = TRUE), add = TRUE)
+    parallel::clusterExport(cl, varlist = c("loader_path", "plot_script_path"),
+                            envir = environment())
     parallel::clusterEvalQ(cl, {
       options(mde.parallel_active = TRUE)
       Sys.setenv(OMP_NUM_THREADS = "1", OPENBLAS_NUM_THREADS = "1",
@@ -209,10 +274,10 @@ eval_density_grid <- function(model, G, xlim, ylim, grid_side, seed,
     })
     parallel::clusterEvalQ(cl, {
       if (!exists("initialize_repo")) {
-        source(file.path(getwd(), "R", "loader.R"))
+        source(loader_path, chdir = FALSE)
       }
       root <- initialize_repo()
-      source(file.path(root, "experiments", "halfmoon", "plot.R"))
+      source(plot_script_path, chdir = FALSE)
       NULL
     })
     parallel::clusterExport(cl, varlist = c("G", "type", "model", "idx_list",
