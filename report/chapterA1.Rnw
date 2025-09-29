@@ -29,8 +29,8 @@ Figure~\ref{fig:transport-schematic} provides the full schematic of the unified 
 ]
 
 \node[process, font=\small\bfseries, text width=64mm] (data) {Input data: original features $x$};
-\node[process, font=\small\bfseries, text width=72mm, below=10mm of data] (std) {Train-only standardization; re-use $\mu$, $\sigma$ from Appendix~\ref{app:ttm-core}};
-\node[process, font=\small\bfseries, text width=80mm, below=8mm of std] (jac) {Common pullback evaluation; accumulate $\log\eta(S(u)) + \log|\det \nabla_u S(u)|$ (Equations~\eqref{eq:ch1-pullback}--\eqref{eq:ch1-affine-correction})};
+\node[process, font=\small\bfseries, text width=72mm, below=10mm of data] (std) {Train-only standardization; reuse $\mu$, $\sigma$ from Appendix~\ref{app:ttm-core}};
+\node[process, font=\small\bfseries, text width=80mm, below=8mm of std] (jac) {Common pullback evaluation; accumulate $\log\eta(S(u)) + \log|\det \nabla_u S(u)|$ (Equations~\eqref{eq:transport-pullback}--\eqref{eq:transport-affine})};
 
 \node[header, below=18mm of jac, xshift=-70mm] (ttmTitle) {Triangular transport maps};
 \node[header, below=18mm of jac] (trtfTitle) {Transformation Random Forests};
@@ -39,7 +39,7 @@ Figure~\ref{fig:transport-schematic} provides the full schematic of the unified 
 \matrix (ttmMatrix) [below=6mm of ttmTitle, column sep=6mm, row sep=4mm] {
   \node[header, text width=52mm] (ttmMargTitle) {TTM-Marginal}; & \node[header, text width=52mm] (ttmSepTitle) {TTM-Separable}; \\
   \node[process, text width=52mm] (ttmMargStepOne) {Closed-form affine coefficients $(a_k, b_k)$ in $u$-space}; & \node[process, text width=52mm] (ttmSepStepOne) {Context basis $g_k$ on predecessors, monotone basis $h_k$ on $u_k$}; \\
-  \node[process, text width=52mm] (ttmMargStepTwo) {Forward pass via \texttt{ttm\_forward}; sum log Jacobian diagonals}; & \node[process, text width=52mm] (ttmSepStepTwo) {Solve constrained optimisation, enforce positivity, store Jacobian terms}; \\
+  \node[process, text width=52mm] (ttmMargStepTwo) {Forward pass via \texttt{ttm\_forward}; sum log Jacobian diagonals}; & \node[process, text width=52mm] (ttmSepStepTwo) {Solve constrained optimization, enforce positivity, store Jacobian terms}; \\
 };
 
 \node[process, below=6mm of trtfTitle, text width=62mm] (trtfStepOne) {Estimate monotone marginals (Appendix~\ref{app:trtf})};
@@ -78,6 +78,16 @@ Figure~\ref{fig:transport-schematic} provides the full schematic of the unified 
 \draw[arrow] (trtfStepThree) -- (outputs);
 \draw[arrow] (copStepThree) to[out=-90,in=0] (outputs.east);
 
+% Legend for symbols
+\node[header, below=10mm of outputs, text width=120mm] (legendTitle) {Legend};
+\node[process, below=2mm of legendTitle, text width=120mm, align=left] (legendBox) {
+  $u$: standardized coordinates ($u = T_{\mathrm{std}}(x)$)\\
+  $z$: reference coordinates after transport\\
+  $S$: lower-triangular transport map ($S:u \mapsto z$)\\
+  $\eta$: $K$-variate standard normal density\\
+  $\nabla_u S(u)$: Jacobian of $S$ with respect to $u$
+};
+
 \end{tikzpicture}%
 \caption{Unified evaluation pipeline shared by triangular transport maps, Transformation Random Forests, and copulas. The diagram shows how standardized features flow through the triangular pullback or copula dependence block before reporting log densities, conditional diagnostics, samples, calibration metrics, and compute summaries. The shared preprocessing, Jacobian accumulation, and reporting path define the evaluation protocol used across the thesis.}
 \label{fig:transport-schematic}
@@ -106,7 +116,7 @@ This appendix records consolidated pseudo-code for the core R implementations us
   \item \textbf{Prediction (\texttt{predict.mytrtf}):}
     \begin{enumerate}
       \item Convert new data to the same column naming scheme and evaluate $X_1$ through its baseline transformation model to obtain marginal log densities.
-      \item For each conditional forest ($k\geq 2$) evaluate the log density of $X_k$ given $X_{1:(k-1)}$, extracting the diagonal when the forest returns a log-density matrix.
+      \item For each conditional forest ($k\geq 2$) evaluate the log density of $X_k$ given $X_{1:(k-1)}$, extracting the diagonal when the forest returns a log density matrix.
       \item Stack the per-dimension log densities (\texttt{logdensity\_by\_dim}) or sum them to obtain the joint log likelihood (\texttt{logdensity}).
     \end{enumerate}
 \end{enumerate}
@@ -144,13 +154,13 @@ This appendix records consolidated pseudo-code for the core R implementations us
 \textbf{Module:}\quad\texttt{ttm\_core.R} (shared by marginal and separable TTM fits).
 
 \begin{enumerate}
-  \item Provide train-only standardisation helpers that cache feature means and standard deviations and reapply them to new data.
+  \item Provide train-only standardization helpers that cache feature means and standard deviations and reapply them to new data.
   \item Define basis builders: polynomial features for predecessor coordinates $g_k$, monotone basis functions $f_k$ for the current coordinate, and their derivatives.
-  \item Implement optional ordering heuristics (identity or Cholesky pivoting with optional Gaussianisation) and persist selected permutations.
+  \item Implement optional ordering heuristics (identity or Cholesky pivoting with optional Gaussianization) and persist selected permutations.
   \item Expose a dispatcher \texttt{ttm\_forward(model, X)} that:
     \begin{enumerate}
-      \item Standardises inputs using stored parameters.
-      \item For marginal maps applies affine transformations $a_k + b_k x_k$ with precomputed coefficients.
+      \item Standardizes inputs using stored parameters.
+      \item For marginal maps apply affine transformations $a_k + b_k x_k$ with precomputed coefficients.
       \item For separable maps constructs $g_k$ and $f_k$, computes $S_k = g_k + f_k$, and records the Jacobian diagonal $\partial_{x_k} S_k$.
     \end{enumerate}
   \item Provide \texttt{ttm\_ld\_by\_dim} to combine the forward map with the Gaussian reference, yielding per-dimension log densities used by all TTM variants.
@@ -162,8 +172,8 @@ This appendix records consolidated pseudo-code for the core R implementations us
 
 \begin{enumerate}
   \item Split data into train/test subsets if only a matrix is provided; otherwise accept a prepared list.
-  \item Standardise training features and, for each dimension $k$, compute closed-form coefficients $(a_k, b_k)$ that minimise the Gaussian pullback objective subject to $b_k > 0$.
-  \item Store model parameters (standardisation, per-dimension coefficients, ordering) and time measurements.
+  \item Standardize training features and, for each dimension $k$, compute closed-form coefficients $(a_k, b_k)$ that minimize the Gaussian pullback objective subject to $b_k > 0$.
+  \item Store model parameters (standardization, per-dimension coefficients, ordering) and time measurements.
   \item During prediction call \texttt{ttm\_forward} with the marginal coefficients and convert Jacobian diagonals to log densities via \texttt{ttm\_ld\_by\_dim}; aggregate per-dimension contributions when the joint log density is requested.
 \end{enumerate}
 
@@ -172,18 +182,18 @@ This appendix records consolidated pseudo-code for the core R implementations us
 \textbf{Routine:}\quad\texttt{fit\_ttm\_separable(data, degree\_g, lambda, seed)}.
 
 \begin{enumerate}
-  \item Prepare train/test splits and standardise training features as in the marginal case.
+  \item Prepare train/test splits and standardize training features as in the marginal case.
   \item For each coordinate $k$:
     \begin{enumerate}
       \item Build polynomial features $g_k$ on previous coordinates (degree set by \texttt{degree\_g}).
       \item Build monotone basis functions $f_k$ on the current coordinate and their derivatives.
       \item If \texttt{degree\_g = 0}, use the marginal closed-form solution to recover affine parameters.
-      \item Otherwise solve the regularised optimisation problem
+      \item Otherwise solve the regularized optimization problem
             $\min_c \frac{1}{2}\lVert (I - \Phi_{\text{non}} M)c \rVert^2 - \sum \log (B c) + \lambda\,\text{penalty}(c)$
             using \texttt{optim} with L-BFGS-B while enforcing positivity of the derivative.
       \item Store coefficients $c_{\text{non}}$ and $c_{\text{mon}}$ for the coordinate.
     \end{enumerate}
-  \item Assemble the model list with standardisation parameters, coefficients, and metadata; record training/prediction timings.
+  \item Assemble the model list with standardization parameters, coefficients, and metadata; record training/prediction timings.
   \item At prediction time re-use \texttt{ttm\_forward} and \texttt{ttm\_ld\_by\_dim} to obtain per-dimension and joint log densities.
 \end{enumerate}
 
@@ -196,7 +206,56 @@ This appendix records consolidated pseudo-code for the core R implementations us
   \item \texttt{prepare\_data(n, config, seed)} samples from the configured data-generating process, splits the sample into train/validation/test sets, and returns both the matrix of draws and the split structure.
   \item \texttt{fit\_models(S, config)} fits the oracle TRUE density and the TRTF baseline on a split, times their evaluations, and returns the fitted objects together with per-dimension log-likelihood arrays.
   \item \texttt{calc\_loglik\_tables(models, config, X\_te, ...)} aggregates negative log-likelihoods (nats) for TRUE (marginal and joint), TRTF, TTM, and separable TTM, formats the results with standard-error bands, appends a summary row, and renames columns for presentation.
-  \item \texttt{eval\_halfmoon(mods, S, out\_csv)} ensures all requisite models are available (TRTF, TTM variants, copula baseline), evaluates them on the half-moon test split, computes joint and per-dimension negative log-likelihoods, and optionally persists the metrics as CSV artefacts.
+  \item \texttt{eval\_halfmoon(mods, S, out\_csv)} ensures all requisite models are available (TRTF, TTM variants, copula baseline), evaluates them on the half-moon test split, computes joint and per-dimension negative log-likelihoods, and optionally persists the metrics as CSV artifacts.
 \end{enumerate}
 
 These structured summaries allow reproducing the algorithmic flow of each model without navigating the full R implementation.
+
+\subsection{Supplementary Results}\label{app:supplementary}
+
+\begin{table}[htbp]
+  \centering
+  \textit{(mean NLL in nats).}
+  \caption{Permutation-averaged joint test negative log-likelihood for TTM-Sep at $n=25$ on the four-dimensional synthetic generator (aggregated over all $24$ permutations).}
+  \label{tab:ttmsep-n25-overflow}
+  \begin{tabular}{lr}
+    \hline
+    Model & $n=25$ \\
+    \hline
+    TTM-Sep$^{\ast}$ & $6829.45$ \\
+    \hline
+  \end{tabular}
+  \caption*{Note: $^{\ast}$ out-of-scope setting. This value reflects numerical overflow of the separable map in the sparse regime ($n=25$). Stronger derivative clipping and ridge regularization (Section~\ref{sec:models-implementation}) remove this failure in reruns. We mark this configuration as out of scope and exclude it from main-text comparisons; the table remains for transparency.}
+\end{table}
+
+\begin{figure}[htbp]
+  \centering
+  % Simple TikZ markers for ordering sensitivity and mitigation window
+  \begin{tikzpicture}[x=28mm,y=18mm]
+    % Axes labels
+    \node[align=center] at (-0.2,2.2) {Joint NLL\\(lower is better)};
+    % TRTF group
+    \node[anchor=east] at (-0.1,1.4) {TRTF};
+    % TRTF values (from Tables in Chapter 3): min=4.46, canonical=4.53, median=4.59
+    \draw[thick,gray!50] (0.0,1.0) -- (0.0,2.0);
+    \draw[thick] (0.0,1.23) -- ++(0.12,0) node[anchor=west,scale=0.8] {min $4.46$};
+    \draw[thick] (0.0,1.265) -- ++(0.12,0) node[anchor=west,scale=0.8] {canonical $4.53$};
+    \draw[thick] (0.0,1.295) -- ++(0.12,0) node[anchor=west,scale=0.8] {median $4.59$};
+
+    % TTM-Sep group
+    \node[anchor=east] at (-0.1,0.6) {TTM-Sep};
+    % TTM-Sep values: min=5.48, canonical=5.66, median=5.60
+    \draw[thick,gray!50] (0.0,0.2) -- (0.0,1.2);
+    \draw[thick] (0.0,0.49) -- ++(0.12,0) node[anchor=west,scale=0.8] {min $5.48$};
+    \draw[thick] (0.0,0.57) -- ++(0.12,0) node[anchor=west,scale=0.8] {median $5.60$};
+    \draw[thick] (0.0,0.63) -- ++(0.12,0) node[anchor=west,scale=0.8] {canonical $5.66$};
+
+    % Brackets indicating potential window for data-driven order selection
+    \draw[decorate,decoration={brace,amplitude=5pt}] (-0.02,1.23) -- (-0.02,1.295) node[midway,xshift=-8mm,align=center,scale=0.8] {potential\\gain};
+    \draw[decorate,decoration={brace,amplitude=5pt}] (-0.02,0.49) -- (-0.02,0.63) node[midway,xshift=-8mm,align=center,scale=0.8] {potential\\gain};
+  \end{tikzpicture}
+  \caption{Ordering sensitivity and mitigation window on the four-dimensional generator at $n=250$ (joint NLL; nats; lower is better). Markers show the best (min over $24$ permutations), canonical ordering, and permutation median for each method (values from Chapter~\ref{ch:dataanalysis}: Tables~\ref{tab:autoregressive-nll} and~\ref{tab:autoregressive-perm-spread}). A simple heuristic selects the better of two candidates—identity and Cholesky-pivoted with optional Gaussianization—aiming to move toward the “min” marker while keeping evaluation linear.}
+  \label{fig:ordering-heuristics-4d}
+\end{figure}
+
+% Clipping bounds are reported inline per study in Chapter~\ref{ch:dataanalysis} and stored with the experiment logs; we omit a dedicated summary table to avoid duplication.

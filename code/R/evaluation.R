@@ -5,6 +5,205 @@
 # Local stderr helper (avoid base::stderr connection)
 stderr <- function(x) stats::sd(x) / sqrt(length(x))
 
+#' Kolmogorov–Smirnov distance to Uniform(0,1)
+#'
+#' @param u numeric vector in [0,1]
+#' @return KS D statistic as numeric scalar
+#' @export
+ks_distance_u01 <- function(u) {
+  u <- as.numeric(u)
+  u <- u[is.finite(u)]
+  if (!length(u)) return(NA_real_)
+  suppressWarnings(as.numeric(stats::ks.test(u, "punif")$statistic))
+}
+
+#' Probability integral transform (PIT) for TTM models by dimension
+#'
+#' @param model TTM model or fit with $S
+#' @param X numeric matrix of observations
+#' @return N x K matrix of Uniform(0,1) PIT values (Phi(Z_k))
+#' @export
+pit_ttm_by_dim <- function(model, X) {
+  stopifnot(is.matrix(X))
+  m <- if (is.list(model) && !is.null(model$S)) model$S else model
+  out <- ttm_forward(m, X)
+  stats::pnorm(out$Z)
+}
+
+#' PIT for TRUE marginal model by dimension
+#'
+#' @param M_TRUE object from fit_TRUE
+#' @param X numeric matrix
+#' @return N x K matrix of Uniform(0,1) PIT values
+#' @export
+pit_true_marginal_by_dim <- function(M_TRUE, X) {
+  stopifnot(is.matrix(X))
+  cfg <- M_TRUE$config; th <- M_TRUE$theta
+  K <- length(cfg); N <- nrow(X)
+  U <- matrix(NA_real_, N, K)
+  for (k in seq_len(K)) {
+    distr <- cfg[[k]]$distr
+    par <- th[[k]]
+    xk <- X[, k]
+    if (distr == "norm") {
+      U[, k] <- stats::pnorm(xk, mean = par[1], sd = par[2])
+    } else if (distr == "exp") {
+      U[, k] <- stats::pexp(pmax(xk, 0), rate = par[1])
+    } else if (distr == "beta") {
+      U[, k] <- stats::pbeta(pmin(pmax(xk, 0), 1), shape1 = par[1], shape2 = par[2])
+    } else if (distr == "gamma") {
+      U[, k] <- stats::pgamma(pmax(xk, 0), shape = par[1], scale = par[2])
+    } else stop("Unsupported TRUE marginal distribution: ", distr)
+  }
+  pmin(pmax(U, .Machine$double.eps), 1 - .Machine$double.eps)
+}
+
+#' PIT for TRUE joint (triangular) model by dimension via Rosenblatt
+#'
+#' @param config configuration list used for true_joint_logdensity_by_dim
+#' @param X numeric matrix (canonical order matching config)
+#' @return N x K matrix of Uniform(0,1) PIT values
+#' @export
+pit_true_joint_by_dim <- function(config, X) {
+  stopifnot(is.matrix(X))
+  N <- nrow(X); K <- ncol(X)
+  U <- matrix(NA_real_, N, K)
+  prev_names <- paste0("X", seq_len(K))
+  for (i in seq_len(N)) {
+    x_row <- X[i, ]
+    for (k in seq_len(K)) {
+      prev <- if (k == 1) data.frame() else {
+        df <- as.data.frame(as.list(x_row[seq_len(k - 1)]))
+        names(df) <- prev_names[seq_len(k - 1)]
+        df
+      }
+      distr_k <- config[[k]]$distr
+      args <- if (is.null(config[[k]]$parm)) list() else config[[k]]$parm(prev)
+      # sanitize like in true_joint_model
+      if (distr_k == "gamma" && all(c("shape1", "shape2") %in% names(args))) {
+        args$shape <- args$shape1; args$scale <- args$shape2; args$shape1 <- NULL; args$shape2 <- NULL
+      }
+      xk <- x_row[k]
+      U[i, k] <- switch(distr_k,
+        norm  = stats::pnorm(xk, mean = args$mean %||% 0, sd = (args$sd %||% 1)),
+        exp   = stats::pexp(pmax(xk, 0), rate = args$rate %||% 1),
+        beta  = stats::pbeta(pmin(pmax(xk, 0), 1), shape1 = args$shape1 %||% 1, shape2 = args$shape2 %||% 1),
+        gamma = stats::pgamma(pmax(xk, 0), shape = args$shape %||% 1, scale = args$scale %||% 1),
+        stop("Unsupported distribution in TRUE joint: ", distr_k)
+      )
+    }
+  }
+  pmin(pmax(U, .Machine$double.eps), 1 - .Machine$double.eps)
+}
+
+#' PIT for TRTF by dimension (best-effort)
+#'
+#' Attempts to query CDF from the BoxCox base for k=1 and from
+#' traforest conditionals for k>=2. Returns NA if unavailable.
+#'
+#' @param model fitted mytrtf model
+#' @param X numeric matrix
+#' @return N x K matrix with PITs or NA when unsupported
+#' @export
+pit_trtf_by_dim <- function(model, X) {
+  stopifnot(is.matrix(X), inherits(model, "mytrtf"))
+  K <- length(model$ymod); N <- nrow(X)
+  df_new <- as.data.frame(X); names(df_new) <- paste0("X", seq_len(K))
+  U <- matrix(NA_real_, N, K)
+  # First dimension: unconditional BoxCox
+  q1 <- df_new[["X1"]]
+  U[, 1] <- tryCatch({
+    as.numeric(predict(model$ymod[[1]], newdata = df_new, type = "cdf", q = q1))
+  }, error = function(e) NA_real_)
+  # Subsequent dimensions via traforest
+  for (k in 2:K) {
+    fr <- model$forests[[k - 1L]]
+    q <- df_new[[paste0("X", k)]]
+    U[, k] <- tryCatch({
+      as.numeric(predict(fr, newdata = df_new, type = "cdf", q = q))
+    }, error = function(e) NA_real_)
+  }
+  U
+}
+
+#' PIT for copula_np by dimension (mixture marginals)
+#'
+#' Uses per-class KDE marginals and class priors to build
+#' unconditional marginal CDFs; joint PIT is not computed here.
+#' @param model copula_np model
+#' @param X numeric matrix (2 columns)
+#' @return N x 2 matrix of PIT values
+#' @export
+pit_copula_np_by_dim <- function(model, X) {
+  stopifnot(inherits(model, "copula_np"), is.matrix(X), ncol(X) == 2L)
+  if (!requireNamespace("kde1d", quietly = TRUE)) stop("copula_np PIT requires 'kde1d'")
+  N <- nrow(X)
+  U <- matrix(NA_real_, N, 2L)
+  if (identical(model$mode, "kde_product")) {
+    # fallback KDE product: approximate CDF via empirical ECDF on train
+    warning("copula_np: PIT for kde_product uses ECDF approximation")
+    return(apply(X, 2, function(x) {
+      u <- rank(x, ties.method = "average") / (length(x) + 1)
+      pmin(pmax(u, .Machine$double.eps), 1 - .Machine$double.eps)
+    }))
+  }
+  classes <- as.character(model$classes)
+  priors <- model$priors
+  for (j in seq_along(classes)) {
+    yy <- classes[[j]]; comp <- model$by_class[[yy]]
+    F1 <- pmin(pmax(kde1d::pkde1d(X[, 1], comp$m1), comp$eps), 1 - comp$eps)
+    F2 <- pmin(pmax(kde1d::pkde1d(X[, 2], comp$m2), comp$eps), 1 - comp$eps)
+    w <- priors[yy]
+    if (!is.finite(w)) w <- 1 / length(classes)
+    if (j == 1L) { U[, 1] <- w * F1; U[, 2] <- w * F2 } else { U[, 1] <- U[, 1] + w * F1; U[, 2] <- U[, 2] + w * F2 }
+  }
+  pmin(pmax(U, .Machine$double.eps), 1 - .Machine$double.eps)
+}
+
+#' Compute KS distances (per-dim and median) for available models
+#'
+#' @param mods list of fitted models as in halfmoon/4d pipelines
+#' @param S split list (needs X_te)
+#' @param config optional config (for TRUE joint)
+#' @return data.frame with columns model, ks_per_dim (list-column), ks_median
+#' @export
+calc_ks_summary <- function(mods, S, config = NULL) {
+  X <- S$X_te
+  out <- list()
+  add <- function(name, U) {
+    if (is.null(U) || !is.matrix(U)) return()
+    K <- ncol(U)
+    ks <- vapply(seq_len(K), function(k) ks_distance_u01(U[, k]), numeric(1))
+    out[[length(out) + 1]] <<- data.frame(model = name,
+                                         ks_median = stats::median(ks, na.rm = TRUE),
+                                         stringsAsFactors = FALSE)
+    attr(out[[length(out)]], "ks_per_dim") <<- ks
+  }
+  if (!is.null(mods$true)) {
+    add("True (marginal)", pit_true_marginal_by_dim(mods$true, X))
+  }
+  if (!is.null(config)) {
+    add("True (Joint)", pit_true_joint_by_dim(config, X))
+  }
+  if (!is.null(mods$trtf)) {
+    add("Random Forest", tryCatch(pit_trtf_by_dim(mods$trtf, X), error = function(e) NULL))
+  }
+  if (!is.null(mods$ttm)) {
+    add("Marginal Map", pit_ttm_by_dim(mods$ttm, X))
+  }
+  if (!is.null(mods$ttm_sep)) {
+    add("Separable Map", pit_ttm_by_dim(mods$ttm_sep, X))
+  }
+  if (!is.null(mods$copula_np)) {
+    if (ncol(X) == 2L) add("Copula NP", tryCatch(pit_copula_np_by_dim(mods$copula_np, X), error = function(e) NULL))
+  }
+  if (!length(out)) return(data.frame())
+  df <- do.call(rbind, out)
+  ks_list <- lapply(out, function(d) attr(d, "ks_per_dim"))
+  df$ks_per_dim <- ks_list
+  df
+}
+
 #' Summen-Zeile an Tabelle anh\u00e4ngen
 #'
 #' @param tab data frame mit numerischen Spalten

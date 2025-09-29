@@ -1,0 +1,16 @@
+"model","ks_median","seed"
+"True (marginal)",0.0697548584881872,7
+"Random Forest",NA,7
+"Marginal Map",0.0696173459805996,7
+"Separable Map",0.081655692700704,7
+"Copula NP",0.0659394318404888,7
+"True (marginal)",0.0935026290932615,11
+"Random Forest",NA,11
+"Marginal Map",0.0928999738932485,11
+"Separable Map",0.10766143666853,11
+"Copula NP",0.068426026062476,11
+"True (marginal)",0.0733585076228749,19
+"Random Forest",NA,19
+"Marginal Map",0.072872513785519,19
+"Separable Map",0.0798542122362553,19
+"Copula NP",0.067445014827662,19

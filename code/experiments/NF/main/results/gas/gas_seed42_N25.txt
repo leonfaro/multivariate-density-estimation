@@ -11,4 +11,8 @@ dim06: -1.318230
 dim07: -1.448529
 dim08: -1.408063
 sum: -9.279302
-time_sec: train=0s, test=0s, total=1s
+sum_se: 0.666466
+sum_total: -231.982538
+sum_total_se: 16.661660
+time_sec: train=0.278, test=0.479, total=0.757
+memory_peak_mb: 277.4

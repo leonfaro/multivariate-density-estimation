@@ -12,19 +12,19 @@ opts_chunk$set(
 
 \section{Transport Frame and Notation}\label{sec:transport-frame}
 
-This section fixes the standardized coordinate system, notation, and algebraic identities used throughout the thesis. The motivation and schematic in Figure~\ref{fig:transport-schematic} housed in Appendix~\ref{ch:appendix} remain valid; here we strip the exposition down to the formulas needed in later chapters. We summarise the standardized pullback likelihood, state the triangularity assumption, and record the Jacobian factorisation that drives evaluation and inversion.
+This section fixes the standardized coordinate system, notation, and algebraic identities used throughout the thesis. The motivation and schematic in Figure~\ref{fig:transport-schematic} housed in Appendix~\ref{ch:appendix} remain valid; here we strip the exposition down to the formulas needed in later chapters. We summarize the standardized pullback likelihood, state the triangularity assumption, and record the Jacobian factorization that drives evaluation and inversion.
 
-We work with observations on the original scale $x \in \mathbb{R}^K$. Training-split statistics define a fixed standardisation map
+We work with observations on the original scale $x \in \mathbb{R}^K$. Training-split statistics define a fixed standardization map
 \begin{equation}
   u \;=\; T_{\mathrm{std}}(x) \;=\; (x-\mu)\oslash\sigma,\qquad \sigma_k>0,\label{eq:transport-standardise}
 \end{equation}
 where $\mu$ and $\sigma$ denote the empirical mean and standard deviation estimated on the training split and $\oslash$ denotes elementwise division. In words, we shift and rescale features once, using training data only, and keep all derivatives and Jacobians in $u$-space to avoid leakage and to ensure comparability across estimators.
 
-The standardised density $\pi_U$ is coupled to a simple reference through a monotone triangular map $S:u\mapsto z$. Throughout the thesis the reference is the $K$-variate standard normal density $\eta(z)$. The pullback identity then reads
+The standardized density $\pi_U$ is coupled to a simple reference through a monotone triangular map $S:u\mapsto z$. Throughout the thesis the reference is the $K$-variate standard normal density $\eta(z)$. The pullback identity then reads
 \begin{equation}
   \pi_U(u) \;=\; \eta\!\left(S(u)\right)\,\left|\det\nabla_u S(u)\right|,\label{eq:transport-pullback}
 \end{equation}
-which evaluates the reference at $S(u)$ and applies the exact volume correction given by the Jacobian determinant. Reporting log densities on the original scale requires only the diagonal affine correction implied by standardisation,
+which evaluates the reference at $S(u)$ and applies the exact volume correction given by the Jacobian determinant. Reporting log densities on the original scale requires only the diagonal affine correction implied by standardization,
 \begin{equation}
   \log \pi_X(x) \;=\; \log \pi_U\!\left(T_{\mathrm{std}}(x)\right) - \sum_{k=1}^{K}\log\sigma_k.\label{eq:transport-affine}
 \end{equation}
@@ -34,13 +34,13 @@ The transport is assumed to be lower triangular and componentwise monotone,
 \begin{equation}
   S(u) \;=\; \big(S_1(u_1), S_2(u_{1:2}), \ldots, S_K(u_{1:K})\big), \qquad \partial_{u_k}S_k(u_{1:k})>0,\label{eq:transport-triangular}
 \end{equation}
-so the Jacobian $\nabla_u S(u)$ is lower triangular. Its determinant factorises into a sum of one-dimensional log derivatives,
+so the Jacobian $\nabla_u S(u)$ is lower triangular. Its determinant factorizes into a sum of one-dimensional log derivatives,
 \begin{equation}
   \log \big|\det \nabla_u S(u)\big| \;=\; \sum_{k=1}^{K}\log \partial_{u_k}S_k(u_{1:k}).\label{eq:transport-det}
 \end{equation}
-The factorisation yields $\mathcal{O}(K)$ evaluation cost per sample, improves numerical stability, and guarantees global invertibility: strict monotonicity lets us recover $x$ by solving $K$ one-dimensional monotone equations in sequence, mirroring the Rosenblatt and Knothe rearrangements \citep{rosenblatt1952remarks,knothe1957contributions}.
+The factorization yields $\mathcal{O}(K)$ evaluation cost per-sample, improves numerical stability, and guarantees global invertibility: strictly monotone diagonal derivatives let us recover $x$ by solving $K$ one-dimensional monotone equations in sequence, mirroring the Rosenblatt and Knothe rearrangements \citep{rosenblatt1952remarks,knothe1957contributions}.
 
-Table~\ref{tab:transport-notation} consolidates the notation used in this transport frame. All derivatives and Jacobians act on $u$; the affine correction \eqref{eq:transport-affine} converts log densities back to $x$ for reporting. The remainder of this chapter adopts this frame. Section~\ref{sec:transport-separable} details the separable triangular parameterisation used for direct transports. Section~\ref{sec:transport-trtf} shows how Transformation Random Forests induce the same triangular likelihood via the probability integral transform. Section~\ref{sec:transport-copula} places copulas in the same reporting convention.
+Table~\ref{tab:transport-notation} consolidates the notation used in this transport frame. All derivatives and Jacobians act on $u$; the affine correction \eqref{eq:transport-affine} converts log densities back to $x$ for reporting. The remainder of this chapter adopts this frame. Section~\ref{sec:transport-separable} details the separable triangular parameterization used for direct transports. Section~\ref{sec:transport-trtf} shows how Transformation Random Forests induce the same triangular likelihood via the probability integral transform under the conditions stated there (strictly increasing conditional CDFs after monotone smoothing and an additive predictor). Section~\ref{sec:transport-copula} places copulas in the same reporting convention.
 
 \begin{table}[t]
   \centering
@@ -51,8 +51,8 @@ Table~\ref{tab:transport-notation} consolidates the notation used in this transp
     Symbol & Meaning \\ 
     \hline
     $x \in \mathbb{R}^K$ & Original features on the data scale \\ 
-    $T_{\mathrm{std}}$ & Standardisation map using training $(\mu,\sigma)$ \\ 
-    $u = T_{\mathrm{std}}(x)$ & Standardised evaluation coordinates \\ 
+    $T_{\mathrm{std}}$ & Standardization map using training $(\mu,\sigma)$ \\ 
+    $u = T_{\mathrm{std}}(x)$ & Standardized evaluation coordinates \\ 
     $z \in \mathbb{R}^K$ & Reference coordinates after transport \\ 
     $S:u\mapsto z$ & Monotone lower-triangular transport map \\ 
     $\nabla_u S(u)$ & Jacobian of $S$ with respect to $u$ \\ 
@@ -68,7 +68,7 @@ Table~\ref{tab:transport-notation} consolidates the notation used in this transp
 \section{Separable Triangular Maps and Transformation Random Forests as Transport}\label{sec:transport-separable}
 
 % Checklist: enforce US spelling, ensure dynamic cross-references, keep equation labels aligned.
-This section unifies separable triangular maps and Transformation Random Forests (TRTF) within the transport frame fixed in Section~\ref{sec:transport-frame}. Both estimators realize a monotone lower-triangular map $S:u\mapsto z$ that couples the standardized target to the Gaussian reference $\eta$. Figure~\ref{fig:transport-schematic} in Appendix~\ref{ch:appendix} illustrates the shared backbone and locates \textsc{TTM-Sep} and \textsc{TRTF} on the transport branch introduced in Chapter~\ref{ch:intro}. We focus on shared likelihood identities, modeling assumptions, and limits of separability, and defer implementation details to Chapter~\ref{ch:dataanalysis} and Appendix~\ref{ch:appendix}.
+This section unifies separable triangular maps and Transformation Random Forests (TRTF) within the transport frame fixed in Section~\ref{sec:transport-frame}. Both estimators realize a monotone lower-triangular map $S:u\mapsto z$ that couples the standardized target to the Gaussian reference $\eta$. The use of triangular transports builds on modern measure-transport literature; see, for instance, triangular transformations and their properties in \citet{bogachev2005triangular}. Figure~\ref{fig:transport-schematic} in Appendix~\ref{ch:appendix} illustrates the shared backbone and locates \textsc{TTM-Sep} and \textsc{TRTF} on the transport branch introduced in Chapter~\ref{ch:intro}. We focus on shared likelihood identities, modeling assumptions, and limits of separability, and defer implementation details to Chapter~\ref{ch:dataanalysis} and Appendix~\ref{ch:appendix}.
 
 The goal is to state a single likelihood for both constructions, clarify what separability permits, and identify failure modes that motivate richer parameterizations. We do not pursue non-additive TRTF predictors, cross-term triangular maps, or ordering heuristics in this section; Chapter~\ref{ch:dataanalysis} evaluates those choices empirically and Appendix~\ref{ch:appendix} documents routines and defaults.
 
@@ -80,13 +80,22 @@ We restrict attention to separable triangular maps. Component $k$ decomposes int
 \end{equation}
 which fixes context effects in $g_k$ and reserves $h_k$ for the one-dimensional marginal shape. Intuitively, earlier coordinates translate the location, while the conditional shape along $u_k$ remains fixed across contexts. The Jacobian contribution depends only on $u_k$, which reduces per-sample evaluation cost and simplifies inversion.
 
+\begin{shaded}
+\textbf{Assumptions.} Unless stated otherwise, we assume:
+\begin{itemize}
+  \item \emph{Lower-triangularity:} $S$ has the structure in Eq.~\eqref{eq:transport-triangular}.
+  \item \emph{Strict monotone coordinates:} $\partial_{u_k} S_k(u_{1:k}) > 0$ for all $k$ and all arguments.
+  \item \emph{Separable component:} Eq.~\eqref{eq:transport-separable} holds, so conditional shape along $u_k$ is fixed across contexts.
+\end{itemize}
+\end{shaded}
+
 Substituting the standard normal reference into \eqref{eq:transport-pullback} produces a separable objective,
 \begin{equation}
   \log \pi_U(u) \;=\; \sum_{k=1}^{K}\Big[\log \varphi\!\big(S_k(u_{1:k})\big) + \log h_k'(u_k)\Big],\label{eq:transport-likelihood}
 \end{equation}
 where $\varphi$ denotes the univariate standard normal density. Equation~\eqref{eq:transport-likelihood} splits the log density into a reference fit and an exact volume correction. In plain language, the model evaluates how Gaussian each transformed coordinate appears, then corrects for the local stretch induced by $h_k$. The same decomposition produces linear per-sample time in $K$ and stable accumulation of log derivatives.
 
-The negative log-likelihood per sample takes the quadratic-plus-barrier form
+The negative log-likelihood per-sample takes the quadratic-plus-barrier form
 \begin{equation}
   \mathcal{L}(u) \;=\; \sum_{k=1}^{K}\Big[\tfrac{1}{2}\,S_k(u_{1:k})^2 - \log h_k'(u_k)\Big],\label{eq:transport-loss}
 \end{equation}
@@ -96,7 +105,7 @@ Separable structure encodes clear modeling assumptions. Conditional variance, sk
 
 \subsection{Transformation Random Forests within the Transport Frame}\label{sec:transport-trtf}
 
-Transformation Random Forests \citep{hothorn2017transformation,hothorn2018conditional,hothorn2021transformation} fit into the same transport frame through the probability integral transform. Let $\widehat F_k(\cdot \mid u_{1:k-1})$ denote the strictly increasing conditional CDF returned by a TRTF for coordinate $k$. The induced triangular component is
+Transformation Random Forests \citep{hothorn2017transformation,hothorn2018conditional,hothorn2021transformation} fit into the same transport frame through the probability integral transform. Let $\widehat F_k(\cdot \mid u_{1:k-1})$ denote the strictly increasing conditional CDF returned by a TRTF for coordinate $k$. (In practice, forest CDFs can be stepwise; we assume a measurable, strictly increasing version after standard monotone smoothing so that inversion and derivatives are well-defined.) The induced triangular component is
 \begin{equation}
   S_k(u_{1:k}) \;=\; \Phi^{-1}\!\Big(\widehat F_k(u_k \mid u_{1:k-1})\Big),\label{eq:transport-trtf-map}
 \end{equation}
@@ -114,18 +123,18 @@ we obtain
 \begin{equation}
   S_k(u_{1:k}) \;=\; h_k(u_k) + g_k(u_{1:k-1}),\qquad \partial_{u_k}S_k(u_{1:k}) \;=\; h_k'(u_k),\label{eq:transport-trtf-separable}
 \end{equation}
-so TRTF implements the same separable triangular likelihood as the direct parameterization in Equation~\eqref{eq:transport-separable}. Monotonicity in $u_k$ holds by construction, the Jacobian depends only on $u_k$, and inversion proceeds by back-substitution identical to the separable map. This equivalence underpins the empirical comparisons in Chapter~\ref{ch:dataanalysis}.
+so TRTF implements the same separable triangular likelihood as the direct parameterization in Equation~\eqref{eq:transport-separable}. The map is monotone in $u_k$ by construction, the Jacobian depends only on $u_k$, and inversion proceeds by back-substitution identical to the separable map. This equivalence underpins the empirical comparisons in Chapter~\ref{ch:dataanalysis}.
 
 The equivalence also clarifies limits. Additive TRTF predictors shift location but cannot alter conditional shape with context, which mirrors the separable constraint. Axis-aligned partitions stabilize estimation, yet they do not remove residual multimodality when the conditional shape varies with $u_{1:k-1}$. These limits are visible in PIT diagnostics and conditional negative log-likelihood decompositions on synthetic studies.
 
 We emphasize operational scope and supporting references. All derivatives and Jacobians are computed in standardized coordinates, evaluation uses the triangular pullback, and reported log densities on the original scale include the affine correction \eqref{eq:transport-affine}. Implementation details on basis choices for $h_k$, feature construction for $g_k$, regularization, derivative clipping, timing, and memory footprints appear in Chapter~\ref{ch:dataanalysis} and Appendix~\ref{ch:appendix}, which also provides pseudo-code for both estimators. Figure~\ref{fig:transport-schematic} in Appendix~\ref{ch:appendix} visualizes how the \textsc{TTM-Sep} and \textsc{TRTF} branches share the same computational path from standardized data to reported likelihoods.
 
-In summary, separable triangular maps and additive-predictor TRTF realize the same lower-triangular likelihood once the data are standardized. The shared structure yields exact likelihoods, exact inversion, transparent conditionals, and linear per-sample complexity, but it restricts context-dependent shape. Section~\ref{sec:transport-copula} positions copulas within the same reporting convention to decouple marginals from dependence.
+In summary, separable triangular maps and additive-predictor TRTF realize the same lower-triangular likelihood once the data are standardized and the conditional CDFs are strictly increasing after monotone smoothing. The shared structure yields exact likelihoods, exact inversion, transparent conditionals, and linear per-sample complexity, but it restricts context-dependent shape. Section~\ref{sec:transport-copula} positions copulas within the same reporting convention to decouple marginals from dependence.
 
 \section{Copula Baselines}\label{sec:transport-copula}
 
 % Checklist: align references with transport frame, cite Sklar, enforce US spelling.
-This section positions copulas within the unified transport frame and links their reported likelihoods to the evaluation conventions used for triangular maps and Transformation Random Forests. Copulas decouple marginal modeling from dependence modeling by pairing univariate marginals with a separate dependence density on the unit hypercube. Figure~\ref{fig:transport-schematic} in Appendix~\ref{ch:appendix} displays the copula branch beside the triangular branch and highlights how both yield comparable reported log densities under the shared evaluation pipeline.
+This section positions copulas within the unified transport frame and links their reported likelihoods to the evaluation conventions used for triangular maps and Transformation Random Forests. Copulas decouple marginal modeling from dependence modeling by pairing univariate marginals with a separate dependence density on the unit hypercube \citep{nelsen2006introduction,joe2014dependence}. Figure~\ref{fig:transport-schematic} in Appendix~\ref{ch:appendix} displays the copula branch beside the triangular branch and highlights how both yield comparable reported log densities under the shared evaluation pipeline.
 
 We begin with pseudo-observations built from training-split marginals. Let $\widehat F_k$ denote the strictly increasing empirical or smoothed CDF of $X_k$ estimated on the training split. Define the pseudo-observations and their probit transform as
 \begin{equation}
@@ -155,7 +164,7 @@ A low-dimensional nonparametric variant avoids elliptical assumptions at small $
 \begin{equation}
   c(v) \;=\; \frac{\widehat f_Z\!\big(\Phi^{-1}(v)\big)}{\prod_{k=1}^{K} \varphi\!\big(\Phi^{-1}(v_k)\big)},\label{eq:copula-kde}
 \end{equation}
-which applies the change of variables from $z$ back to $v$ and yields a proper copula density. In words, the kernel density models the joint shape of the probit scores, and division by the product of standard normal densities restores the unit-cube scale. This approach is viable only for small $K$, where kernel density estimation remains accurate and stable. Chapter~\ref{ch:dataanalysis} employs it strictly as a diagnostic baseline.
+which applies the change of variables from $z$ back to $v$ and yields a proper copula density. In words, the kernel density models the joint shape of the probit scores, and division by the product of standard normal densities restores the unit-cube scale. This approach is viable only for small $K$, where kernel density estimation remains accurate and stable. We implement this baseline via the \texttt{kdecopula} package \citep{nagler2017kdecopula}. Chapter~\ref{ch:dataanalysis} employs it strictly as a diagnostic baseline.
 
 The transport frame keeps reporting interoperable across modeling branches despite distinct parameterizations. Triangular maps and TRTF evaluate the pullback likelihood in standardized coordinates and apply the fixed affine correction \eqref{eq:transport-affine} when mapping back to $x$. Copulas operate on $x$ directly through Equation~\eqref{eq:copula-logdensity}, yet Figure~\ref{fig:transport-schematic} in Appendix~\ref{ch:appendix} shows how the probit scores $z$ maintain comparability with the Gaussian reference used above. This alignment keeps objectives and diagnostics consistent across Chapters~\ref{ch:background} and~\ref{ch:dataanalysis}.
 

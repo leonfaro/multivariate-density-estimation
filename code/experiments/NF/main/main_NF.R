@@ -115,7 +115,16 @@ ensure_required_packages <- function(pkgs) {
   }
 }
 
-ensure_required_packages(c('tram', 'trtf', 'partykit', 'mlt'))
+ensure_required_packages(c('tram', 'trtf', 'partykit', 'mlt', 'ps'))
+
+current_rss_mb <- function() {
+  if (!requireNamespace("ps", quietly = TRUE)) return(NA_real_)
+  rss <- tryCatch(ps::ps_memory_info(ps::ps_handle())[["rss"]],
+                 error = function(e) NA_real_)
+  rss <- as.numeric(rss)
+  if (!is.numeric(rss) || length(rss) != 1L || !is.finite(rss)) return(NA_real_)
+  rss / (1024^2)
+}
 
 mclapply_trtf <- function(X, FUN, cores = 1L, ...) {
   parallel::mclapply(X, FUN, ..., mc.cores = cores)
@@ -377,6 +386,7 @@ mytrtf <- function(data, ntree, minsplit, minbucket, maxdepth, seed, cores = NC,
   res <- list(ymod = ymod,
               forests = forests,
               seed = seed,
+              rss_peak_mb = if (!is.null(rss_peak_mb)) as.numeric(rss_peak_mb) else NA_real_,
               varimp = vimp,
               train_cores = as.integer(cores_fit),
               train_cores_cap = as.integer(cores_cap_global))
@@ -581,7 +591,13 @@ fit_TRTF <- function(S, config, seed = NULL, cores = NC) {
 # TRTF-only Runner (ohne TTM/Copula)
 
 # Kleine Helfer
-stderr <- function(x) stats::sd(x) / sqrt(length(x))
+stderr <- function(x) {
+  if (!length(x)) return(NA_real_)
+  x <- x[is.finite(x)]
+  n <- length(x)
+  if (n <= 1L) return(0)
+  stats::sd(x) / sqrt(n)
+}
 
 read_numeric_matrix <- function(path, n_rows = NA_integer_, sample_rows = FALSE) {
   if (!file.exists(path)) {
@@ -846,6 +862,21 @@ trtf_power <- function() {
 
   per_dim_mean <- colMeans(LL_X_by_dim)
   joint_mean   <- mean(LL_X_joint)
+  n_obs <- length(LL_X_joint)
+  sum_ll_total <- sum(LL_X_joint)
+  sum_ll_se_mean <- stderr(LL_X_joint)
+  sum_ll_se_total <- if (is.finite(sum_ll_se_mean)) sum_ll_se_mean * n_obs else NA_real_
+
+  train_time <- as.numeric(t_trtf_tr)
+  test_time  <- as.numeric(t_trtf_te)
+  total_time <- train_time + test_time
+
+  mem_candidates <- c(
+    if (!is.null(mod_trtf$rss_peak_mb)) as.numeric(mod_trtf$rss_peak_mb) else NA_real_,
+    current_rss_mb()
+  )
+  mem_candidates <- mem_candidates[is.finite(mem_candidates)]
+  peak_memory_mb <- if (length(mem_candidates)) max(mem_candidates) else NA_real_
 
   dir.create(RESULTS_DIR, recursive = TRUE, showWarnings = FALSE)
   sink_path <- RESULTS_TXT
@@ -880,18 +911,27 @@ trtf_power <- function() {
     "LL_per_dim:",
     sprintf("dim%02d: %.6f", seq_along(per_dim_mean), per_dim_mean),
     sprintf("sum: %.6f", joint_mean),
-    sprintf("time_sec: train=%ds, test=%ds, total=%ds",
-            as.integer(round(t_trtf_tr)),
-            as.integer(round(t_trtf_te)),
-            as.integer(round(t_trtf_tr + t_trtf_te)))
+    if (is.finite(sum_ll_se_mean)) sprintf("sum_se: %.6f", sum_ll_se_mean) else "sum_se: NA",
+    sprintf("sum_total: %.6f", sum_ll_total),
+    if (is.finite(sum_ll_se_total)) sprintf("sum_total_se: %.6f", sum_ll_se_total) else "sum_total_se: NA",
+    sprintf("time_sec: train=%.3f, test=%.3f, total=%.3f",
+            train_time,
+            test_time,
+            total_time),
+    if (is.finite(peak_memory_mb)) sprintf("memory_peak_mb: %.1f", peak_memory_mb) else "memory_peak_mb: NA"
   )
   cat(paste0(lines_out, "\n"), sep = "")
 
   invisible(list(
     per_dim_mean = per_dim_mean,
     joint_mean = joint_mean,
-    train_time = t_trtf_tr,
-    test_time = t_trtf_te,
+    sum_total = sum_ll_total,
+    sum_se = sum_ll_se_mean,
+    sum_total_se = sum_ll_se_total,
+    train_time = train_time,
+    test_time = test_time,
+    total_time = total_time,
+    memory_peak_mb = peak_memory_mb,
     train_cores = train_cores_used
   ))
 }

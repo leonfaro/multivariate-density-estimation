@@ -46,4 +46,8 @@ dim41: -1.232984
 dim42: -1.102052
 dim43: 1.821391
 sum: -47.053881
-time_sec: train=1s, test=2s, total=3s
+sum_se: 2.939326
+sum_total: -1176.347024
+sum_total_se: 73.483162
+time_sec: train=1.321, test=1.786, total=3.107
+memory_peak_mb: 317.7

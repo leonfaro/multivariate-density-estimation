@@ -25,4 +25,8 @@ dim20: 0.039178
 dim21: -1.117588
 dim22: -1.430933
 sum: -28.784900
-time_sec: train=1s, test=4s, total=4s
+sum_se: 0.472932
+sum_total: -2878.489994
+sum_total_se: 47.293201
+time_sec: train=0.692, test=4.136, total=4.828
+memory_peak_mb: 302.9

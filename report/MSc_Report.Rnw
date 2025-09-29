@@ -20,25 +20,13 @@ opts_chunk$set(
 \setcounter{tocdepth}{1}
 
 \chapter*{Abstract}
-% Checklist (Abstract): [x] integrate supplied summary [ ] confirm PDF rebuild
+% Checklist (Abstract): [x] integrate supplied summary [x] confirm PDF rebuild
 
-This thesis studies multivariate density estimation for tabular data within a transport-based evaluation framework.
-All models standardize features and learn a monotone lower-triangular map $S \colon \mathbf{u} \to \mathbf{z}$ to a Gaussian reference distribution.
-The estimators accumulate exact log-Jacobians in standardized space with an affine correction for reporting on the data scale.
-We compare separable triangular transport maps (TTM-Sep), additive-predictor Transformation Random Forests (TRTF), and copula baselines under the shared preprocessing pipeline.
-Additive TRTF induces the same separable triangular likelihood as TTM-Sep via the probability integral transform.
-The resulting estimator yields exact likelihoods, transparent conditionals, and linear per-sample cost but restricts context-dependent shape.
+This thesis evaluates three approaches to multivariate density estimation for tabular data within a single, consistent pipeline: separable triangular transport maps (TTM-Sep), Transformation Random Forests (TRTF; additive predictor), and copulas (used only for low-dimensional diagnostics, $K\!\le\!3$). All methods use standardized inputs and a common evaluation protocol so that likelihoods, diagnostics, and compute are directly comparable. In the configuration studied (additive predictor and monotone CDF smoothing), TRTF and TTM-Sep yield the same triangular-likelihood form, which enables like-for-like evaluation.
 
-Benchmarks include synthetic Half-Moon and a four-dimensional autoregressive generator, plus the UCI POWER, GAS, HEPMASS, and MINIBOONE datasets.
-For Half-Moon with $n = 250$, joint negative log-likelihoods (nats) were $1.71$ for TRTF, $1.93$ for TTM-Sep, and $1.54$ for the copula baseline.
-For the four-dimensional generator, TRTF achieved $4.53$, TTM-Sep $5.66$, and the copula baseline $5.45$.
-Permutation averages confirmed ordering sensitivity for triangular maps.
-On MINIBOONE with $K = 43$ and $N = 2{,}500$, TRTF reached $-30.01$ test log-likelihood, whereas flow baselines remained near $-11.7$.
+On Half-Moon ($n=250$), mean joint negative log-likelihoods (NLL; lower is better) were $1.71$ (TRTF), $1.93$ (TTM-Sep), and $1.54$ (copula). On a four-dimensional autoregressive generator they were $4.53$, $5.66$, and $5.45$, respectively; permutation averages confirm order sensitivity for triangular maps. On MiniBooNE ($K=43$; sum test log-likelihood), TRTF reached $-30.01$ under the standard preprocessing and training budget used here; published flow models report values around $-12$ to $-16$ under their settings. These numbers are not strictly comparable but indicate the relative accuracy of this configuration.
 
-Findings indicate that TRTF narrows the gap to oracle likelihoods on low-dimensional synthetic data.
-The method trails modern flows on high-dimensional real data because separability limits context-dependent shape.
-Copula baselines remain competitive in low dimensions.
-This thesis records guidance and limitations, including ordering effects and fragility in sparse regimes.
+Overall, TRTF tends to lead within the separable family at low dimension, while higher-dimensional datasets expose the limits of separable structure. We report robustness checks (ordering), calibration diagnostics, and the numerical safeguards used, and we outline directions toward richer parameterizations within the same evaluation frame.
 
 \tableofcontents
 \setkeys{Gin}{width=.8\textwidth}
@@ -67,10 +55,9 @@ This thesis records guidance and limitations, including ordering effects and fra
 <<'child-chapter04', child='chapter04.Rnw'>>=
 @
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-<<'child-chapter05', child='chapter05.Rnw'>>=
-@
+% References
+\bibliographystyle{plainnat}
+\bibliography{biblio}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

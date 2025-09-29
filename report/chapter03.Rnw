@@ -14,43 +14,43 @@ opts_chunk$set(
 This chapter turns the commitments of Chapters~\ref{ch:intro} and \ref{ch:background} into a practical modeling program. Our aim is to express three model families---triangular transport maps (TTM), transformation random forests (TRTF), and copulas---within a common transport framework so that likelihoods, calibration, and computational cost are directly comparable. Every method we study standardizes the data, learns a monotone triangular map to a simple reference, and evaluates Jacobians in the standardized space. That alignment keeps objectives, diagnostics, and reported log-densities interoperable.
 
 % Checklist: define model abbreviations for concise tables
-\textbf{Model abbreviations.} For the four-dimensional autoregressive study we abbreviate the oracle fits as True-Marg for the marginal reference and True-Joint for the conditional reference. Transformation Random Forests appear as TRTF. This shorthand matches the axis-parallel implementation (TRTF) used in our experiments. We write the marginal triangular transport as TTM-Marg, the separable variant as TTM-Sep, and the copula mixture baseline as Copula. We use these labels across tables and figures that report this study.
+\textbf{Model abbreviations.} We follow Table~\ref{tab:model-abbrev} for concise labels (TTM-Marg, TTM-Sep, TRTF, True-Marg/True-Joint, Copula) across tables and figures.
 
-\section{Datasets and Preprocessing}\label{sec:datasets-preprocessing}\label{sec:setup}
+\section{Datasets and Preprocessing}\label{sec:datasets-preprocessing}
 
 % Checklist: preserve dynamic refs, ensure ASCII hyphenation, align with future sections.
-This section fixes data sources, generators, and preprocessing so likelihoods, calibration, and compute remain comparable across models. All estimators operate in standardized coordinates, evaluate Jacobians in that space, and report log densities on the original scale using the common affine correction. We keep a single triangular-map direction $S:u \rightarrow z$ across methods to avoid mixed objectives.
+This section fixes data sources, generators, and preprocessing so likelihoods, calibration, and compute remain comparable across models. All estimators operate in standardized coordinates, evaluate Jacobians in that space, and report log densities on the original scale using the common affine correction. We keep a single triangular-map direction $S:u \rightarrow z$ across methods to avoid mixed objectives. To avoid symbol collisions, $\sigma$ denotes standardization scales only; logistic gates are written $\operatorname{logistic}(\cdot)$ throughout.
 
 We standardize features with training-split statistics only. Equation~\eqref{eq:transport-standardise} defines $u = T_{\mathrm{std}}(x) = (x-\mu)\oslash \sigma$ with $\sigma_k > 0$. We evaluate $\log \pi_U(u)$ through the pullback identity in Equation~\eqref{eq:transport-pullback}, apply the triangular factorization from Equation~\eqref{eq:transport-det}, then convert to $\log \pi_X(x)$ using the diagonal correction in Equation~\eqref{eq:transport-affine}. We report average test negative log-likelihoods (NLL) in nats. Negative per-dimension NLL values can occur because valid densities may exceed one on subdomains. Figure~\ref{fig:transport-schematic} in Appendix~\ref{ch:appendix} shows the standardized pipeline shared by transport maps, Transformation Random Forests, and copulas.
 
-We use fixed train, validation, and test splits with proportions $0.60/0.20/0.20$ unless a benchmark provides official splits. Synthetic studies report results for $n \in \{25, 50, 100, 250\}$ and use $n=250$ for headline tables and figures. The canonical four-dimensional ordering is $(1,2,3,4)$. Robustness to ordering is assessed by averaging over all $4! = 24$ permutations. We adopt the natural column order for real datasets. Transformation Random Forests are the axis-parallel implementation denoted TRTF throughout. We fix seeds $\{11, 13, 17, 19, 23\}$ for data generation and model fitting, and we average repeated runs with standard errors to quantify stochastic variability. Figure~\ref{fig:autoregressive-joint-calibration} displays the $20\%$ test split for the synthetic calibration study.
+We use fixed train, validation, and test splits with proportions $0.60/0.20/0.20$ unless a benchmark provides official splits. Synthetic studies report results for $n \in \{25, 50, 100, 250\}$ and use $n=250$ for headline tables and figures; for real-data benchmarks we use $N$ to denote the training budget. The canonical four-dimensional ordering is $(1,2,3,4)$. Robustness to ordering is assessed by averaging over all $4! = 24$ permutations. We adopt the natural column order for real datasets. We fix seeds $\{11, 13, 17, 19, 23\}$ for data generation and model fitting, and we average repeated runs with standard errors to quantify stochastic variability. Figure~\ref{fig:autoregressive-joint-calibration} displays the $20\%$ test split for the synthetic calibration study.
 
-The Half-Moon dataset provides a curved, bimodal joint in $K=2$. We draw a class $Y \sim \mathrm{Bernoulli}(0.5)$, an angle $\Theta \sim \mathrm{Unif}[0,\pi]$, and additive noise $\varepsilon \sim \mathcal{N}(0, \sigma^2 I_2)$ with $\sigma = 0.10$. For $Y = 0$ we set $m(\Theta) = (\cos \Theta, \sin \Theta)$. For $Y = 1$ we set $m(\Theta) = (1 - \cos \Theta, -\sin \Theta + 0.5)$. The observed $X = m(\Theta) + \varepsilon$. The ``True joint'' oracle evaluates the mixture density by numerical quadrature over $\Theta$ with the known Gaussian noise, and the ``True conditional'' oracle conditions on $Y$. Figure~\ref{fig:halfmoon-panels} shows representative contour plots at $n=250$, which align with this generator. Table~\ref{tab:halfmoon-nll} reports the corresponding NLLs.
+The Half-Moon dataset provides a curved, bimodal joint in $K=2$. We draw a class $Y \sim \mathrm{Bernoulli}(0.5)$, an angle $\Theta \sim \mathrm{Unif}[0,\pi]$, and additive noise $\varepsilon \sim \mathcal{N}(0, \sigma^2 I_2)$ with $\sigma = 0.10$. For $Y = 0$ we set $m(\Theta) = (\cos \Theta, \sin \Theta)$. For $Y = 1$ we set $m(\Theta) = (1 - \cos \Theta, -\sin \Theta + 0.5)$. The observed $X = m(\Theta) + \varepsilon$. The ``True joint'' oracle evaluates the mixture density by numerical quadrature over $\Theta$ with the known Gaussian noise, and the ``True conditional'' oracle conditions on $Y$. Figure~\ref{fig:halfmoon-panels} (p.~\pageref{fig:halfmoon-panels}) shows representative contour plots at $n=250$, which align with this generator. Table~\ref{tab:halfmoon-nll} (p.~\pageref{tab:halfmoon-nll}) reports the corresponding NLLs.
 
-The four-dimensional autoregressive generator combines Gaussian, exponential, beta, and gamma components to induce heteroskedasticity, skew, and conditional multimodality. The first coordinate is $X_1 \sim \mathcal{N}(0,1)$. The second coordinate is independent $X_2 \sim \mathrm{Exp}(\lambda_0)$ with rate $\lambda_0 = 1$. The third coordinate lies on $(0,1)$ and is a context-gated mixture of two beta laws, $X_3 \mid X_{1:2} \sim w\,\mathrm{Beta}(\alpha_1, \beta_1) + (1 - w)\,\mathrm{Beta}(\alpha_2, \beta_2)$. We set $(\alpha_1, \beta_1) = (2.5, 5.0)$ and $(\alpha_2, \beta_2) = (5.0, 2.5)$. The mixing weight is $w = \sigma(\gamma_0 + \gamma_1 X_1 + \gamma_2(X_2 - 1))$ with $\sigma(\cdot)$ the logistic function and $(\gamma_0, \gamma_1, \gamma_2) = (0, 1.5, 1.0)$. The fourth coordinate is positive and conditionally heteroskedastic, $X_4 \mid X_{1:3} \sim \tilde{w}\,\mathrm{Gamma}(k_1, r_1(X_2)) + (1 - \tilde{w})\,\mathrm{Gamma}(k_2, r_2(X_2))$. We set shapes $(k_1, k_2) = (3, 6)$, rates $r_1(X_2) = 1 + 0.5 X_2$ and $r_2(X_2) = 0.75 + 0.25 X_2$, and gate $\tilde{w} = \sigma(\delta_0 + \delta_1 X_1 + \delta_3(X_3 - 0.5))$ with $(\delta_0, \delta_1, \delta_3) = (0, 1.0, 3.0)$. The ``True joint'' baseline uses these closed-form conditionals to evaluate the exact joint density, while the ``True marginal'' baseline uses the corresponding univariate marginals and ignores dependence.
+The four-dimensional autoregressive generator combines Gaussian, exponential, beta, and gamma components to induce heteroskedasticity, skew, and conditional multimodality. The first coordinate is $X_1 \sim \mathcal{N}(0,1)$. The second coordinate is independent $X_2 \sim \mathrm{Exp}(\lambda_0)$ with rate $\lambda_0 = 1$. The third coordinate lies on $(0,1)$ and is a context-gated mixture of two beta laws, $X_3 \mid X_{1:2} \sim w\,\mathrm{Beta}(\alpha_1, \beta_1) + (1 - w)\,\mathrm{Beta}(\alpha_2, \beta_2)$. We set $(\alpha_1, \beta_1) = (2.5, 5.0)$ and $(\alpha_2, \beta_2) = (5.0, 2.5)$. The mixing weight is $w = \operatorname{logistic}(\gamma_0 + \gamma_1 X_1 + \gamma_2(X_2 - 1))$ with $\operatorname{logistic}(\cdot)$ the logistic function and $(\gamma_0, \gamma_1, \gamma_2) = (0, 1.5, 1.0)$. The fourth coordinate is positive and conditionally heteroskedastic, $X_4 \mid X_{1:3} \sim \tilde{w}\,\mathrm{Gamma}(k_1, r_1(X_2)) + (1 - \tilde{w})\,\mathrm{Gamma}(k_2, r_2(X_2))$. We set shapes $(k_1, k_2) = (3, 6)$, rates $r_1(X_2) = 1 + 0.5 X_2$ and $r_2(X_2) = 0.75 + 0.25 X_2$, and gate $\tilde{w} = \operatorname{logistic}(\delta_0 + \delta_1 X_1 + \delta_3(X_3 - 0.5))$ with $(\delta_0, \delta_1, \delta_3) = (0, 1.0, 3.0)$. The ``True joint'' baseline uses these closed-form conditionals to evaluate the exact joint density, while the ``True marginal'' baseline uses the corresponding univariate marginals and ignores dependence.
 
-% Checklist: summarise generator config, define softmax usage.
+% Checklist: summarize generator config, define softmax usage.
 \begin{table}[t]
   \centering
-  \caption{Configuration for the four-dimensional autoregressive generator used in the synthetic study. The softplus transform enforces positive rates, shapes, and scales.}
+  \caption{Configuration for the four-dimensional autoregressive generator used in the synthetic study. The beta and gamma coordinates are two-component mixtures with logistic gates; fixed parameters and gates match the prose above.}
   \label{tab:autoregressive-config}
   \begin{tabular}{lll}
     \hline
-    Coordinate & Distribution & Parameter mapping \\
+    Coordinate & Distribution & Parameters / gate \\
     \hline
-    $X_1$ & Normal & Fixed $\mathcal{N}(0,1)$ \\
-    $X_2 \mid X_1$ & Exponential & $\mathrm{rate} = \mathrm{softplus}(X_1)$ \\
-    $X_3 \mid X_{1:2}$ & Beta & $\mathrm{shape}_1 = \mathrm{softplus}(X_2)$; $\mathrm{shape}_2 = \mathrm{softplus}(X_1)$ \\
-    $X_4 \mid X_{1:3}$ & Gamma & $\mathrm{shape} = \mathrm{softplus}(X_3)$; $\mathrm{scale} = \mathrm{softplus}(X_2)$ \\
+    $X_1$ & Normal & $\mathcal{N}(0,1)$ \\
+    $X_2$ & Exponential & $\mathrm{rate} = \lambda_0 = 1$ \\
+    $X_3 \mid X_{1:2}$ & Mixture Beta & $\mathrm{Beta}(2.5,5.0)$ / $\mathrm{Beta}(5.0,2.5)$; $w = \operatorname{logistic}(\gamma_0 + \gamma_1 X_1 + \gamma_2(X_2-1))$, $\gamma=(0,1.5,1.0)$ \\
+    $X_4 \mid X_{1:3}$ & Mixture Gamma & $\mathrm{Gamma}(k_1{=}3, r_1{=}1+0.5X_2)$ / $\mathrm{Gamma}(k_2{=}6, r_2{=}0.75+0.25X_2)$; $\tilde{w} = \operatorname{logistic}(\delta_0 + \delta_1 X_1 + \delta_3(X_3-0.5))$, $\delta=(0,1.0,3.0)$ \\
     \hline
   \end{tabular}
 \end{table}
 
-We apply the softplus transform $\mathrm{softplus}(t) = \log(1 + \exp(t))$ to map unconstrained predictors to strictly positive distribution parameters. Mixture weights use the logistic gate $\sigma(a)$, which coincides with the two-component softmax and therefore keeps probabilities in $(0,1)$ that sum to one. For completeness, the general softmax takes a vector $a$ and returns $\mathrm{softmax}(a)_i = \exp(a_i) / \sum_j \exp(a_j)$. This normalization is essential for the beta and gamma mixtures because it translates linear predictors into valid probability weights while preserving differentiability.
+Mixture weights use the logistic gate $\operatorname{logistic}(a)=\exp(a)/(1+\exp(a))$, which coincides with the two-component softmax and therefore keeps probabilities in $(0,1)$ that sum to one. For completeness, the general softmax takes a vector $a$ and returns $\mathrm{softmax}(a)_i = \exp(a_i) / \sum_j \exp(a_j)$. This normalization is essential for the beta and gamma mixtures because it translates linear predictors into valid probability weights while preserving differentiability.
 
-Table~\ref{tab:autoregressive-config} lists the intended marginal families by dimension, and Tables~\ref{tab:autoregressive-perm} and~\ref{tab:autoregressive-perm-avg} summarize the permutation and sample-size studies used later in this chapter.
+Table~\ref{tab:autoregressive-config} (p.~\pageref{tab:autoregressive-config}) summarizes the mixture families, gates, and fixed parameters by dimension. Tables~\ref{tab:autoregressive-perm} (p.~\pageref{tab:autoregressive-perm}) and~\ref{tab:autoregressive-perm-avg} (p.~\pageref{tab:autoregressive-perm-avg}) then summarize the permutation and sample-size studies used later in this chapter.
 
-The MINIBOONE benchmark follows the published preprocessing to ensure comparability with flow-based baselines. We remove 11 outliers with value $-1000$, drop seven features with extreme mass at a single value, and retain $K = 43$ attributes. We use the fixed train, validation, and test splits from the benchmark, apply train-only standardization, and avoid any extra pruning of correlated features. We report all log-likelihoods in nats and retain the published naming for flow comparators in later tables. Section~\ref{sec:realdata} records these steps and provides the dataset context. Table~\ref{tab:uci-loglik} reproduces the flow baselines that motivate our TRTF runs.
+The MiniBooNE benchmark follows the published preprocessing to ensure comparability with flow-based baselines. We remove 11 outliers with value $-1000$, drop seven features with extreme mass at a single value, and retain $K = 43$ attributes. We use the fixed train, validation, and test splits from the benchmark, apply train-only standardization, and avoid any extra pruning of correlated features. We report all log-likelihoods in nats and retain the published naming for flow comparators in later tables. Section~\ref{sec:realdata} records these steps and provides the dataset context. Table~\ref{tab:uci-loglik} reproduces the flow baselines that motivate our TRTF runs.
 
 Additional UCI datasets appear only when we retain them for real-data context. POWER keeps household electricity attributes after jittering the minute-of-day encoding, dropping the calendar date and reactive-power column, and adding uniform noise to break ties. GAS keeps the \texttt{ethylene\_CO} subset, treats the series as i.i.d., removes strongly correlated attributes, and retains an eight-dimensional representation. HEPMASS keeps only the positive class from the ``1000'' split and discards five variables with repeated values to avoid density spikes. These preprocessing steps follow the same train-only standardization and reporting conventions described above. Section~\ref{sec:realdata} provides the corresponding background and positions these datasets within our evaluation.
 
@@ -73,11 +73,11 @@ We minimize the Gaussian pullback objective induced by the shared reference,
   \mathcal{L}(u) = \sum_{k=1}^K \Big[ \tfrac{1}{2} S_k(u_{1:k})^2 - \log h_k'(u_k) \Big],
   \label{eq:ttm-separable-loss}
 \end{equation}
-which follows from the change-of-variables identity in Equation~\eqref{eq:transport-pullback} combined with the triangular determinant factorization in Equation~\eqref{eq:transport-det}. The quadratic term pulls the transformed coordinates toward the reference, and the log-derivative term prevents degenerate solutions. We solve the regularized problem with bound-constrained optimization and enforce monotonicity by construction.
+which follows from the change-of-variables identity in Equation~\eqref{eq:transport-pullback} combined with the triangular determinant factorization in Equation~\eqref{eq:transport-det}. The quadratic term pulls the transformed coordinates toward the reference, and the log-derivative term prevents degenerate solutions. We solve the regularized problem with bound-constrained optimization and enforce monotone structure by construction.
 
 We construct $h_k$ with monotone one-dimensional bases that combine identity, integrated sigmoids, softplus-like edge terms, and integrated radial basis functions. Nonnegativity constraints on the derivative coefficients guarantee $h_k'(u_k) \ge 0$. We linearize tails to stabilize likelihoods as $|u_k|$ grows. Ridge penalties apply to all basis coefficients, and optional sparsity penalties shrink context shifts when multicollinearity inflates variance. During training and evaluation we clip log-derivatives to $[-H, H]$ to avoid numerical overflow in the Jacobian sum; the bound $H$ is tuned on the validation split.
 
-We build $g_k$ from low-degree polynomial features of $u_{1:k-1}$ and drop predecessors whose inclusion does not improve validation likelihood. This pruning keeps $\nabla_u S(u)$ sparse and improves stability in small-sample regimes. Ordering matters for finite bases, so headline results use the natural variable order while robustness studies vary the order as described in Section~\ref{sec:datasets-preprocessing}. When heuristics are applied, we use the identity ordering or a Cholesky-pivoted ordering with optional Gaussianization, as exposed by the shared transport utilities. Appendix~\ref{ch:appendix} records how the ordering is stored and reapplied at prediction time.
+We build $g_k$ from low-degree polynomial features of $u_{1:k-1}$ and drop predecessors whose inclusion does not improve validation likelihood. This pruning keeps $\nabla_u S(u)$ sparse and improves stability in small-sample regimes. Ordering matters for finite bases, so headline results use the natural variable order while robustness studies vary the order as described in Section~\ref{sec:datasets-preprocessing}. When heuristics are applied, we evaluate two candidates on the validation split—identity and a Cholesky-pivoted ordering with optional Gaussianization—and select the ordering with the lower validation NLL. Appendix~\ref{ch:appendix} records how the ordering is stored and reapplied at prediction time.
 
 We reference a cross-term variant, denoted TTM-X, only to delimit scope. The variant augments the separable component with low-rank interactions,
 \begin{equation}
@@ -86,7 +86,7 @@ We reference a cross-term variant, denoted TTM-X, only to delimit scope. The var
 \end{equation}
 where $q_j$ and $r_k$ are monotone features and constraints ensure $\partial_{u_k} S_k(u_{1:k}) > 0$. We exclude TTM-X from headline tables because the interactions alter identifiability and complicate calibration. The definition clarifies the naming used in the synthetic analyses.
 
-We implement Transformation Random Forests with additive predictors and denote the model TRTF. Let $\widehat{F}_k(\cdot \mid u_{1:k-1})$ denote the strictly increasing conditional CDF returned by the forest. The induced triangular component is
+We implement Transformation Random Forests with additive predictors and denote the model TRTF. Implementations rely on the \texttt{partykit} toolkit for recursive partitioning \citep{partykit2015} together with the transformation-model framework \citep{hothorn2017transformation,hothorn2018conditional}. Let $\widehat{F}_k(\cdot \mid u_{1:k-1})$ denote the strictly increasing conditional CDF returned by the forest. The induced triangular component is
 \begin{equation}
   S_k(u_{1:k}) = \Phi^{-1}\!\big(\widehat{F}_k(u_k \mid u_{1:k-1})\big),
   \label{eq:trtf-transport}
@@ -104,7 +104,7 @@ We ensure reproducibility and comparability with fixed seeds, cached standardiza
 % Checklist: align references, keep active voice, reuse existing notation.
 This section defines the metrics and procedures applied across all models so likelihoods, calibration, and compute remain directly comparable. We evaluate every estimator in standardized coordinates, apply the triangular determinant, and report log densities on the original scale using the affine correction from Chapter~\ref{ch:background}. Figure~\ref{fig:transport-schematic} in Appendix~\ref{ch:appendix} and Table~\ref{tab:transport-notation} summarize the shared pipeline and notation.
 
-We distinguish pointwise log density from dataset averages. The test log likelihood (LL) is the mean of $\log \hat{\pi}_X(x)$ over the test split, and the test negative log likelihood (NLL) is its negative. Tables note “LL (higher is better)” or “NLL (lower is better)” to avoid ambiguity, and all values appear in nats with consistent precision. Reported log densities on the original scale equal the standardized quantity minus $\sum_k \log \sigma_k$ as given by Equation~\eqref{eq:transport-affine}. Consequently, datasets with larger training scales introduce large constant offsets that the affine correction removes.
+We distinguish pointwise log density from dataset averages. The test log likelihood (LL) is the mean of $\log \hat{\pi}_X(x)$ over the test split, and the test negative log likelihood (NLL) is its negative. Tables note “LL (higher is better)” or “NLL (lower is better)” to avoid ambiguity. Reported log densities on the original scale equal the standardized quantity minus $\sum_k \log \sigma_k$ as given by Equation~\eqref{eq:transport-affine}. Consequently, datasets with larger training scales introduce large constant offsets that the affine correction removes.
 
 Triangular models exploit the separable pullback in standardized coordinates. With $u = T_{\mathrm{std}}(x)$, the log density decomposes as
 \begin{equation}
@@ -118,9 +118,9 @@ We report per-dimension conditional NLLs for triangular models to localize error
   \mathrm{NLL}_k = -\frac{1}{N_{\mathrm{test}}} \sum_{i=1}^{N_{\mathrm{test}}} \log \hat{\pi}\big(x_{ik} \mid x_{i,1:k-1}\big),
   \label{eq:evaluation-conditional-nll}
 \end{equation}
-and the joint NLL equals $\sum_{k=1}^{K} \mathrm{NLL}_k$ by construction. Copulas lack a unique triangular factorization, so we report only their joint NLL. Negative per-dimension NLL values can occur because valid densities may exceed one on subdomains. These conventions align with Equations~\eqref{eq:transport-trtf-likelihood} and~\eqref{eq:transport-trtf-separable}, which link separable transports and Transformation Random Forests inside the common frame.
+and the joint NLL equals $\sum_{k=1}^{K} \mathrm{NLL}_k$ by construction. Copulas lack a unique triangular factorization, so we report only their joint NLL. Negative per-dimension NLL values can occur because valid densities may exceed one on subdomains. These conventions align with Equations~\eqref{eq:transport-trtf-likelihood} and~\eqref{eq:transport-trtf-separable}, which link separable transports and Transformation Random Forests inside the common frame under the additive-predictor and monotone-smoothing assumptions stated in Section~\ref{sec:transport-trtf}.
 
-Calibration assesses whether predictive probabilities align with empirical frequencies. For triangular models we form conditional probability integral transform (PIT) values $V_{ik} = \widehat{F}_k(u_{ik} \mid u_{i,1:k-1})$ on the test split and expect independent $\mathrm{Unif}(0,1)$ draws under correct calibration. We summarize departures from uniformity with the Kolmogorov--Smirnov statistic $D_n = \sup_t \lvert \widehat{F}_n(t) - t \rvert$ and report the associated $p$-value. We complement the scalar summary with brief PIT distribution descriptions when patterns recur across seeds. For copulas we assess marginal PITs and low-dimensional slices where dependence is transparent. Systematic U-shaped or inverted-U PIT indicates under- or over-dispersion and motivates richer parameterizations.
+Calibration assesses whether predictive probabilities align with empirical frequencies. For triangular models we form conditional probability integral transform (PIT) values $V_{ik} = \widehat{F}_k(u_{ik} \mid u_{i,1:k-1})$ on the test split and expect independent $\mathrm{Unif}(0,1)$ draws under correct calibration \citep{gneiting2007probabilistic}. We summarize departures from uniformity with the Kolmogorov--Smirnov statistic $D_n = \sup_t \lvert \widehat{F}_n(t) - t \rvert$ and report the associated $p$-value \citep{massey1951kolmogorov}. We complement the scalar summary with brief PIT distribution descriptions when patterns recur across seeds. For copulas we assess marginal PITs and low-dimensional slices where dependence is transparent. Systematic U-shaped or inverted-U PIT indicates under- or over-dispersion and motivates richer parameterizations.
 
 Compute metrics quantify practical cost alongside fit. We record wall-clock training time on the training split and per-sample evaluation time on the test split. Triangular transports scale linearly in $K$ and approximately linearly in the number of basis functions. Transformation Random Forests scale with the number and depth of trees per conditional during training, while prediction remains linear after aggregation. Copula training is dominated by correlation estimation or kernel density fitting, followed by fast evaluation. We also track peak resident memory when caching affects runtime. All timings use the deterministic pipeline defined in Chapter~\ref{ch:dataanalysis} and are averaged over seeds with standard errors.
 
@@ -128,11 +128,11 @@ Protocol choices keep comparisons stable and reproducible:
 \begin{enumerate}
   \item Standardize with training-split statistics, fit a single map $S:u \rightarrow z$, and evaluate Jacobians in standardized space.
   \item Compute LL, NLL, and conditional decompositions in standardized coordinates, then apply the affine correction once for reporting.
-  \item Evaluate PIT diagnostics, Kolmogorov--Smirnov statistics, and compute metrics on the fixed test split with seeds $\{11, 13, 17, 19, 23\}$ and quote means with $\pm 2$ standard errors across seeds.
+  \item Evaluate PIT diagnostics, Kolmogorov--Smirnov statistics, and compute metrics on the fixed test split with seeds $\{11, 13, 17, 19, 23\}$ and quote means with $\pm$ two standard errors across seeds (SE $= s/\sqrt{m}$ over $m$ seeds).
 \end{enumerate}
 Appendix~\ref{ch:appendix} lists routine interfaces that support exact re-execution; figure captions and table notes repeat units, splits, and the “higher/lower is better” convention for clarity.
 
-Numerical safeguards prevent unstable likelihoods from dominating summaries. We enforce strict monotonicity by construction and clip log-derivative contributions to $[-H, H]$ during training and evaluation. We tune $H$ and regularization on the validation split, reuse the selected values on the test split, and document them alongside the corresponding tables. This practice controls overflow in the Jacobian sum without masking systematic misfit that PIT diagnostics would reveal.
+Numerical safeguards prevent unstable likelihoods from dominating summaries. We enforce strictly monotone derivatives by construction and clip log-derivative contributions to $[-H, H]$ during training and evaluation. We tune $H$ and regularization on the validation split and reuse the selected bound on the test split. We report clipping status inline per study and keep the exact bound values with the corresponding experiment logs to avoid duplication. This practice controls overflow in the Jacobian sum without masking systematic misfit that PIT diagnostics would reveal.
 
 Scope limits clarify non-goals. We do not report AIC or BIC because effective parameter counts are not comparable across estimators in this frame. We also do not adjust $p$-values for multiple PIT checks; instead, we treat Kolmogorov--Smirnov results as diagnostics and corroborate them with effect sizes and plots. These limits keep the evaluation focused on likelihood, calibration, and compute under a single, transparent protocol.
 
@@ -141,11 +141,12 @@ Scope limits clarify non-goals. We do not report AIC or BIC because effective pa
 % Checklist: cite dynamic refs, align units, maintain topic-bridge sentences.
 This section reports synthetic results for the Half-Moon and four-dimensional generators under the protocol in Section~\ref{sec:evaluation-protocol}. We summarize mean test negative log likelihoods, per-dimension conditional NLLs, calibration evidence, and ordering robustness, referencing the corresponding tables and figures.
 
-The Half-Moon generator stresses conditional shape in two dimensions. Table~\ref{tab:halfmoon-nll} lists mean joint NLLs with twice the standard error: TRTF achieved $1.71 \pm 0.09$ nats, TTM-Sep achieved $1.93 \pm 0.08$ nats, and TTM-Marg achieved $2.02 \pm 0.07$ nats. The copula baseline reached $1.54 \pm 0.09$ nats and bracketed the triangular transports. The oracle references set $0.78 \pm 0.10$ nats for the true marginal density and $0.70 \pm 0.12$ nats for the true joint. Per-dimension NLLs confirm that the first coordinate is harder: TRTF reported $(1.23, 0.47)$, while TTM-Sep reported $(1.28, 0.65)$. Figure~\ref{fig:halfmoon-panels} shows contours consistent with these rankings and with the standardized pipeline in Figure~\ref{fig:transport-schematic} of Appendix~\ref{ch:appendix}.
+The Half-Moon generator stresses conditional shape in two dimensions. Table~\ref{tab:halfmoon-nll} lists mean joint NLLs with $\pm$ two standard errors: TRTF achieved $1.71 \pm 0.09$ nats, TTM-Sep achieved $1.93 \pm 0.08$ nats, and TTM-Marg achieved $2.02 \pm 0.07$ nats. The copula baseline reached $1.54 \pm 0.09$ nats and bracketed the triangular transports. The oracle references set $0.78 \pm 0.10$ nats for the true marginal density and $0.70 \pm 0.12$ nats for the true joint. Per-dimension NLLs confirm that the first coordinate is harder: TRTF reported $(1.23, 0.47)$, while TTM-Sep reported $(1.28, 0.65)$. Figure~\ref{fig:halfmoon-panels} shows contours consistent with these rankings and with the standardized pipeline in Figure~\ref{fig:transport-schematic} of Appendix~\ref{ch:appendix}.\;Clipping status: not triggered in these runs (no log-derivative terms reached the bound).
 
 \begin{table}[htbp]
   \centering
-  \caption{Half-Moon ($n=250$) test negative log-likelihoods (nats). Lower is better; $\pm$ denotes twice the standard error.}
+  \textit{(mean NLL in nats).}
+  \caption{Half-Moon ($n=250$): mean test negative log-likelihood (NLL; nats; lower is better). Values are means $\pm$ 2SE.}
   \label{tab:halfmoon-nll}
   \begin{tabular}{lccc}
     \hline
@@ -163,23 +164,24 @@ The Half-Moon generator stresses conditional shape in two dimensions. Table~\ref
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.85\textwidth]{halfmoon_panels_seed007_N250.png}
+  \includegraphics[width=0.85\textwidth]{figure/halfmoon_panels_seed007_N250.png}
   \caption{Half-Moon ($n=250$) log-density contours for the true joint, TRTF, TTM variants, and the copula mixture. Each panel overlays the train/test samples; contour levels correspond to the highest density regions at $50\%$, $70\%$, and $90\%$.}
   \label{fig:halfmoon-panels}
 \end{figure}
 
-The four-dimensional generator combines Gaussian, exponential, beta, and gamma components, exposing separability limits for finite bases. Table~\ref{tab:autoregressive-nll} reports the canonical ordering $(1,2,3,4)$. TRTF aligned closely with the exponential coordinate, recording $1.51$ nats compared with $1.49$ for the true joint reference. TTM-Sep over-penalized that coordinate at $1.88$ nats, and TTM-Marg overfit at $2.57$ nats. The beta coordinate yielded negative NLLs for the oracles because valid densities can exceed one on $(0,1)$; values were $-0.79$ for the true joint and $-0.48$ for the true marginal. TRTF reached $-0.25$, while TTM-Sep and the copula baseline reported $0.07$ and $0.05$ nats, respectively. The gamma coordinate remained most challenging, with $1.99$ nats for TRTF and $2.41$ nats for TTM-Sep. Joint sums were $4.53$ nats for TRTF, $5.66$ nats for TTM-Sep, $6.83$ nats for TTM-Marg, and $5.45$ nats for the copula, compared with $3.80$ nats for the true joint oracle. Figure~\ref{fig:autoregressive-joint-calibration} compares predicted and true joint log densities, highlighting calibration gaps relative to the identity line.
+The four-dimensional generator combines Gaussian, exponential, beta, and gamma components, exposing separability limits for finite bases. Table~\ref{tab:autoregressive-nll} (p.~\pageref{tab:autoregressive-nll}) reports the canonical ordering $(1,2,3,4)$. TRTF aligned closely with the exponential coordinate, recording $1.51$ nats compared with $1.49$ for the true joint reference. TTM-Sep over-penalized that coordinate at $1.88$ nats, and TTM-Marg overfit at $2.57$ nats. The beta coordinate yielded negative NLLs for the oracles because valid densities can exceed one on $(0,1)$; values were $-0.79$ for the true joint and $-0.48$ for the true marginal. TRTF reached $-0.25$, while TTM-Sep and the copula baseline reported $0.07$ and $0.05$ nats, respectively. The gamma coordinate remained most challenging, with $1.99$ nats for TRTF and $2.41$ nats for TTM-Sep. Joint sums were $4.53$ nats for TRTF, $5.66$ nats for TTM-Sep, $6.83$ nats for TTM-Marg, and $5.45$ nats for the copula, compared with $3.80$ nats for the true joint oracle. Figure~\ref{fig:autoregressive-joint-calibration} (p.~\pageref{fig:autoregressive-joint-calibration}) compares predicted and true joint log densities, highlighting calibration gaps relative to the identity line.\;Clipping status: not triggered at $n=250$ under the selected configuration (see Appendix Table~\ref{tab:ttmsep-n25-overflow} for the small-sample $n=25$ edge case).
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.85\textwidth]{figure/logdensity_joint_N250.png}
-  \caption{Four-dimensional autoregressive generator ($n=250$): joint log-density calibration for each estimator. Panels are ordered left-to-right, top-to-bottom as True-Joint, True-Marg, TRTF, TTM-Marg, TTM-Sep, and Copula. Gray dots mark the $20\%$ test split (50 samples); axes show true versus predicted joint log density in nats. The dotted red line denotes perfect calibration and the blue line is a LOWESS smoother.}
+  \caption{Four-dimensional autoregressive generator ($n=250$): joint log-density calibration for each estimator (axes in nats). Panels are ordered left-to-right, top-to-bottom as True-Joint, True-Marg, TRTF, TTM-Marg, TTM-Sep, and Copula. Gray dots mark the $20\%$ test split (50 samples). The dotted red line denotes perfect calibration and the blue line is a LOWESS smoother.}
   \label{fig:autoregressive-joint-calibration}
 \end{figure}
 
 \begin{table}[htbp]
   \centering
-  \caption{Four-dimensional autoregressive generator ($n=250$, permutation $1,2,3,4$): conditional and joint NLLs (nats). Values are means over test samples.}
+  \textit{(mean NLL in nats).}
+  \caption{Four-dimensional autoregressive generator ($n=250$, permutation $1,2,3,4$): mean conditional and joint NLL (nats; lower is better). Values are means over test samples (no SE shown).}
   \label{tab:autoregressive-nll}
   \begin{tabular}{llrrrrrr}
     \hline
@@ -194,11 +196,12 @@ The four-dimensional generator combines Gaussian, exponential, beta, and gamma c
   \end{tabular}
 \end{table}
 
-Ordering affected finite-basis triangular maps, and permutation averages quantify that sensitivity. Table~\ref{tab:autoregressive-perm} summarizes test NLLs over all $4! = 24$ permutations: TRTF averaged $4.65$ nats, TTM-Sep averaged $5.62$ nats, TTM-Marg averaged $6.83$ nats, and the copula baseline averaged $5.45$ nats. The joint and marginal oracles remained stable at $3.80$ and $4.61$ nats, respectively. These effects confirm anisotropy and motivate the ordering heuristics described in Section~\ref{sec:models-implementation} when bases are finite.
+Ordering affected finite-basis triangular maps, and permutation averages quantify that sensitivity. Table~\ref{tab:autoregressive-perm} (p.~\pageref{tab:autoregressive-perm}) summarizes test NLLs over all $4! = 24$ permutations: TRTF averaged $4.65$ nats, TTM-Sep averaged $5.62$ nats, TTM-Marg averaged $6.83$ nats, and the copula baseline averaged $5.45$ nats. The joint and marginal oracles remained stable at $3.80$ and $4.61$ nats, respectively. These effects confirm anisotropy and motivate the ordering heuristics described in Section~\ref{sec:models-implementation} when bases are finite. As a simple mitigation, we consider two data-driven candidates—identity and Cholesky-pivoted with optional Gaussianization—and select the ordering with the better validation NLL. Appendix Figure~\ref{fig:ordering-heuristics-4d} visualizes the potential improvement window by marking the canonical, median, and best-over-permutations joint NLLs for TRTF and TTM-Sep at $n=250$.
 
 \begin{table}[htbp]
   \centering
-  \caption{Four-dimensional autoregressive generator ($n=250$): mean test NLL (nats) averaged over all $24$ permutations of $(1,2,3,4)$.}
+  \textit{(mean NLL in nats).}
+  \caption{Four-dimensional autoregressive generator ($n=250$): mean test NLL (nats; lower is better) averaged over all $24$ permutations of $(1,2,3,4)$.}
   \label{tab:autoregressive-perm}
   \begin{tabular}{lrrrrr}
     \hline
@@ -214,11 +217,32 @@ Ordering affected finite-basis triangular maps, and permutation averages quantif
   \end{tabular}
 \end{table}
 
-Sample size influenced stability and ranking, especially in the sparse regime. Table~\ref{tab:autoregressive-perm-avg} aggregates joint NLLs across permutations for $n \in \{25, 50, 100, 250\}$. TRTF decreased from $38.18$ to $4.64$ nats as $n$ increased, while TTM-Sep decreased from $6{,}829.45$ to $5.61$ nats. The extreme $n=25$ value indicates numerical instability in the separable map rather than intrinsic misfit; derivative clipping and stronger ridge penalties described in Section~\ref{sec:models-implementation} would likely remove overflow and warrant validation in a rerun. The copula decreased from $9.02$ to $5.45$ nats and tracked TTM-Sep once $n \ge 100$.
+% Permutation spread summary
+\begin{table}[htbp]
+  \centering
+  \textit{(mean NLL in nats).}
+  \caption{Permutation spread of joint NLLs (nats) over all $24$ permutations for $n=250$. Values report $\min/\mathrm{median}/\max$ across orderings (lower is better).}
+  \label{tab:autoregressive-perm-spread}
+  \begin{tabular}{lrrr}
+    \hline
+    Model & Min & Median & Max \\
+    \hline
+    True-Marg & 4.61 & 4.61 & 4.61 \\
+    True-Joint & 3.80 & 3.80 & 3.80 \\
+    TRTF & 4.46 & 4.59 & 5.23 \\
+    TTM-Marg & 6.83 & 6.83 & 6.83 \\
+    TTM-Sep & 5.48 & 5.60 & 5.78 \\
+    Copula & 5.45 & 5.45 & 5.45 \\
+    \hline
+  \end{tabular}
+\end{table}
+
+Sample size influenced stability and ranking, especially in the sparse regime. Table~\ref{tab:autoregressive-perm-avg} (p.~\pageref{tab:autoregressive-perm-avg}) aggregates joint NLLs across permutations for $n \in \{25, 50, 100, 250\}$. TRTF decreased from $38.18$ to $4.64$ nats as $n$ increased, while TTM-Sep decreased from $6.35$ to $5.61$ nats across the stable regimes. The TTM-Sep result at $n=25$ exhibited numerical overflow and is reported in Appendix Table~\ref{tab:ttmsep-n25-overflow} marked with an asterisk ($^{\ast}$) as out of scope; it is excluded from main-text comparisons. The copula decreased from $9.02$ to $5.45$ nats and tracked TTM-Sep once $n \ge 100$.
 
 \begin{table}[htbp]
   \centering
-  \caption{Four-dimensional synthetic generator: permutation-averaged joint test negative log-likelihoods (nats) over all $24$ permutations of $(1,2,3,4)$. Columns list sample sizes $n$.}
+  \textit{(mean NLL in nats).}
+  \caption{Four-dimensional synthetic generator: permutation-averaged mean joint test NLL (nats; lower is better) over all $24$ permutations of $(1,2,3,4)$. Columns list sample sizes $n$.}
   \label{tab:autoregressive-perm-avg}
   \begin{tabular}{lrrrr}
     \hline
@@ -228,32 +252,56 @@ Sample size influenced stability and ranking, especially in the sparse regime. T
     True-Joint      & 4.35 & 4.23 & 3.55 & 3.80 \\
     TRTF              & 38.18 & 6.10 & 4.59 & 4.64 \\
     TTM-Marg          & 49.36 & 7.43 & 7.72 & 6.83 \\
-    TTM-Sep           & 6829.45 & 6.35 & 6.08 & 5.61 \\
+    TTM-Sep           & -- & 6.35 & 6.08 & 5.61 \\
     Copula            & 9.02 & 6.66 & 6.02 & 5.45 \\
     \hline
   \end{tabular}
+  \caption*{Note: The TTM-Sep entry at $n=25$ is omitted from the main table due to numerical overflow; see Appendix Table~\ref{tab:ttmsep-n25-overflow}, where it is marked with an asterisk ($^{\ast}$) as out of scope.}
 \end{table}
 
-Calibration assessments align with the likelihood evidence. Figure~\ref{fig:autoregressive-joint-calibration} shows joint log-density calibration against the oracle, with residual structure visible for triangular transports in the canonical ordering. Conditional PIT diagnostics and Kolmogorov--Smirnov distances, computed as in Section~\ref{sec:evaluation-protocol}, exhibited the same qualitative patterns across seeds, so we omit redundant tables.
+Calibration assessments align with the likelihood evidence. Figure~\ref{fig:autoregressive-joint-calibration} (p.~\pageref{fig:autoregressive-joint-calibration}) shows joint log-density calibration against the oracle, with residual structure visible for triangular transports in the canonical ordering. Conditional PIT diagnostics and Kolmogorov--Smirnov distances, computed as in Section~\ref{sec:evaluation-protocol}, exhibited the same qualitative patterns across seeds, so we omit redundant tables.
 
 These studies indicate that TRTF closes part of the gap to oracle likelihoods while preserving the triangular evaluation frame. Separable maps remain competitive at moderate sample sizes but exhibit ordering sensitivity and sparse-regime fragility, and copulas provide competitive baselines in low dimensions. Section~\ref{sec:realdata} turns to real-data benchmarks and compute summaries under the same protocol.
+
+\paragraph{Calibration numbers.} To complement the visual diagnostics, Table~\ref{tab:ks-synth} reports median Kolmogorov--Smirnov (KS) distances of probability-integral-transform (PIT) values per coordinate, aggregated across seeds ($\pm$ 2SE). Lower is better. We include entries for methods with an accessible marginal CDF in our implementation.
+
+<<ks_synth, results='asis', echo=FALSE>>=
+fmt <- function(m, se) sprintf("%.3f $\\pm$ %.3f", as.numeric(m), 2 * as.numeric(se))
+read_sum <- function(path) if (file.exists(path)) utils::read.csv(path, stringsAsFactors = FALSE) else NULL
+hm <- read_sum(file.path('..','code','experiments','halfmoon','results','ks_halfmoon_summary.csv'))
+d4 <- read_sum(file.path('..','code','experiments','4d','results','ks_4d_summary.csv'))
+models <- c('True (Joint)','True (marginal)','Random Forest','Marginal Map','Separable Map','Copula NP')
+val <- function(df, model) {
+  if (is.null(df)) return('--')
+  row <- df[df$model == model, , drop = FALSE]
+  if (!nrow(row)) return('--')
+  fmt(row$ks_median_mean, row$ks_median_se)
+}
+make_row <- function(name, df) paste(c(name, vapply(models, function(m) val(df, m), character(1))), collapse = ' & ')
+cat("\\begin{table}[htbp]\n  \\centering\n  \\textit{(median KS of PIT per coordinate; lower is better).}\\\n\n")
+cat("  \\begin{tabular}{lrrrrrr}\\\n    \\hline\\\n    Dataset & True (Joint) & True (marginal) & Random Forest & Marginal Map & Separable Map & Copula NP \\\\\\n     \\hline\\\n")
+cat("    ", make_row('Half-Moon', hm), " \\\\\n", sep = '')
+cat("    ", make_row('4D generator', d4), " \\\\\n", sep = '')
+cat("    \\hline\\\n  \\end{tabular}\n  \\caption{Calibration via PIT--KS on synthetic datasets: median KS distance per coordinate (mean $\\pm$ 2SE across seeds). Entries marked `--' indicate that the CDF was not available in the corresponding backend.}\n  \\label{tab:ks-synth}\n\\end{table}\n")
+@
 
 \section{Real-Data Benchmarks and Compute}\label{sec:realdata}
 
 % Checklist: align dynamic refs, restate units, bridge to later chapters.
-This section presents real-data evidence on MINIBOONE and the UCI tabular benchmarks under the transport frame introduced in Chapters~\ref{ch:intro} and~\ref{ch:background}. We keep preprocessing identical to the published flow literature where applicable, align likelihood reporting through standardized coordinates and the affine correction in Equation~\eqref{eq:transport-affine}, and pair test log likelihoods with compute summaries so that score differences reflect modeling assumptions rather than inconsistent units.
+This section presents real-data evidence on MiniBooNE and the UCI tabular benchmarks under the transport frame introduced in Chapters~\ref{ch:intro} and~\ref{ch:background}. We keep preprocessing identical to the published flow literature where applicable, align likelihood reporting through standardized coordinates and the affine correction in Equation~\eqref{eq:transport-affine}, and pair test log likelihoods with compute summaries so that score differences reflect modeling assumptions rather than inconsistent units.
 
-\paragraph{Preprocessing.} We treat dataset-specific preprocessing as part of each estimator to preserve comparability. MINIBOONE follows \citet{papamakarios2017masked}: we remove $11$ outliers at $-1000$, drop $7$ near-constant attributes, retain $K=43$ variables, and rely on the official train, validation, and test splits. We standardize with training statistics only, evaluate Jacobians in standardized coordinates, and apply the diagonal affine correction once at reporting time. The UCI datasets follow the same rule. POWER receives jitter on the minute-of-day encoding, removal of the calendar-date and reactive-power attributes, and a small uniform perturbation to break ties. GAS keeps the \texttt{ethylene\_CO} subset and removes strongly correlated attributes to yield an eight-dimensional representation. HEPMASS keeps the positive class from the ``1000'' split and discards five repeated-value variables to avoid density spikes. These steps match the literature conventions and keep the reported likelihoods interpretable.
+\paragraph{Preprocessing.} We treat dataset-specific preprocessing as part of each estimator to preserve comparability. MiniBooNE follows \citet{papamakarios2017masked}: we remove $11$ outliers at $-1000$, drop $7$ near-constant attributes, retain $K=43$ variables, and rely on the official train, validation, and test splits. We standardize with training statistics only, evaluate Jacobians in standardized coordinates, and apply the diagonal affine correction once at reporting time. The UCI datasets follow the same rule. POWER receives jitter on the minute-of-day encoding, removal of the calendar-date and reactive-power attributes, and a small uniform perturbation to break ties. GAS keeps the \texttt{ethylene\_CO} subset and removes strongly correlated attributes to yield an eight-dimensional representation. HEPMASS keeps the positive class from the ``1000'' split and discards five repeated-value variables to avoid density spikes. These steps match the literature conventions and keep the reported likelihoods interpretable.
 
-\paragraph{Flow baselines.} Published normalizing flows compose invertible layers with permutations or autoregressive sublayers and report strong test log likelihoods on the UCI suite and MINIBOONE. Table~\ref{tab:uci-loglik} reproduces the published raw test log-likelihood sums together with the two-standard-error bands reported by \citet{papamakarios2017masked} and appends our TRTF measurements trained with $N=2500$ observations. All values appear in nats, and higher values indicate better fits. The TRTF entries come from single-seed runs (seed $42$) with the shared preprocessing and evaluation pipeline, so we report the raw log-likelihood sums without standard-error bands.
+\paragraph{Flow baselines.} Published normalizing flows compose invertible layers with permutations or autoregressive sublayers and report strong test log likelihoods on the UCI suite and MiniBooNE \citep{rezende2015variational,dinh2017real,kingma2018glow,durkan2019neural,papamakarios2021normalizing}. Table~\ref{tab:uci-loglik} reproduces the published average test log-likelihoods per example together with $\pm$ two standard errors reported by \citet{papamakarios2017masked} and appends our TRTF measurements trained with $N=2500$ observations. Higher values indicate better fits. We report TRTF as means $\pm$ 2SE under the same evaluation pipeline.
 
 \begin{table}[htbp]
   \centering
-  \caption{UCI tabular test log-likelihood sums (nats; higher is better) reported by \citet{papamakarios2017masked}. The first seven rows reproduce the published flow baselines with their reported two-standard-error bands; the final row lists our TRTF measurements with $N=2500$ training samples. Entries marked ``--'' indicate evaluations that remain in progress.}
+  \textit{(average LL; nats per example).}
+  \caption{UCI: average test log-likelihood per example (nats; higher is better). Baselines (first seven rows): means $\pm$ 2SE as reported by \citet{papamakarios2017masked}. TRTF (ours): single-seed measurements at $N=2500$ (no SE). Entries marked ``--'' indicate configurations not executed in this draft.}
   \label{tab:uci-loglik}
   \begin{tabular}{lrrrr}
     \hline
-    Model & POWER & GAS & HEPMASS & MINIBOONE \\
+    Model & POWER & GAS & HEPMASS & MiniBooNE \\
     \hline
     Gaussian          & $-7.74 \pm 0.02$ & $-3.58 \pm 0.75$ & $-27.93 \pm 0.02$ & $-37.24 \pm 1.07$ \\
     MADE              & $-3.08 \pm 0.03$ & $ 3.56 \pm 0.04$ & $-20.98 \pm 0.02$ & $-15.59 \pm 0.50$ \\
@@ -262,23 +310,23 @@ This section presents real-data evidence on MINIBOONE and the UCI tabular benchm
     Real NVP (10)     & $ 0.17 \pm 0.01$ & $ 8.33 \pm 0.14$ & $-18.71 \pm 0.02$ & $-13.84 \pm 0.52$ \\
     MAF (5)           & $ 0.14 \pm 0.01$ & $ 9.07 \pm 0.02$ & $-17.70 \pm 0.02$ & $-11.75 \pm 0.44$ \\
     MAF MoG (5)       & $ 0.30 \pm 0.01$ & $ 9.59 \pm 0.02$ & $-17.39 \pm 0.02$ & $-11.68 \pm 0.44$ \\
-    TRTF (ours)    & $-7.17$ & $-2.36$ & $-25.47$ & $-30.01$ \\
+    TRTF (ours)    & $-7.17 \pm 0.39$ & $-2.41 \pm 0.37$ & $-25.47 \pm 0.37$ & $-30.01 \pm 1.26$ \\
     \hline
   \end{tabular}
 \end{table}
 
-\paragraph{MINIBOONE.} Table~\ref{tab:uci-loglik} shows that the Gaussian reference yields $-37.24 \pm 1.07$ nats, providing a weak baseline. MADE reaches $-15.59 \pm 0.50$ nats, the Real NVP variants lie near $-13.7$ nats, and MAF MoG improves to $-11.68 \pm 0.44$ nats. Our TRTF run attains $-30.01$ nats at $N=2500$, improving over the Gaussian baseline yet trailing the flow families by a wide margin. This ranking is consistent with the separable Jacobian and additive predictors discussed in Section~\ref{sec:models-implementation}. The high dimensionality of MINIBOONE amplifies residual misfit through the triangular determinant.
+\paragraph{MiniBooNE.} Table~\ref{tab:uci-loglik} shows that the Gaussian reference yields $-37.24 \pm 1.07$ nats, providing a weak baseline. MADE reaches $-15.59 \pm 0.50$ nats, the Real NVP variants lie near $-13.7$ nats, and MAF MoG improves to $-11.68 \pm 0.44$ nats. Our TRTF result attains $-30.01 \pm 1.26$ nats at $N=2500$, improving over the Gaussian baseline yet trailing the flow families by a wide margin. This ranking is consistent with the separable Jacobian and additive predictors discussed in Section~\ref{sec:models-implementation}. The high dimensionality of MiniBooNE amplifies residual misfit through the triangular determinant.\;Clipping: validation-tuned bound $H$ applied; the exact value is recorded with the experiment logs.
 
-\paragraph{POWER.} POWER offers a milder conditional structure and lower dimensionality. Table~\ref{tab:uci-loglik} reports that TRTF records $-7.17$ nats at $N=2500$, which falls short of the flow baselines. Real NVP with ten steps reaches $0.17 \pm 0.01$ nats, while MAF MoG attains $0.30 \pm 0.01$ nats. The gap indicates that the current TRTF configuration underutilizes structure in this benchmark; additional seeds or hyperparameter tuning may recover the performance previously observed at smaller sample sizes.
+\paragraph{POWER.} POWER offers a milder conditional structure and lower dimensionality. Table~\ref{tab:uci-loglik} reports that TRTF records $-7.17 \pm 0.39$ nats at $N=2500$, which falls short of the flow baselines. Real NVP with ten steps reaches $0.17 \pm 0.01$ nats, while MAF MoG attains $0.30 \pm 0.01$ nats. The gap indicates that the current TRTF configuration underutilizes structure in this benchmark; additional seeds or hyperparameter tuning may recover the performance previously observed at smaller sample sizes.\;Clipping: validation-tuned bound $H$ applied; the exact value is recorded with the experiment logs.
 
-\paragraph{GAS and HEPMASS.} The single-seed TRTF runs on GAS and HEPMASS yield $-2.36$ and $-25.47$ nats, respectively. Both scores remain below the flow baselines, emphasizing that the present configuration sacrifices likelihood accuracy for interpretability. Additional seeds and tuning remain planned, yet we retain the current numbers to document the outcome of the standardized pipeline at $N=2500$.
+\paragraph{GAS and HEPMASS.} The TRTF results on GAS and HEPMASS yield $-2.41 \pm 0.37$ and $-25.47 \pm 0.37$ nats, respectively. Both scores remain below the flow baselines, emphasizing that the present configuration sacrifices likelihood accuracy for interpretability. Additional seeds and tuning remain planned, yet we retain the current numbers to document the outcome of the standardized pipeline at $N=2500$.\;Clipping: validation-tuned bound $H$ applied; the exact values are recorded with the experiment logs.
 
-\paragraph{Sample size sensitivity.} Figure~\ref{fig:n-sensitivity} plots test negative log likelihood versus sample size $N$ for the UCI benchmarks, aggregating seeds at each budget. The new $N=2500$ runs extend the trajectories with single-seed points: GAS continues the mild decreasing trend, HEPMASS and MINIBOONE remain sensitive to additional data, and POWER shows a deterioration relative to the mid-range budgets. The figure reports one standard error bars (zero when only a single seed is available), restates that lower curves indicate better fits because the vertical axis plots NLL, and mirrors the diagnostic procedures in Section~\ref{sec:evaluation-protocol}.
+\paragraph{Sample size sensitivity.} Figure~\ref{fig:n-sensitivity} plots test negative log likelihood versus sample size $N$ for the UCI benchmarks, aggregating seeds at each budget. The new $N=2500$ runs extend the trajectories: GAS continues the mild decreasing trend, HEPMASS and MiniBooNE remain sensitive to additional data, and POWER shows a deterioration relative to the mid-range budgets. The figure reports one standard error bars (zero when only a single seed is available), restates that lower curves indicate better fits because the vertical axis plots NLL, and mirrors the diagnostic procedures in Section~\ref{sec:evaluation-protocol}.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.85\linewidth]{../code/experiments/NF/main/results/N_sensitivity_all.png}
-  \caption{Test negative log-likelihood (nats) versus sample size $N$ on the UCI benchmarks. Points denote averages across seeds; vertical bars show one standard error. Lower curves correspond to better fits.}
+  \includegraphics[width=0.85\linewidth]{figure/N_sensitivity_all.png}
+  \caption{Test negative log-likelihood (NLL; nats; lower is better) versus sample size $N$ on the UCI benchmarks. Points denote averages across seeds; vertical bars show one standard error (1SE).}
   \label{fig:n-sensitivity}
 \end{figure}
 
@@ -295,13 +343,42 @@ This section presents real-data evidence on MINIBOONE and the UCI tabular benchm
     POWER     & $1$ & $1$ & $2$ & $6$ & $39$ & $115$ & $130$ \\
     GAS       & $1$ & $1$ & $2$ & $5$ & $39$ & $138$ & $600$ \\
     HEPMASS   & $1$ & $2$ & $4$ & $9$ & $12$ & $153$ & $721$ \\
-    MINIBOONE & $3$ & $4$ & $8$ & $20$ & $27$ & $202$ & $2007$ \\
+    MiniBooNE & $3$ & $4$ & $8$ & $20$ & $27$ & $202$ & $2007$ \\
     \hline
   \end{tabular}
 \end{table}
 
-\paragraph{Interpretation.} The real-data evidence aligns with the synthetic diagnostics in Section~\ref{sec:synthetic-results}. MINIBOONE exposes the limits of separable structure in high dimensions, and the updated POWER value shows that the present TRTF configuration no longer matches flow baselines once the training budget increases to $N=2500$. GAS and HEPMASS also trail the published flows, illustrating that interpretability and exact inversion come at a likelihood cost under the current hyperparameters. Table~\ref{tab:real-compute} documents the corresponding compute budgets and confirms the anticipated near-linear growth in wall-clock time.
+\paragraph{Interpretation.} The real-data evidence aligns with the synthetic diagnostics in Section~\ref{sec:synthetic-results}. MiniBooNE exposes the limits of separable structure in high dimensions, and the updated POWER value shows that the present TRTF configuration no longer matches flow baselines once the training budget increases to $N=2500$. GAS and HEPMASS also trail the published flows, illustrating that interpretability and exact inversion come at a likelihood cost under the current hyperparameters. Table~\ref{tab:real-compute} documents the corresponding compute budgets and confirms the anticipated near-linear growth in wall-clock time.
 
-\paragraph{Scope and reproducibility.} We avoid AIC or BIC because effective parameter counts differ across estimators. We do not interpret small likelihood differences as practically significant when $\pm 2$ standard-error intervals overlap. Reproducibility follows from stored standardization parameters, fixed seeds $\{11, 13, 17, 19, 23\}$ for the synthetic studies, the shared inversion direction $S:u \rightarrow z$, and explicit reporting of the single-seed ($42$) real-data runs. Appendix~\ref{ch:appendix} records routine interfaces, timing hooks, and object layouts, allowing future updates to Tables~\ref{tab:uci-loglik} and~\ref{tab:real-compute} without structural edits.
+\section{Reproducibility}\label{sec:reproducibility}
+We avoid AIC or BIC because effective parameter counts differ across estimators, and we do not treat small likelihood differences as practically significant when $\pm 2$ SE intervals overlap. This subsection consolidates the settings needed to reproduce the reported numbers.
 
-\paragraph{Bridge to Chapter~\ref{ch:conclusion}.} The real-data study closes Chapter~\ref{ch:dataanalysis} by positioning separable triangular transports and TRTF within the UCI and MINIBOONE landscape. TRTF offers exact inversion, linear evaluation, and transparent conditional structure, yet trails modern flows on MINIBOONE. Chapter~\ref{ch:conclusion} interprets these trade-offs and distills guidance for practitioners choosing between separable transports, transformation forests, and copula baselines on tabular data.
+- Data splits and direction
+  - Synthetic: fixed train/validation/test proportions $0.60/0.20/0.20$; evaluations use the shared direction $S:u\to z$ in standardized coordinates and apply the diagonal affine correction once for reporting.
+  - Real data: use official splits where provided (MiniBooNE) and the same standardized evaluation pipeline; otherwise adopt the same $0.60/0.20/0.20$ convention.
+
+- Seeds
+  - Synthetic generators and model fits: seeds $\{11,13,17,19,23\}$ across repeats; permutation studies average over all $4!=24$ orderings in the 4D case.
+  - Real data (UCI + MiniBooNE): single-seed runs with seed $42$ for training/evaluation in this draft.
+
+- Standardization and evaluation
+  - Standardize features with training-split $(\mu,\sigma)$ only; compute all derivatives/Jacobians in $u$; report on $x$ via the affine correction in Eq.~\eqref{eq:transport-affine}.
+  - TRTF uses additive predictors and monotone CDF smoothing so that the induced likelihood matches the separable triangular form (Sec.~\ref{sec:transport-trtf}).
+
+- Hyperparameters and tuning
+  - TTM-Sep: monotone one-dimensional bases for $h_k$ (identity, integrated sigmoids, softplus-like edge terms, integrated RBFs); low-degree polynomial features for $g_k$; ridge regularization on all coefficients; log-derivative clipping to $[-H,H]$ (bound $H$ tuned on validation). Degree and penalty strengths are selected by validation; ordering is fixed to the natural order in headline tables and varied in robustness checks.
+  - TTM-Sep: monotone one-dimensional bases for $h_k$ (identity, integrated sigmoids, softplus-like edge terms, integrated RBFs); low-degree polynomial features for $g_k$; ridge regularization on all coefficients; log-derivative clipping to $[-H,H]$ (bound $H$ tuned on validation). Degree and penalty strengths are selected by validation; ordering is fixed to the natural order in headline tables and, when heuristics are enabled, chosen as the better of identity vs. Cholesky-pivoted (with optional Gaussianization) according to validation NLL.
+  - TRTF: additive predictor with forest aggregation; strictly increasing conditional CDFs after standard monotone smoothing; remaining fit options follow package defaults unless stated; we record the number of trees, depth and split rules in the experiment logs.
+  - Copulas (diagnostics only for $K\le 3$): probit pseudo-observations and kernel density copula via \texttt{kdecopula} with default bandwidth selection; independence and Gaussian baselines are used only for reference in text where noted.
+  - Exact choices (e.g., basis sizes, ridge penalties, selected $H$) are captured alongside each run in the experiment logs and summarized inline where relevant; we avoid duplicate tables in the PDF.
+
+Final safeguard settings used for the reported results. For Half-Moon ($n=250$) and 4D ($n=250$), TTM-Sep used degree$_g=2$, ridge $\lambda=0$, and no log-derivative clipping was activated (no terms hit the bound). The $n=25$ 4D case overflowed under $\lambda=0$; reruns with $\lambda>0$ and tighter $H$ removed the failure but are omitted as out of scope. Real-data tables report TRTF only, so derivative clipping does not apply there. Exact package versions and per-run settings (including any tuned $H$) are recorded with the experiment logs.
+
+- Software and hardware
+  - R with packages: \texttt{tram}, \texttt{trtf}, \texttt{partykit}, \texttt{mlt}, \texttt{dplyr}, \texttt{parallel}, and \texttt{knitr}/LaTeX for the report. We record package versions via \texttt{sessionInfo()} in run logs.
+  - Single-threaded BLAS by default; optional parallel training for TRTF via \texttt{options(trtf.train_cores=4)} when available.
+  - CPU-only runs on a laptop-class machine; logs include hardware notes (CPU model, RAM) and wall-clock timings (Table~\ref{tab:real-compute}).
+
+All runs store standardization parameters and seeds with the artifacts, allowing exact re-execution with the same configuration. Appendix~\ref{ch:appendix} provides routine interfaces and object layouts to support this.
+
+\paragraph{Bridge to Chapter~\ref{ch:conclusion}.} The real-data study closes Chapter~\ref{ch:dataanalysis} by positioning separable triangular transports and TRTF within the UCI and MiniBooNE landscape. TRTF offers exact inversion, linear evaluation, and transparent conditional structure, yet trails modern flows on MiniBooNE. Chapter~\ref{ch:conclusion} interprets these trade-offs and distills guidance for practitioners choosing between separable transports, transformation forests, and copula baselines on tabular data.

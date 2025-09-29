@@ -1,41 +1,41 @@
 \babel@toc {english}{}\relax 
 \contentsline {chapter}{\numberline {1}Introduction}{1}{chapter.1}%
-\contentsline {section}{\numberline {1.1}Thesis and Problem Statement}{2}{section.1.1}%
-\contentsline {paragraph}{Non-goals.}{3}{section*.3}%
+\contentsline {section}{\numberline {1.1}Thesis and Problem Statement}{1}{section.1.1}%
+\contentsline {paragraph}{Non-goals.}{2}{section*.3}%
 \contentsline {section}{\numberline {1.2}The Transport Frame on One Page}{3}{section.1.2}%
-\contentsline {paragraph}{Core operations.}{4}{section*.4}%
-\contentsline {section}{\numberline {1.3}Contributions and Research Questions}{4}{section.1.3}%
-\contentsline {chapter}{\numberline {2}Methodological Background}{7}{chapter.2}%
-\contentsline {section}{\numberline {2.1}Transport Frame and Notation}{7}{section.2.1}%
-\contentsline {section}{\numberline {2.2}Separable Triangular Maps and Transformation Random Forests as Transport}{8}{section.2.2}%
-\contentsline {subsection}{\numberline {2.2.1}Transformation Random Forests within the Transport Frame}{10}{subsection.2.2.1}%
-\contentsline {section}{\numberline {2.3}Copula Baselines}{11}{section.2.3}%
-\contentsline {chapter}{\numberline {3}Data Analysis and Validation}{13}{chapter.3}%
-\contentsline {section}{\numberline {3.1}Datasets and Preprocessing}{13}{section.3.1}%
-\contentsline {section}{\numberline {3.2}Models and Implementation}{15}{section.3.2}%
-\contentsline {section}{\numberline {3.3}Evaluation Metrics and Protocol}{17}{section.3.3}%
-\contentsline {section}{\numberline {3.4}Synthetic Results and Diagnostics}{19}{section.3.4}%
-\contentsline {section}{\numberline {3.5}Real-Data Benchmarks and Compute}{22}{section.3.5}%
-\contentsline {paragraph}{Preprocessing.}{22}{section*.13}%
-\contentsline {paragraph}{Flow baselines.}{23}{section*.14}%
-\contentsline {paragraph}{MINIBOONE.}{23}{section*.16}%
-\contentsline {paragraph}{POWER.}{23}{section*.17}%
-\contentsline {paragraph}{GAS and HEPMASS.}{24}{section*.18}%
-\contentsline {paragraph}{Sample size sensitivity.}{24}{section*.19}%
-\contentsline {paragraph}{Compute metrics.}{24}{section*.21}%
-\contentsline {paragraph}{Interpretation.}{25}{section*.23}%
-\contentsline {paragraph}{Scope and reproducibility.}{25}{section*.24}%
-\contentsline {paragraph}{Bridge to Chapter~\ref {ch:conclusion}.}{25}{section*.25}%
+\contentsline {section}{\numberline {1.3}Contributions and Research Questions}{3}{section.1.3}%
+\contentsline {chapter}{\numberline {2}Methodological Background}{5}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Transport Frame and Notation}{5}{section.2.1}%
+\contentsline {section}{\numberline {2.2}Separable Triangular Maps and Transformation Random Forests as Transport}{6}{section.2.2}%
+\contentsline {subsection}{\numberline {2.2.1}Transformation Random Forests within the Transport Frame}{8}{subsection.2.2.1}%
+\contentsline {section}{\numberline {2.3}Copula Baselines}{9}{section.2.3}%
+\contentsline {chapter}{\numberline {3}Data Analysis and Validation}{11}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Datasets and Preprocessing}{11}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Models and Implementation}{13}{section.3.2}%
+\contentsline {section}{\numberline {3.3}Evaluation Metrics and Protocol}{15}{section.3.3}%
+\contentsline {section}{\numberline {3.4}Synthetic Results and Diagnostics}{17}{section.3.4}%
+\contentsline {paragraph}{Calibration numbers.}{21}{section*.14}%
+\contentsline {section}{\numberline {3.5}Real-Data Benchmarks and Compute}{21}{section.3.5}%
+\contentsline {paragraph}{Preprocessing.}{21}{section*.16}%
+\contentsline {paragraph}{Flow baselines.}{22}{section*.17}%
+\contentsline {paragraph}{MiniBooNE.}{22}{section*.19}%
+\contentsline {paragraph}{POWER.}{22}{section*.20}%
+\contentsline {paragraph}{GAS and HEPMASS.}{22}{section*.21}%
+\contentsline {paragraph}{Sample size sensitivity.}{23}{section*.22}%
+\contentsline {paragraph}{Compute metrics.}{23}{section*.24}%
+\contentsline {paragraph}{Interpretation.}{24}{section*.26}%
+\contentsline {section}{\numberline {3.6}Reproducibility}{24}{section.3.6}%
+\contentsline {paragraph}{Bridge to Chapter~\ref {ch:conclusion}.}{25}{section*.27}%
 \contentsline {chapter}{\numberline {4}Interpretation and Conclusion}{27}{chapter.4}%
 \contentsline {section}{\numberline {4.1}Interpretation of Results}{27}{section.4.1}%
 \contentsline {section}{\numberline {4.2}Conclusions, Limitations, and Outlook}{29}{section.4.2}%
-\contentsline {chapter}{\numberline {5}References}{31}{chapter.5}%
-\contentsline {chapter}{\numberline {A}Appendix}{35}{appendix.A}%
-\contentsline {section}{\numberline {A.1}Unified Transport Schematic}{35}{section.A.1}%
-\contentsline {section}{\numberline {A.2}Pseudo-code Summaries for Model Routines}{37}{section.A.2}%
-\contentsline {subsection}{\numberline {A.2.1}Transformation Random Forest (TRTF)}{37}{subsection.A.2.1}%
-\contentsline {subsection}{\numberline {A.2.2}Nonparametric Copula Baseline}{37}{subsection.A.2.2}%
-\contentsline {subsection}{\numberline {A.2.3}Triangular Transport Core Utilities}{38}{subsection.A.2.3}%
-\contentsline {subsection}{\numberline {A.2.4}Marginal Triangular Transport Map}{39}{subsection.A.2.4}%
-\contentsline {subsection}{\numberline {A.2.5}Separable Triangular Transport Map}{39}{subsection.A.2.5}%
-\contentsline {subsection}{\numberline {A.2.6}Evaluation Utilities}{39}{subsection.A.2.6}%
+\contentsline {chapter}{\numberline {A}Appendix}{33}{appendix.A}%
+\contentsline {section}{\numberline {A.1}Unified Transport Schematic}{33}{section.A.1}%
+\contentsline {section}{\numberline {A.2}Pseudo-code Summaries for Model Routines}{35}{section.A.2}%
+\contentsline {subsection}{\numberline {A.2.1}Transformation Random Forest (TRTF)}{35}{subsection.A.2.1}%
+\contentsline {subsection}{\numberline {A.2.2}Nonparametric Copula Baseline}{35}{subsection.A.2.2}%
+\contentsline {subsection}{\numberline {A.2.3}Triangular Transport Core Utilities}{36}{subsection.A.2.3}%
+\contentsline {subsection}{\numberline {A.2.4}Marginal Triangular Transport Map}{37}{subsection.A.2.4}%
+\contentsline {subsection}{\numberline {A.2.5}Separable Triangular Transport Map}{37}{subsection.A.2.5}%
+\contentsline {subsection}{\numberline {A.2.6}Evaluation Utilities}{38}{subsection.A.2.6}%
+\contentsline {subsection}{\numberline {A.2.7}Supplementary Results}{38}{subsection.A.2.7}%

@@ -2,13 +2,17 @@ dataset: gas
 hyperparameters: ntree=200, minsplit=200, minbucket=100, maxdepth=5, seed=42, train_cores=8
 seed=42, N=2500
 LL_per_dim:
-dim01: -1.003316
-dim02: 0.590208
-dim03: -0.919668
-dim04: -0.418063
-dim05: -0.511911
-dim06: -0.320226
-dim07: 0.284281
-dim08: -0.062141
-sum: -2.360836
-time_sec: train=504s, test=96s, total=600s
+dim01: -1.035733
+dim02: 0.516643
+dim03: -0.906938
+dim04: -0.397448
+dim05: -0.556458
+dim06: -0.327914
+dim07: 0.295946
+dim08: 0.000584
+sum: -2.411317
+sum_se: 0.185932
+sum_total: -1205.658553
+sum_total_se: 92.965924
+time_sec: train=523.178, test=100.027, total=623.205
+memory_peak_mb: 1090.9
