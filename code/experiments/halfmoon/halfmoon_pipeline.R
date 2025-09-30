@@ -140,7 +140,7 @@ for (nm in names(tab_fmt)) {
 if ("train_test_policy" %in% names(tab_fmt)) tab_fmt$train_test_policy <- NULL
 cat(sprintf("n=%d (Half-moon)\n", N))
 print(tab_fmt)
-message("Half-moon NLL (nats) CSV: ", csv_path)
+message("Half-moon NLL CSV: ", csv_path)
 
 timing$evaluation_total <- eval_time
 

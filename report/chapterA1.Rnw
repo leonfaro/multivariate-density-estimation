@@ -2,9 +2,9 @@
 <<'preambleA1',include=FALSE>>=
 library(knitr)
 opts_chunk$set(
-    fig.path='figure/cha1_fig', 
-    self.contained=FALSE,
-    cache=TRUE
+ fig.path='figure/cha1_fig', 
+ self.contained=FALSE,
+ cache=TRUE
 )
 
 @
@@ -21,22 +21,22 @@ This appendix records consolidated pseudo-code for the core R implementations us
 \textbf{Routine:}\quad\texttt{fit\_TRTF(S, config, seed, cores)} (calls \texttt{mytrtf}).
 
 \begin{enumerate}
-  \item Validate that the training matrix is numeric, set the RNG seed, and label columns as $X_1,\ldots,X_K$.
-  \item Fit an intercept-only transformation model \texttt{BoxCox} for each $X_k$ to provide baseline monotone transformations.
-  \item For $k = 2,\ldots,K$:
-    \begin{enumerate}
-      \item Build the formula $X_k \sim X_1 + \cdots + X_{k-1}$.
-      \item Choose \texttt{mtry = max(1, floor((k-1)/2))} and standard \texttt{ctree} controls (\texttt{minsplit}, \texttt{minbucket}, \texttt{maxdepth}).
-      \item Fit a transformation forest with \texttt{traforest} and store the conditional model (one forest per $k$).
-    \end{enumerate}
-  \item Return a \texttt{mytrtf} object containing baseline transformations, conditional forests, variable-importance scores, and the seed.
+ \item Validate that the training matrix is numeric, set the RNG seed, and label columns as $X_1,\ldots,X_K$.
+ \item Fit an intercept-only transformation model \texttt{BoxCox} for each $X_k$ to provide baseline monotone transformations.
+ \item For $k = 2,\ldots,K$:
+ \begin{enumerate}
+ \item Build the formula $X_k \sim X_1 + \cdots + X_{k-1}$.
+ \item Choose \texttt{mtry = max(1, floor((k-1)/2))} and standard \texttt{ctree} controls (\texttt{minsplit}, \texttt{minbucket}, \texttt{maxdepth}).
+ \item Fit a transformation forest with \texttt{traforest} and store the conditional model (one forest per $k$).
+ \end{enumerate}
+ \item Return a \texttt{mytrtf} object containing baseline transformations, conditional forests, variable-importance scores, and the seed.
 
-  \item \textbf{Prediction (\texttt{predict.mytrtf}):}
-    \begin{enumerate}
-      \item Convert new data to the same column naming scheme and evaluate $X_1$ through its baseline transformation model to obtain marginal log densities.
-      \item For each conditional forest ($k\geq 2$) evaluate the log density of $X_k$ given $X_{1:(k-1)}$, extracting the diagonal when the forest returns a log density matrix.
-      \item Stack the per-dimension log densities (\texttt{logdensity\_by\_dim}) or sum them to obtain the joint log likelihood (\texttt{logdensity}).
-    \end{enumerate}
+ \item \textbf{Prediction (\texttt{predict.mytrtf}):}
+ \begin{enumerate}
+ \item Convert new data to the same column naming scheme and evaluate $X_1$ through its baseline transformation model to obtain marginal log densities.
+ \item For each conditional forest ($k\geq 2$) evaluate the log density of $X_k$ given $X_{1:(k-1)}$, extracting the diagonal when the forest returns a log density matrix.
+ \item Stack the per-dimension log densities (\texttt{logdensity\_by\_dim}) or sum them to obtain the joint log likelihood (\texttt{logdensity}).
+ \end{enumerate}
 \end{enumerate}
 
 \subsection{Nonparametric Copula Baseline}\label{app:copula}
@@ -44,27 +44,27 @@ This appendix records consolidated pseudo-code for the core R implementations us
 \textbf{Routine:}\quad\texttt{fit\_copula\_np(S, seed)}.
 
 \begin{enumerate}
-  \item Inspect the training matrix and optional class labels; detect whether the dedicated copula packages are available.
-  \item If prerequisites fail (dimension $K \neq 2$ or labels missing), fall back to independent univariate kernel density estimates per dimension and store them for later interpolation.
-  \item Otherwise, for each class label:
-    \begin{enumerate}
-      \item Fit one-dimensional \texttt{kde1d} models to each marginal $X_1$ and $X_2$.
-      \item Convert training samples to pseudo-observations using mid-ranks scaled by $(n+1)^{-1}$ and clamp to $(\varepsilon, 1-\varepsilon)$.
-      \item Fit a two-dimensional kernel copula with \texttt{kdecopula::kdecop} (method \texttt{TLL2}).
-      \item Store marginals, copula fit, and effective sample size for the class.
-    \end{enumerate}
-  \item Record class priors and return a \texttt{copula\_np} object.
+ \item Inspect the training matrix and optional class labels; detect whether the dedicated copula packages are available.
+ \item If prerequisites fail (dimension $K \neq 2$ or labels missing), fall back to independent univariate kernel density estimates per dimension and store them for later interpolation.
+ \item Otherwise, for each class label:
+ \begin{enumerate}
+ \item Fit one-dimensional \texttt{kde1d} models to each marginal $X_1$ and $X_2$.
+ \item Convert training samples to pseudo-observations using mid-ranks scaled by $(n+1)^{-1}$ and clamp to $(\varepsilon, 1-\varepsilon)$.
+ \item Fit a two-dimensional kernel copula with \texttt{kdecopula::kdecop} (method \texttt{TLL2}).
+ \item Store marginals, copula fit, and effective sample size for the class.
+ \end{enumerate}
+ \item Record class priors and return a \texttt{copula\_np} object.
 
-  \item \textbf{Prediction (\texttt{predict.copula\_np}):}
-    \begin{enumerate}
-      \item In fallback mode evaluate each univariate KDE at the requested points and sum log densities.
-      \item In copula mode compute marginal log densities and CDF values, evaluate the copula density, and either:
-        \begin{enumerate}
-          \item Average over class-specific log densities weighted by priors (mixture prediction), or
-          \item Use the class labels supplied at prediction time.
-        \end{enumerate}
-      \item Return per-dimension log densities or their sum depending on the requested type.
-    \end{enumerate}
+ \item \textbf{Prediction (\texttt{predict.copula\_np}):}
+ \begin{enumerate}
+ \item In fallback mode evaluate each univariate KDE at the requested points and sum log densities.
+ \item In copula mode compute marginal log densities and CDF values, evaluate the copula density, and either:
+ \begin{enumerate}
+ \item Average over class-specific log densities weighted by priors (mixture prediction), or
+ \item Use the class labels supplied at prediction time.
+ \end{enumerate}
+ \item Return per-dimension log densities or their sum depending on the requested type.
+ \end{enumerate}
 \end{enumerate}
 
 \subsection{Triangular Transport Core Utilities}\label{app:ttm-core}
@@ -72,16 +72,16 @@ This appendix records consolidated pseudo-code for the core R implementations us
 \textbf{Module:}\quad\texttt{ttm\_core.R} (shared by marginal and separable TTM fits).
 
 \begin{enumerate}
-  \item Provide train-only standardization helpers that cache feature means and standard deviations and reapply them to new data.
-  \item Define basis builders: polynomial features for predecessor coordinates $g_k$, monotone basis functions $f_k$ for the current coordinate, and their derivatives.
-  \item Implement optional ordering heuristics (identity or Cholesky pivoting with optional Gaussianization) and persist selected permutations.
-  \item Expose a dispatcher \texttt{ttm\_forward(model, X)} that:
-    \begin{enumerate}
-      \item Standardizes inputs using stored parameters.
-      \item For marginal maps apply affine transformations $a_k + b_k x_k$ with precomputed coefficients.
-      \item For separable maps constructs $g_k$ and $f_k$, computes $S_k = g_k + f_k$, and records the Jacobian diagonal $\partial_{x_k} S_k$.
-    \end{enumerate}
-  \item Provide \texttt{ttm\_ld\_by\_dim} to combine the forward map with the Gaussian reference, yielding per-dimension log densities used by all TTM variants.
+ \item Provide train-only standardization helpers that cache feature means and standard deviations and reapply them to new data.
+ \item Define basis builders: polynomial features for predecessor coordinates $g_k$, monotone basis functions $f_k$ for the current coordinate, and their derivatives.
+ \item Implement optional ordering heuristics (identity or Cholesky pivoting with optional Gaussianization) and persist selected permutations.
+ \item Expose a dispatcher \texttt{ttm\_forward(model, X)} that:
+ \begin{enumerate}
+ \item Standardizes inputs using stored parameters.
+ \item For marginal maps apply affine transformations $a_k + b_k x_k$ with precomputed coefficients.
+ \item For separable maps constructs $g_k$ and $f_k$, computes $S_k = g_k + f_k$, and records the Jacobian diagonal $\partial_{x_k} S_k$.
+ \end{enumerate}
+ \item Provide \texttt{ttm\_ld\_by\_dim} to combine the forward map with the Gaussian reference, yielding per-dimension log densities used by all TTM variants.
 \end{enumerate}
 
 \subsection{Marginal Triangular Transport Map}\label{app:ttm-marg}
@@ -89,10 +89,10 @@ This appendix records consolidated pseudo-code for the core R implementations us
 \textbf{Routine:}\quad\texttt{fit\_ttm\_marginal(data, seed)}.
 
 \begin{enumerate}
-  \item Split data into train/test subsets if only a matrix is provided; otherwise accept a prepared list.
-  \item Standardize training features and, for each dimension $k$, compute closed-form coefficients $(a_k, b_k)$ that minimize the Gaussian pullback objective subject to $b_k > 0$.
-  \item Store model parameters (standardization, per-dimension coefficients, ordering) and time measurements.
-  \item During prediction call \texttt{ttm\_forward} with the marginal coefficients and convert Jacobian diagonals to log densities via \texttt{ttm\_ld\_by\_dim}; aggregate per-dimension contributions when the joint log density is requested.
+ \item Split data into train/test subsets if only a matrix is provided; otherwise accept a prepared list.
+ \item Standardize training features and, for each dimension $k$, compute closed-form coefficients $(a_k, b_k)$ that minimize the Gaussian pullback objective subject to $b_k > 0$.
+ \item Store model parameters (standardization, per-dimension coefficients, ordering) and time measurements.
+ \item During prediction call \texttt{ttm\_forward} with the marginal coefficients and convert Jacobian diagonals to log densities via \texttt{ttm\_ld\_by\_dim}; aggregate per-dimension contributions when the joint log density is requested.
 \end{enumerate}
 
 \subsection{Separable Triangular Transport Map}\label{app:ttm-sep}
@@ -100,19 +100,19 @@ This appendix records consolidated pseudo-code for the core R implementations us
 \textbf{Routine:}\quad\texttt{fit\_ttm\_separable(data, degree\_g, lambda, seed)}.
 
 \begin{enumerate}
-  \item Prepare train/test splits and standardize training features as in the marginal case.
-  \item For each coordinate $k$:
-    \begin{enumerate}
-      \item Build polynomial features $g_k$ on previous coordinates (degree set by \texttt{degree\_g}).
-      \item Build monotone basis functions $f_k$ on the current coordinate and their derivatives.
-      \item If \texttt{degree\_g = 0}, use the marginal closed-form solution to recover affine parameters.
-      \item Otherwise solve the regularized optimization problem
-            $\min_c \frac{1}{2}\lVert (I - \Phi_{\text{non}} M)c \rVert^2 - \sum \log (B c) + \lambda\,\text{penalty}(c)$
-            using \texttt{optim} with L-BFGS-B while enforcing positivity of the derivative.
-      \item Store coefficients $c_{\text{non}}$ and $c_{\text{mon}}$ for the coordinate.
-    \end{enumerate}
-  \item Assemble the model list with standardization parameters, coefficients, and metadata; record training/prediction timings.
-  \item At prediction time re-use \texttt{ttm\_forward} and \texttt{ttm\_ld\_by\_dim} to obtain per-dimension and joint log densities.
+ \item Prepare train/test splits and standardize training features as in the marginal case.
+ \item For each coordinate $k$:
+ \begin{enumerate}
+ \item Build polynomial features $g_k$ on previous coordinates (degree set by \texttt{degree\_g}).
+ \item Build monotone basis functions $f_k$ on the current coordinate and their derivatives.
+ \item If \texttt{degree\_g = 0}, use the marginal closed-form solution to recover affine parameters.
+ \item Otherwise solve the regularized optimization problem
+ $\min_c \frac{1}{2}\lVert (I - \Phi_{\text{non}} M)c \rVert^2 - \sum \log (B c) + \lambda\,\text{penalty}(c)$
+ using \texttt{optim} with L-BFGS-B while enforcing positivity of the derivative.
+ \item Store coefficients $c_{\text{non}}$ and $c_{\text{mon}}$ for the coordinate.
+ \end{enumerate}
+ \item Assemble the model list with standardization parameters, coefficients, and metadata.
+ \item At prediction time re-use \texttt{ttm\_forward} and \texttt{ttm\_ld\_by\_dim} to obtain per-dimension and joint log densities.
 \end{enumerate}
 
 \subsection{Evaluation Utilities}\label{app:evaluation}
@@ -120,9 +120,9 @@ This appendix records consolidated pseudo-code for the core R implementations us
 \textbf{Module:}\quad\texttt{evaluation.R} (experiment orchestration).
 
 \begin{enumerate}
-  \item Define convenience helpers such as \texttt{stderr(x)} and \texttt{add\_sum\_row} for table post-processing.
-  \item \texttt{prepare\_data(n, config, seed)} samples from the configured data-generating process, splits the sample into train/validation/test sets, and returns both the matrix of draws and the split structure.
-  \item \texttt{fit\_models(S, config)} fits the oracle TRUE density and the TRTF baseline on a split, times their evaluations, and returns the fitted objects together with per-dimension log-likelihood arrays.
-  \item \texttt{calc\_loglik\_tables(models, config, X\_te, ...)} aggregates negative log-likelihoods (nats) for TRUE (marginal and joint), TRTF, TTM, and separable TTM, formats the results with standard-error bands, appends a summary row, and renames columns for presentation.
-  \item \texttt{eval\_halfmoon(mods, S, out\_csv)} ensures all requisite models are available (TRTF, TTM variants, copula baseline), evaluates them on the half-moon test split, computes joint and per-dimension negative log-likelihoods, and optionally persists the metrics as CSV artifacts.
+ \item Define convenience helpers such as \texttt{stderr(x)} and \texttt{add\_sum\_row} for table post-processing.
+ \item \texttt{prepare\_data(n, config, seed)} samples from the configured data-generating process, splits the sample into train/validation/test sets, and returns both the matrix of draws and the split structure.
+ \item \texttt{fit\_models(S, config)} fits the oracle TRUE density and the TRTF baseline on a split and returns the fitted objects together with per-dimension log-likelihood arrays.
+ \item \texttt{calc\_loglik\_tables(models, config, X\_te,...)} aggregates negative log-likelihoods for TRUE (marginal and joint), TRTF, TTM, and separable TTM, formats the results with standard-error bands, appends a summary row, and renames columns for presentation.
+ \item \texttt{eval\_halfmoon(mods, S, out\_csv)} ensures all requisite models are available (TRTF, TTM variants, copula baseline), evaluates them on the half-moon test split, computes joint and per-dimension negative log-likelihoods, and optionally persists the metrics as CSV artifacts.
 \end{enumerate}

@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023) (preloaded format=pdflatex 2023.5.22)  1 OCT 2025 00:04
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023) (preloaded format=pdflatex 2023.5.22)  1 OCT 2025 01:24
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -971,7 +971,7 @@ LaTeX Font Info:    Trying to load font information for T1+cmtt on input line 1
 15.
  (/usr/local/texlive/2023/texmf-dist/tex/latex/base/t1cmtt.fd
 File: t1cmtt.fd 2022/07/10 v2.5l Standard LaTeX font definitions
-) [2]
+)
 Overfull \hbox (51.74269pt too wide) in paragraph at lines 129--130
 []\T1/cmr/bx/n/10.95 Triangular log de-ter-mi-nant. \T1/cmr/m/n/10.95 Lower-tri
 angular Ja-co-bians im-ply $[] [] \OML/cmm/m/it/10.95 J[]\OT1/cmr/m/n/10.95 (\O
@@ -980,113 +980,95 @@ ML/cmm/m/it/10.95 u\OT1/cmr/m/n/10.95 ) = [][] [] \OML/cmm/m/it/10.95 @[]T[]\OT
 ,
  []
 
-[3{/usr/local/texlive/2023/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc
-}]
-Overfull \hbox (8.83183pt too wide) in paragraph at lines 161--173
- [][] 
- []
-
-[4]
+[2{/usr/local/texlive/2023/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc
+}] [3] [4]
 Chapter 2.
 [5
 
 ]
-Overfull \hbox (19.41486pt too wide) in paragraph at lines 254--254
-[]\T1/cmr/bx/n/14.4 Separable Tri-an-gu-lar Maps and Trans-for-ma-tion Ran-dom 
-Forests 
- []
+Underfull \vbox (badness 10000) has occurred while \output is active []
 
-[6] [7] [8] [9] [10
+ [6]
+[7] [8] [9] [10
 
 ]
 Chapter 3.
 [11] [12]
-Overfull \hbox (4.18356pt too wide) in paragraph at lines 457--458
+Overfull \hbox (4.18356pt too wide) in paragraph at lines 453--454
 []\T1/cmr/bx/n/10.95 Objective. \T1/cmr/m/n/10.95 We min-i-mize the Gaus-sian p
 ull-back in-duced by the shared ref-er-ence (Equa-tions []--
  []
 
-[13] [14] [15] [16]
-<figure/halfmoon_panels_seed007_N250.png, id=425, 3212.0pt x 2409.0pt>
+[13] [14] [15]
+<figure/halfmoon_panels_seed007_N250.png, id=406, 3212.0pt x 2409.0pt>
 File: figure/halfmoon_panels_seed007_N250.png Graphic file (type png)
 <use figure/halfmoon_panels_seed007_N250.png>
 Package pdftex.def Info: figure/halfmoon_panels_seed007_N250.png  used on input
- line 576.
+ line 554.
 (pdftex.def)             Requested size: 387.0088pt x 290.24379pt.
-
-
-LaTeX Warning: Reference `tab:ttmsep-n25-overflow' on page 17 undefined on inpu
-t line 581.
-
-[17 <./figure/halfmoon_panels_seed007_N250.png>]
-<figure/logdensity_joint_N250.png, id=437, 4818.0pt x 4215.75pt>
+<figure/logdensity_joint_N250.png, id=412, 4818.0pt x 4215.75pt>
 File: figure/logdensity_joint_N250.png Graphic file (type png)
 <use figure/logdensity_joint_N250.png>
 Package pdftex.def Info: figure/logdensity_joint_N250.png  used on input line 5
-85.
+63.
 (pdftex.def)             Requested size: 387.0088pt x 338.61777pt.
 
+Underfull \vbox (badness 4582) has occurred while \output is active []
 
-LaTeX Warning: Reference `fig:ordering-heuristics-4d' on page 18 undefined on i
-nput line 608.
+ [16]
+Underfull \vbox (badness 10000) has occurred while \output is active []
 
-
-LaTeX Warning: Reference `tab:ttmsep-n25-overflow' on page 18 undefined on inpu
-t line 649.
-
-[18 <./figure/logdensity_joint_N250.png>]
-
-LaTeX Warning: Reference `tab:ttmsep-n25-overflow' on page 19 undefined on inpu
-t line 668.
-
-
-LaTeX Warning: Reference `tab:ttmsep-n25-overflow' on page 19 undefined on inpu
-t line 668.
-
-[19] [20] [21]
-<figure/N_sensitivity_all.png, id=499, 4015.0pt x 2690.05pt>
+ [17 <./figure/halfmoon_panels_seed007_N250.png>] [18 <./figure/logdensity_join
+t_N250.png>] [19] [20]
+<figure/N_sensitivity_all.png, id=481, 4015.0pt x 2690.05pt>
 File: figure/N_sensitivity_all.png Graphic file (type png)
 <use figure/N_sensitivity_all.png>
-Package pdftex.def Info: figure/N_sensitivity_all.png  used on input line 713.
+Package pdftex.def Info: figure/N_sensitivity_all.png  used on input line 685.
 (pdftex.def)             Requested size: 387.0088pt x 259.29266pt.
- [22 <./figure/N_sensitivity_all.png>] [23]
-Overfull \hbox (0.59235pt too wide) in paragraph at lines 767--768
+ [21 <./figure/N_sensitivity_all.png>] [22]
+Overfull \hbox (0.75764pt too wide) in paragraph at lines 741--742
+ []\T1/cmr/bx/n/10.95 Final safe-guards used.[] \T1/cmr/m/n/10.95 For Half-Moon
+ ($\OML/cmm/m/it/10.95 n \OT1/cmr/m/n/10.95 = 250$\T1/cmr/m/n/10.95 ) and 4D ($
+\OML/cmm/m/it/10.95 n \OT1/cmr/m/n/10.95 = 250$\T1/cmr/m/n/10.95 ), TTM-Sep use
+d degree$[] \OT1/cmr/m/n/10.95 =
+ []
+
+
+Overfull \hbox (74.40149pt too wide) in paragraph at lines 746--747
+[]\T1/cmr/m/n/10.95 Single-threaded BLAS by de-fault, with op-tional par-al-lel
+ train-ing for TRTF via \T1/cmtt/m/n/10.95 options(trtf.train_cores
+ []
+
+
+Overfull \hbox (0.59235pt too wide) in paragraph at lines 750--751
 []\T1/cmr/m/n/10.95 All runs store stan-dard-iza-tion pa-ram-e-ters and seeds w
 ith the ar-ti-facts, al-low-ing ex-act re-execution
  []
 
-[24]
-Chapter 4.
-[25
+[23] [24
 
 ]
-Overfull \hbox (2.4961pt too wide) in paragraph at lines 792--793
+Chapter 4.
+[25]
+Overfull \hbox (2.4961pt too wide) in paragraph at lines 775--776
 []\T1/cmr/m/n/10.95 Small-sample regimes am-pli-fied nu-mer-i-cal fragility thr
 ough the log-Jacobian ac-cu-mu-la-tion. TRTF
  []
 
-
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [26]
-(./MSc_Report.bbl (./MSc_Report.brf)
+[26] (./MSc_Report.bbl (./MSc_Report.brf)
 \tf@brf=\write7
 \openout7 = `MSc_Report.brf'.
 
+ [27] [28
 
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [27]
-[28] [29
-
-]) [30]
+] [29]) [30]
 Appendix A.
 LaTeX Font Info:    Font shape `T1/cmtt/bx/n' in size <10.95> not available
-(Font)              Font shape `T1/cmtt/m/n' tried instead on input line 844.
+(Font)              Font shape `T1/cmtt/m/n' tried instead on input line 826.
 [31
 
 ] [32]
-Overfull \hbox (21.97534pt too wide) in paragraph at lines 919--922
+Overfull \hbox (21.97534pt too wide) in paragraph at lines 901--904
 []\T1/cmr/m/n/10.95 Otherwise solve the reg-u-lar-ized op-ti-miza-tion prob-lem
  $[][] []\OMS/cmsy/m/n/10.95 k\OT1/cmr/m/n/10.95 (\OML/cmm/m/it/10.95 I \OMS/cm
 sy/m/n/10.95 ^^@ \OT1/cmr/m/n/10.95 ^^H[]\OML/cmm/m/it/10.95 M\OT1/cmr/m/n/10.9
@@ -1094,29 +1076,20 @@ sy/m/n/10.95 ^^@ \OT1/cmr/m/n/10.95 ^^H[]\OML/cmm/m/it/10.95 M\OT1/cmr/m/n/10.9
 ML/cmm/m/it/10.95 Bc\OT1/cmr/m/n/10.95 ) +
  []
 
-[33]
-Overfull \hbox (0.11183pt too wide) in paragraph at lines 924--925
-[]\T1/cmr/m/n/10.95 Assemble the model list with stan-dard-iza-tion pa-ram-e-te
-rs, co-ef-fi-cients, and meta-data; record
- []
-
-[34] (./MSc_Report.aux)
-
-LaTeX Warning: There were undefined references.
-
+[33] [34] (./MSc_Report.aux)
 Package rerunfilecheck Info: File `MSc_Report.out' has not changed.
-(rerunfilecheck)             Checksum: 5E47851F9105FA873EBCBC1B198FB961;1446.
+(rerunfilecheck)             Checksum: 72ACE8F36C58FEAD92548B033E2C370A;1417.
 Package rerunfilecheck Info: File `MSc_Report.brf' has not changed.
-(rerunfilecheck)             Checksum: DB8D27AC2F9B544584BA6830F46A2D50;2177.
+(rerunfilecheck)             Checksum: 78ACB19140BBBC2D703F5D29D92D942A;2151.
  ) 
 Here is how much of TeX's memory you used:
- 26193 strings out of 476025
- 492190 string characters out of 5790017
- 1870388 words of memory out of 5000000
- 45941 multiletter control sequences out of 15000+600000
+ 26183 strings out of 476025
+ 492013 string characters out of 5790017
+ 1871388 words of memory out of 5000000
+ 45938 multiletter control sequences out of 15000+600000
  534388 words of font info for 79 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 95i,11n,93p,1474b,526s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 95i,12n,93p,1253b,526s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb
 ></usr/local/texlive/2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb>
 </usr/local/texlive/2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb><
@@ -1143,10 +1116,10 @@ t/fonts/type1/public/cm-super/sfss1200.pfb></usr/local/texlive/2023/texmf-dist/
 fonts/type1/public/cm-super/sfsx1440.pfb></usr/local/texlive/2023/texmf-dist/fo
 nts/type1/public/cm-super/sfti1095.pfb></usr/local/texlive/2023/texmf-dist/font
 s/type1/public/cm-super/sftt1095.pfb>
-Output written on MSc_Report.pdf (39 pages, 1855368 bytes).
+Output written on MSc_Report.pdf (39 pages, 1848304 bytes).
 PDF statistics:
- 849 PDF objects out of 1000 (max. 8388607)
- 736 compressed objects within 8 object streams
- 216 named destinations out of 1000 (max. 500000)
+ 831 PDF objects out of 1000 (max. 8388607)
+ 718 compressed objects within 8 object streams
+ 209 named destinations out of 1000 (max. 500000)
  188 words of extra memory for PDF output out of 10000 (max. 10000000)
 

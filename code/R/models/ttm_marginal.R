@@ -130,7 +130,7 @@ train_val_test_cli <- function() {
   if (mode %in% c("eval", "train_eval")) {
     M <- if (exists("fit") && is.list(fit)) fit$S else readRDS(out)
     nll <- mean(-predict_ttm(M, S$X_te, type = "logdensity"))
-    cat(sprintf("NLL (nats): %.6f\n", nll))
+    cat(sprintf("NLL: %.6f\n", nll))
   }
   invisible(TRUE)
 }

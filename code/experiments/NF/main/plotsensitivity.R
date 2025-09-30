@@ -1,6 +1,6 @@
 # scripts/plot_n_sensitivity.R
 # Base R script to plot N-sensitivity (NLL vs N) with error bars per dataset.
-# Reads TRTF/NF-style result *.txt files from GAS/POWER/HEPMASS/MINIBOONE folders
+# Reads TRTF/NF-style result *.txt files from GAS/POWER/HEPMASS/MiniBooNE folders
 # and extracts "sum:" as mean log-likelihood. Error bars = standard error over
 # seeds for each (dataset, N). Output PNG is written to the results root.
 # Usage:

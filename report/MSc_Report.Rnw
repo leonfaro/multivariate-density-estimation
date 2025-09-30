@@ -20,11 +20,11 @@ opts_chunk$set(
 \setcounter{tocdepth}{1}
 
 \chapter*{Abstract}
-% Checklist (Abstract): [x] integrate supplied summary [x] confirm PDF rebuild
 
-This thesis evaluates three approaches to multivariate density estimation for tabular data within a single, consistent pipeline: separable triangular transport maps (TTM-Sep), Transformation Random Forests (TRTF), and copulas. All methods use standardized inputs and a common evaluation protocol so that likelihoods, diagnostics, and compute are directly comparable. In the configuration studied, TRTF and TTM-Sep yield the same triangular-likelihood form, which enables like-for-like evaluation.
+This thesis evaluates three approaches to multivariate density estimation for tabular data within a single, consistent pipeline: separable triangular transport maps (TTM-Sep), Transformation Random Forests (TRTF), and copulas. All methods use standardized inputs and a common evaluation protocol so that likelihoods and diagnostics are directly comparable; compute summaries are reported for TRTF (Table~3.7). In the configuration studied, TRTF and TTM-Sep yield the same triangular-likelihood form, which enables like-for-like evaluation. Separable triangular maps deliver exact likelihoods, O(K) evaluation/inversion, and transparent conditionals, but restrict context-dependent shape.
 
-On Half-Moon ($n=250$), mean joint negative log-likelihoods (NLL; lower is better) were $1.71$ (TRTF), $1.93$ (TTM-Sep), and $1.54$ (copula). On a four-dimensional autoregressive generator they were $4.53$, $5.66$, and $5.45$, respectively; permutation averages confirm order sensitivity for triangular maps. On MiniBooNE ($K=43$; sum test log-likelihood), TRTF reached $-30.01$ under the standard preprocessing and training budget used here; published flow models report values around $-12$ to $-16$ under their settings. These numbers are not strictly comparable but indicate the relative accuracy of this configuration.
+
+On Half-Moon ($n=250$), mean joint negative log-likelihoods (NLL; lower is better) were $1.71$ (TRTF), $1.93$ (TTM-Sep), and $1.54$ (copula). On a four-dimensional autoregressive generator they were $4.53$, $5.66$, and $5.45$, respectively; permutation averages confirm order sensitivity for triangular maps. On MiniBooNE ($K=43$; mean test log-likelihood per sample), TRTF reached $-30.01$ under the standard preprocessing and training budget used here; published flow models report values around $-12$ to $-16$ under their settings. These numbers are not strictly comparable but indicate the relative accuracy of this configuration.
 
 Overall, TRTF tends to lead within the separable family at low dimension, while higher-dimensional datasets expose the limits of separable structure. We report robustness checks (ordering), calibration diagnostics, and the numerical safeguards used, and we outline directions toward richer parameterizations within the same evaluation frame.
 

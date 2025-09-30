@@ -384,7 +384,7 @@ calc_loglik_tables <- function(models, config, X_te, config_canonical = NULL, pe
   nm[nm == "ttm_sep"] <- "Separable Map"
   
   names(tab) <- nm
-  message("Ergebnis (NLL in nats; lower is better) [train/test only]")
+  message("Ergebnis (NLL; lower is better) [train/test only]")
   tab
 }
 
@@ -398,7 +398,7 @@ calc_loglik_tables <- function(models, config, X_te, config_canonical = NULL, pe
 
 #' Evaluate models on two-moons data
 #'
-#' Fits missing models, computes negative log-likelihoods (nats) and
+#' Fits missing models, computes negative log-likelihoods, and
 #' writes a CSV summary.
 #'
 #' @param mods optional list of fitted models
