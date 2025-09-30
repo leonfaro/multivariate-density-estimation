@@ -1,4 +1,4 @@
-\begin{thebibliography}{19}
+\begin{thebibliography}{17}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -24,14 +24,6 @@ Conor Durkan, Artur Bekasov, Iain Murray, and George Papamakarios.
 \newblock In \emph{Advances in Neural Information Processing Systems},
   volume~32, 2019.
 
-\bibitem[Gneiting et~al.(2007)Gneiting, Balabdaoui, and
-  Raftery]{gneiting2007probabilistic}
-Tilmann Gneiting, Fadoua Balabdaoui, and Adrian~E. Raftery.
-\newblock Probabilistic forecasts, calibration and sharpness.
-\newblock \emph{Journal of the Royal Statistical Society: Series B (Statistical
-  Methodology)}, 69\penalty0 (2):\penalty0 243--268, 2007.
-\newblock \doi{10.1111/j.1467-9868.2007.00587.x}.
-
 \bibitem[Hothorn and Zeileis(2017)]{hothorn2017transformation}
 Torsten Hothorn and Achim Zeileis.
 \newblock Transformation forests.
@@ -45,15 +37,9 @@ Torsten Hothorn and Achim Zeileis.
   and semiparametric regression and distributional modeling, 2021.
 \newblock Preprint.
 
-\bibitem[Hothorn et~al.(2015)Hothorn, Hornik, and Zeileis]{partykit2015}
-Torsten Hothorn, Kurt Hornik, and Achim Zeileis.
-\newblock partykit: A modular toolkit for recursive partitioning in r.
-\newblock \emph{Journal of Machine Learning Research}, 16:\penalty0 3905--3909,
-  2015.
-
 \bibitem[Hothorn et~al.(2018)Hothorn, Kneib, and
-  B{"u}hlmann]{hothorn2018conditional}
-Torsten Hothorn, Thomas Kneib, and Peter B{"u}hlmann.
+  Bühlmann]{hothorn2018conditional}
+Torsten Hothorn, Thomas Kneib, and Peter Bühlmann.
 \newblock Conditional transformation models.
 \newblock \emph{Journal of the Royal Statistical Society: Series B (Statistical
   Methodology)}, 80\penalty0 (5):\penalty0 955--980, 2018.
@@ -74,13 +60,6 @@ Heinz Knothe.
 \newblock Contributions to the theory of convex bodies.
 \newblock \emph{Mathematische Zeitschrift}, 66:\penalty0 199--210, 1957.
 \newblock \doi{10.1007/BF01187920}.
-
-\bibitem[Massey(1951)]{massey1951kolmogorov}
-Frank~J. Massey.
-\newblock The kolmogorov--smirnov test for goodness of fit.
-\newblock \emph{Journal of the American Statistical Association}, 46\penalty0
-  (253):\penalty0 68--78, 1951.
-\newblock \doi{10.1080/01621459.1951.10500769}.
 
 \bibitem[Nagler(2017)]{nagler2017kdecopula}
 Thomas Nagler.
@@ -108,6 +87,11 @@ George Papamakarios, Eric Nalisnick, Danilo~Jimenez Rezende, Shakir Mohamed,
 \newblock Normalizing flows for probabilistic modeling and inference.
 \newblock \emph{Journal of Machine Learning Research}, 22\penalty0
   (57):\penalty0 1--64, 2021.
+
+\bibitem[Ramgraber et~al.(2025)]{ramgraber2025friendly}
+Maximilian Ramgraber et~al.
+\newblock A friendly introduction to triangular transport, 2025.
+\newblock Preprint.
 
 \bibitem[Rezende and Mohamed(2015)]{rezende2015variational}
 Danilo~Jimenez Rezende and Shakir Mohamed.

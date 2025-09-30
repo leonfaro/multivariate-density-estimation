@@ -10,70 +10,73 @@ opts_chunk$set(
 
 \chapter{Introduction}\label{ch:intro}
 
-% Checklist: integrate unified transport framing, enforce US spelling, add dynamic refs.
-Multivariate density estimation supports likelihood-based modeling, anomaly detection, simulation, and decision making under uncertainty. Tabular datasets often combine moderate to high dimension with context-dependent conditional structure. Conditional variance can change with predictors, and conditional skewness or modality can depend on earlier variables. A transport perspective addresses these challenges by coupling the target to a simple reference through an invertible map. This perspective enables exact likelihoods, transparent conditionals, and efficient sampling through a shared computational backbone \citep{rosenblatt1952remarks,knothe1957contributions}. This thesis compares three estimator families inside a single evaluation frame with matched objectives and diagnostics. The frame evaluates lower-triangular transport maps, Transformation Random Forests interpreted via probability integral transforms, and copulas that decouple marginals from dependence \citep{hothorn2017transformation,hothorn2018conditional,sklar1959fonctions}.
+Multivariate density estimation is a cornerstone of modern statistics and machine learning. It supplies the machinery for likelihood-based inference, simulation of generative mechanisms, and uncertainty quantification in tabular domains. Practitioners, however, routinely face a delicate trade-off between three goals: expressive power, computational feasibility, and interpretability. Three complementary families of estimators have emerged around this dilemma:
+\begin{enumerate}
+  \item \textbf{Normalizing flows} build expressive change-of-variables maps and have become central in deep generative modeling \citep{rezende2015variational,papamakarios2017masked,dinh2017real,durkan2019neural,kingma2018glow,papamakarios2021normalizing}.
+  \item \textbf{Transformation models and forests} model conditional distributions through parametric transformation structures coupled with ensemble methods \citep{hothorn2017transformation,hothorn2018conditional,hothorn2021transformation}.
+  \item \textbf{Copulas} separate marginals from dependence, yielding interpretable multivariate association models \citep{sklar1959fonctions,nelsen2006introduction,joe2014dependence,nagler2017kdecopula}.
+\end{enumerate}
+
+This thesis situates all three families inside a common \textbf{transport framework} that makes them directly comparable \citep{rosenblatt1952remarks,knothe1957contributions,bogachev2005triangular,ramgraber2025friendly}. The framework operates in standardized coordinates $u$ computed solely from training-split statistics to avoid leakage and keep objectives aligned across models. Within this evaluation framework each estimator couples $u$ to a reference distribution---Gaussian for triangular maps and TRTF, $\mathrm{Unif}([0,1]^K)$ for copulas---and recovers densities via exact change of variables. Section~\ref{sec:ch1-frame} previews the core pieces and Chapter~\ref{ch:background} develops the mathematics in detail.
+
+Separable triangular transport maps play a central role throughout the thesis. Their lower-triangular Jacobian delivers a log-determinant in $\mathcal{O}(K)$ operations, back-substitution yields an explicit inverse for sampling, and the triangular structure produces exact conditional densities in a fixed order. Fully triangular maps can require $\mathcal{O}(K^2)$ work per evaluation, whereas separable variants reduce both forward and inverse passes to $\mathcal{O}(K)$, making them attractive for systematic comparison while preserving interpretable marginals and dependence mechanisms.
+
 \medskip
+\noindent\textit{Notation.} We write $\varphi$ and $\Phi$ for the density and cumulative distribution function of a univariate standard normal random variable, and $\eta$ for the $K$-variate standard normal density. All models are evaluated in standardized coordinates $u$ and reported on the original scale $x$ through a diagonal affine correction so that log densities remain comparable. Unless stated otherwise, log values are expressed in natural units (nats).
 
-We adopt a shared evaluation protocol summarized in Section~\ref{sec:ch1-frame} and detailed in Chapter~\ref{ch:background}; Figure~\ref{fig:transport-schematic} in Appendix~\ref{ch:appendix} shows the pipeline at a glance.
-\medskip
-
-For clarity, efficiency, and interpretability we use separable triangular components as in Equation~\eqref{eq:transport-separable}. This structure stabilizes the triangular determinant, enables exact inversion by back substitution, and fixes conditional shape across contexts.
-
-% Checklist: add thesis overview, enforce dynamic references, keep ASCII hyphenation.
 \section{Thesis and Problem Statement}\label{sec:ch1-problem}
-This thesis investigates tabular multivariate density estimation within a unified transport-based evaluation frame. We compare separable triangular transport maps (TTM-Sep), Transformation Random Forests (TRTF), and copula baselines.
-\medskip
 
-A transport perspective couples standardized data to a Gaussian reference through a monotone lower-triangular map. This structure yields exact likelihoods, transparent conditionals, exact inversion by back substitution, and linear per-sample evaluation. The Rosenblatt and Knothe rearrangements justify the triangular coupling for any variable order \citep{rosenblatt1952remarks,knothe1957contributions}.
-\medskip
+The goal of this thesis is to examine multivariate density estimation for tabular data within a unified transport-based evaluation protocol. We focus on three estimators: separable triangular transport maps (TTM-Sep), Transformation Random Forests (TRTF), and nonparametric copula models.
 
-We standardize features using training statistics only. Equation~\eqref{eq:transport-standardise} defines the standardized coordinates $u$ used for evaluation. All derivatives and Jacobians are computed in $u$. The diagonal affine correction in Equation~\eqref{eq:transport-affine} reports log densities on the original scale $x$. This convention keeps objectives, diagnostics, and comparisons interoperable across estimators and datasets. All log quantities are reported in nats.
-\medskip
+Let $u = D^{-1}(x - \mu)$ with $D = \mathrm{diag}(\sigma_1,\ldots,\sigma_K)$ determined from the training split. If $T: \mathbb{R}^K \to \mathbb{R}^K$ is lower triangular, $z = T(u)$, and $\eta$ denotes the chosen reference density, then the change-of-variables formula gives
+\begin{equation}
+  \log p_X(x) = \log \eta\big(T(u)\big) + \sum_{k=1}^{K} \log \frac{\partial T_k}{\partial u_k}(u_{1:k}) - \sum_{k=1}^{K} \log \sigma_k,
+  \label{eq:ch1-change-of-variables}
+\end{equation}
+so reporting on the $x$-scale differs from reporting on the $u$-scale by the constant $-\sum_k \log \sigma_k$ per data point. The Rosenblatt and Knothe rearrangements guarantee the existence of such triangular transports for any coordinate ordering \citep{rosenblatt1952remarks,knothe1957contributions}.
 
-We denote the $K$-variate standard normal density by $\eta$, and the univariate density and CDF by $\varphi$ and $\Phi$. Abbreviations for models and references appear in Table~\ref{tab:model-abbrev}. Copulas decouple marginals from dependence and serve as interpretable baselines.
-\medskip
+The copula baselines considered here are nonparametric kernel copulas \citep{nagler2017kdecopula}. We fit smooth univariate marginals with \texttt{kde1d}, form pseudo-observations using mid-rank empirical CDFs during training to avoid double smoothing, and evaluate joint densities through
+\[
+  p_X(x) = c\big(F_1(x_1),\ldots,F_K(x_K)\big)\, \prod_{k=1}^{K} f_k(x_k),
+\]
+where $c$ is the copula density and $F_k = \int f_k$ the smoothed marginal CDFs. No Gaussian copula enters the study; the emphasis remains on flexible, interpretable diagnostics in low dimensions.
 
-Separable triangular maps decompose each component into a context shift and a univariate monotone shape as in Equation~\eqref{eq:transport-separable}. The decomposition fixes conditional shape across contexts and stabilizes the triangular determinant. Under strictly increasing conditional CDFs after standard monotone smoothing and with an additive predictor, TRTF implements the same separable triangular likelihood via the probability integral transform. Copulas preserve explicit marginals and model dependence on the unit hypercube; in this thesis they serve strictly as low-dimensional ($K\!\le\!3$) diagnostic baselines and are not evaluated on high-$K$ datasets.
+Separable triangular maps decompose each coordinate into a context-dependent shift plus a one-dimensional monotone transform. TRTF occupies an intermediate position: under strictly increasing conditional CDFs and the standard forest aggregation after monotone smoothing it reproduces the same separable triangular likelihood via the probability integral transform. The shared protocol described above keeps preprocessing, likelihood evaluation, calibration diagnostics, and compute measurements aligned across all estimators.
 
-We evaluate all estimators under the single protocol referenced above, with matched preprocessing and reporting to keep results comparable. Section~\ref{sec:evaluation-protocol} defines metrics and timing conventions.
-
-Figure~\ref{fig:transport-schematic} in Appendix~\ref{ch:appendix} visualizes the pipeline by showing standardization $u = T_{\text{std}}(x)$, the triangular transport branch containing TTM-Sep and TRTF, and the copula branch. Both branches feed the reported outputs, namely log density, conditionals, sampling, calibration, and compute, under the shared frame.
-
-The central problem is to determine when separability is appropriate for tabular data. We study how TRTF and copulas position themselves against direct triangular transports inside the same reporting convention (reported log densities on $x$ apply the affine correction in Eq.~\eqref{eq:transport-affine}). Ordering effects, conditional calibration, and computational trade-offs address this question.
-\medskip
-
-On synthetic data, TRTF tends to outperform separable TTM variants yet shares their separability limits; on the MiniBooNE benchmark it improves on Gaussian references but trails published flow baselines. Chapter~\ref{ch:dataanalysis} presents the evidence and discusses these comparisons.
-
-\paragraph{Non-goals.} We do not treat high-capacity normalizing flows as primary models, and we restrict nonparametric copulas to low dimensions. We also exclude non-separable TRTF predictors and cross-term triangular maps because they raise compute and tuning costs substantially and complicate calibration/identifiability in our setting; the present scope focuses on separable structure for transparency and exact inversion. Section~\ref{sec:ch1-contributions} states the scope and non-goals for reference. A brief pointer to expected changes if these variants were enabled—how cross-terms or non-additive predictors would likely affect calibration and NLL—is given in Chapter~\ref{ch:conclusion}, Section~\ref{sec:conclusion-outlook}.
-
-% Checklist: consolidate notation, relocate figure, keep one-claim sentences.
 \section{The Transport Frame on One Page}\label{sec:ch1-frame}
-To avoid duplication, the canonical derivations and notation live in Chapter~\ref{ch:background}. This section serves only as a map: we standardize with train-only statistics (Eq.~\eqref{eq:transport-standardise}), evaluate likelihoods via the pullback (Eq.~\eqref{eq:transport-pullback}), exploit the triangular determinant factorization (Eq.~\eqref{eq:transport-det}), and apply the affine correction for reporting (Eq.~\eqref{eq:transport-affine}). Separable components are defined in Eq.~\eqref{eq:transport-separable}. Figure~\ref{fig:transport-schematic} in Appendix~\ref{ch:appendix} illustrates the pipeline.
 
+The key ingredients of the transport framework are:
+\begin{itemize}
+  \item \textbf{Standardization.} Coordinates $u = D^{-1}(x-\mu)$ use training-split statistics only; all logs are in nats.
+  \item \textbf{Change of variables.} Densities follow from $z = T(u)$ through Equation~\eqref{eq:ch1-change-of-variables}.
+  \item \textbf{Triangular log determinant.} Lower-triangular Jacobians imply $\log \det J_T(u) = \sum_k \log \partial_{u_k} T_k(u_{1:k})$, giving $\mathcal{O}(K)$ cost.
+  \item \textbf{Affine correction.} Reporting on $x$ applies the constant correction $-\sum_k \log \sigma_k$ per data point.
+  \item \textbf{Computational profile.} Fully triangular maps can incur $\mathcal{O}(K^2)$ evaluation and inversion, whereas separable maps reduce both passes to $\mathcal{O}(K)$ while keeping the log determinant linear in $K$.
+\end{itemize}
 
-Notation remains consistent. We write $\eta$ for the $K$-variate standard normal density, and $\varphi$ and $\Phi$ for the univariate standard normal density and CDF. We reserve $u$ for standardized coordinates and $x$ for original coordinates, and we compute all derivatives with respect to $u$. These choices align symbols across Chapters~\ref{ch:intro}--\ref{ch:dataanalysis} and prevent ambiguity in later diagnostics and tables.
+Separable triangular transports implement each coordinate as the sum of a context shift and a monotone one-dimensional basis, maintaining determinant stability and consistent conditional behaviour. TRTF achieves the same likelihood under the conditions noted above, while nonparametric copulas operate on the unit hypercube with explicit marginals. Standardization $u = T_{\mathrm{std}}(x)$ feeds either the triangular transport branch (TTM variants, TRTF) or the copula branch, and both return log densities, conditional diagnostics, samples, calibration metrics, and compute summaries.
 
-This one-page frame removes duplicated exposition from Chapter~\ref{ch:background}. It establishes where logs and Jacobians live and makes complexity, inversion, and units explicit before the comparisons that follow. Section~\ref{sec:ch1-problem} documented the motivation, and Section~\ref{sec:ch1-contributions} states the resulting contributions and research questions.
-
-% Checklist: map contributions to evidence, keep bridges to later sections, ensure dynamic refs.
 \section{Contributions and Research Questions}\label{sec:ch1-contributions}
-This section states the contributions and the research questions, and maps them to the chapters and figures that deliver the evidence. We adopt the shared transport frame summarized in Section~\ref{sec:ch1-frame}; Chapter~\ref{ch:background} records notation and assumptions, and Figure~\ref{fig:transport-schematic} anchors the comparisons.
 
-The first contribution formalizes a unified likelihood view for separable triangular transport maps, Transformation Random Forests, and copula baselines. Where we claim an equivalence between TRTF and separable triangular transports, it holds under the conditions made explicit in Section~\ref{sec:transport-trtf} (strictly increasing conditional CDFs after monotone smoothing and an additive predictor). Chapter~\ref{ch:background} and Figure~\ref{fig:transport-schematic} establish the conventions and remove duplication in later chapters.
+The thesis contributes along three axes that move from theoretical unification to empirical benchmarking and practical interpretation:
+\begin{enumerate}
+  \item \textbf{Unified likelihood framework.} We formalise a shared transport perspective that places separable triangular maps, TRTF, and nonparametric copulas inside one mathematical scheme. The equivalence between TRTF and separable triangular transports holds under explicit regularity assumptions---strictly monotone conditional CDFs and the forest aggregation after smoothing.
 
-The second contribution provides empirical benchmarks under a single protocol with matched preprocessing and reporting. We evaluate TTM-Sep, TTM-Marg, and TRTF on synthetic generators and real tabular data; copulas are included only as low-dimensional ($K\!\le\!3$) diagnostic baselines (e.g., Half-Moon, 4D) and are not used in high-$K$ studies. The protocol records three families of measurements: average test log-likelihoods, conditional diagnostics based on probability integral transforms, and compute indicators for training and per-sample evaluation. Section~\ref{sec:evaluation-protocol} defines the protocol, Section~\ref{sec:synthetic-results} presents the synthetic and autoregressive results, and Section~\ref{sec:realdata} positions our measurements against published normalizing-flow baselines where appropriate.
+    \begin{quote}
+    \textbf{Proposition (informal).} Under axis-parallel partitions, strictly monotone conditional CDFs, and the forest aggregation after smoothing, the TRTF likelihood coincides with that of a separable triangular transport in standardized coordinates.
+    \end{quote}
 
-The third contribution distills practical guidance from the unified frame and the benchmarks. We state operational choices that preserve comparability, highlight ordering sensitivity and separability limits, and summarize when copulas serve as informative baselines. Chapter~\ref{ch:conclusion} consolidates these points as actionable recommendations and records limitations that motivate richer parameterizations or alternative predictors.
+  \item \textbf{Benchmarking under a common protocol.} We design a standardized evaluation pipeline covering synthetic generators and real tabular benchmarks. TTM-Sep, its marginal variant, and TRTF are evaluated systematically; nonparametric kernel copulas act as diagnostic comparators when $K \le 3$. The pipeline produces three categories of evidence: (i) average test log likelihoods, (ii) conditional diagnostics based on probability integral transforms, and (iii) compute measurements for training effort and per-sample evaluation time. Together they quantify the trade-offs among accuracy, calibration, and efficiency.
 
-Two questions drive the empirical study and bind the contributions to specific measurements. The first question asks how TRTF compares with TTM-Sep and copula baselines on synthetic data. All estimators share the transport frame in this comparison. We answer by reporting average test negative log-likelihoods, conditional negative log-likelihood decompositions, and probability integral transform diagnostics, with timing summaries that quantify practical cost. Section~\ref{sec:synthetic-results} provides the corresponding tables and figures.
+  \item \textbf{Operational insights.} The theoretical and empirical findings yield guidance for practitioners. We analyse sensitivity to ordering, the practical limits of separability, and when nonparametric copulas remain informative as diagnostic references. Chapter~\ref{ch:conclusion} synthesizes these insights and outlines extensions toward richer parameterisations.
+\end{enumerate}
 
-The second question asks how closely our TRTF results on real benchmarks approach the published performance of modern normalizing flows under the standard preprocessing. We answer by placing our test log-likelihoods beside reported numbers from the literature. The gaps are interpreted through the separable Jacobian constraint and compute profiles. Section~\ref{sec:realdata} reports these comparisons, and Chapter~\ref{ch:conclusion} interprets their implications for model choice.
+Two research questions organise the empirical study:
+\begin{itemize}
+  \item \textbf{Synthetic data.} How do TRTF, TTM-Sep, and nonparametric copulas compare on controlled generators? Evidence comprises likelihood comparisons, conditional calibration metrics, and timing measurements.
+  \item \textbf{Benchmark datasets.} How close do TRTF results come to published normalizing flow baselines under identical preprocessing? Side-by-side likelihood comparisons, interpreted through the constraints of separability and compute profiles, answer this question.
+\end{itemize}
 
-Scope and non-goals maintain focus and ensure reproducibility. We study separable triangular maps and TRTF with additive predictors and compute all derivatives and Jacobians in standardized coordinates. The map direction $S:u \to z$ remains fixed for evaluation and inversion. Copulas include Gaussian dependence and a low-dimensional nonparametric variant used strictly as a diagnostic baseline. We treat high-capacity flows as external references rather than primary models, and we do not evaluate non-additive TRTF variants or cross-term triangular maps in this chapter. Chapter~\ref{ch:background} records the formal assumptions and notation. Section~\ref{sec:datasets-preprocessing} details preprocessing, seeds, and reporting conventions that keep results comparable across datasets and estimators.
-
-Taken together, these commitments make the comparisons interpretable, keep units and complexity explicit, and prepare the reader for the empirical evidence that answers the two questions under a single, transparent evaluation frame.
-
-% Abbreviation table for reuse across chapters
 \begin{table}[t]
   \centering
   \caption{Model abbreviations used throughout the thesis.}
@@ -82,12 +85,14 @@ Taken together, these commitments make the comparisons interpretable, keep units
     \hline
     Label & Meaning \\
     \hline
-    TTM-Marg & Marginal triangular transport map (per-dimension; no context) \\
-    TTM-Sep & Separable triangular transport map (additive: $g_k$ shift + monotone $h_k$) \\
-    TRTF & Transformation Random Forests (axis-parallel splits) \\
+    TTM-Marg  & Marginal triangular transport (per-dimension; no context) \\
+    TTM-Sep   & Separable triangular transport (context shift $+$ monotone 1D transform) \\
+    TRTF      & Transformation Random Forests (axis-parallel splits) \\
     True-Marg & Oracle marginal density \\
-    True-Joint & Oracle conditional joint density \\
-    Copula & Copula baseline (Gaussian or nonparametric) \\
+    True-Joint& Oracle conditional joint density \\
+    Copula    & Nonparametric kernel copula baseline (smoothed marginals; no Gaussian copula) \\
     \hline
   \end{tabular}
 \end{table}
+
+Addressing these questions bridges rigorous transport-based theory with empirical validation, clarifying when simple triangular models suffice and when more expressive families become necessary.

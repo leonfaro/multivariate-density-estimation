@@ -10,138 +10,184 @@ opts_chunk$set(
 
 \chapter{Data Analysis and Validation}\label{ch:dataanalysis}
 
-% Checklist: enforce US spelling, clarify Jacobian phrasing, remove empty sections.
-This chapter turns the commitments of Chapters~\ref{ch:intro} and \ref{ch:background} into a practical modeling program. Our aim is to express three model families---triangular transport maps (TTM), transformation random forests (TRTF), and copulas---within a common transport framework so that likelihoods, calibration, and computational cost are directly comparable. Every method we study standardizes the data, learns a monotone triangular map to a simple reference, and evaluates Jacobians in the standardized space. That alignment keeps objectives, diagnostics, and reported log-densities interoperable.
+% Checklist: align terminology, update abbreviations, confirm notation references.
+\begin{quote}
+\textbf{Motivation.} We factor the joint density into simple conditional pieces using a lower-triangular parameterization. This yields exact likelihoods, transparent conditionals we can inspect, and $\mathcal{O}(K)$ per-sample cost. The shared factorization lets us run ordering experiments without changing the model class.
+\end{quote}
 
-% Checklist: define model abbreviations for concise tables
-\textbf{Model abbreviations.} We follow Table~\ref{tab:model-abbrev} for concise labels (TTM-Marg, TTM-Sep, TRTF, True-Marg/True-Joint, Copula) across tables and figures.
+\textbf{Model abbreviations.} We use the short labels TTM-Sep (separable triangular transport map), TTM-X (separable map with low-rank cross-terms), TRTF (Transformation Random Forests; spelled out on first mention), RealNVP, MAF, NSF, True-Marg/True-Joint, and Copula consistently across tables and figures.
+
+\textbf{Units and signage.} Unless stated otherwise, all log-likelihood (LL) and negative log-likelihood (NLL) values are reported in nats. Plots and tables mark $\text{LL}~(\uparrow~\text{better})$ and $\text{NLL}~(\downarrow~\text{better})$ explicitly.
+
+\textbf{Notation recap.}
+\begin{itemize}
+  \item Elementwise standardization with train-split statistics:
+  \[ 
+    u_k = \frac{x_k - \mu_k}{\sigma_k},\quad k = 1,\ldots,K
+    \qquad\text{equivalently } u = \operatorname{diag}(\sigma)^{-1}(x - \mu).
+  \]
+  We compute derivatives and Jacobians in $u$-coordinates and transform back to $x$ only when reporting densities on the original scale via Equation~\eqref{eq:transport-affine}.
+  \item Prefix subvector shorthand: $u_{1:k} := (u_1,\ldots,u_k)$.
+  \item Derivatives use $h'_k(\cdot)$ for univariate derivatives; mixed partials follow the convention from Chapter~\ref{ch:background}.
+\end{itemize}
+
+\textbf{Copula conventions.}
+\begin{itemize}
+  \item All copula fits estimate marginals; reported values are joint densities on the original $x$-scale.
+  \item Half-Moon ($K=2$) uses class-conditional copulas for blue/red labels mixed by empirical class priors when we report the unlabeled density. No other model uses labels in this chapter; detailed results appear in Section~\ref{sec:synthetic-results}.
+\end{itemize}
 
 \section{Datasets and Preprocessing}\label{sec:datasets-preprocessing}
 
-% Checklist: preserve dynamic refs, ensure ASCII hyphenation, align with future sections.
-This section fixes data sources, generators, and preprocessing so likelihoods, calibration, and compute remain comparable across models. All estimators operate in standardized coordinates, evaluate Jacobians in that space, and report log densities on the original scale using the common affine correction. We keep a single triangular-map direction $S:u \rightarrow z$ across methods to avoid mixed objectives. To avoid symbol collisions, $\sigma$ denotes standardization scales only; logistic gates are written $\operatorname{logistic}(\cdot)$ throughout.
+This section fixes data sources, synthetic generators, and preprocessing so that objectives, diagnostics, and reported log-densities are comparable across models. All estimators operate in standardized coordinates, evaluate Jacobians in that space, and report log densities on the original scale using the affine correction from Equation~\eqref{eq:transport-affine}. Throughout, logistic gates are written $\operatorname{logistic}(\cdot)$.
 
-We standardize features with training-split statistics only. Equation~\eqref{eq:transport-standardise} defines $u = T_{\mathrm{std}}(x) = (x-\mu)\oslash \sigma$ with $\sigma_k > 0$. We evaluate $\log \pi_U(u)$ through the pullback identity in Equation~\eqref{eq:transport-pullback}, apply the triangular factorization from Equation~\eqref{eq:transport-det}, then convert to $\log \pi_X(x)$ using the diagonal correction in Equation~\eqref{eq:transport-affine}. We report average test negative log-likelihoods (NLL) in nats. Negative per-dimension NLL values can occur because valid densities may exceed one on subdomains. Figure~\ref{fig:transport-schematic} in Appendix~\ref{ch:appendix} shows the standardized pipeline shared by transport maps, Transformation Random Forests, and copulas.
+\subsection{Standardization and Splits}
+Features are standardized with training-split statistics only $(\mu, \sigma \in \mathbb{R}^K, \sigma_k > 0)$ as in Equation~\eqref{eq:transport-standardise}. The triangular pullback, determinant factorization, and affine correction from Equations~\eqref{eq:transport-pullback}--\eqref{eq:transport-affine} stay in $u$-coordinates; we transform back to $x$ once per evaluation when reporting densities. We keep fixed train/test splits. Synthetic calibration uses an $80/20$ train/test partition. Real-data splits follow the published convention for each benchmark, and compute profiles are summarized in Appendix~\ref{app:evaluation}.
 
-We use fixed train, validation, and test splits with proportions $0.60/0.20/0.20$ unless a benchmark provides official splits. Synthetic studies report results for $n \in \{25, 50, 100, 250\}$ and use $n=250$ for headline tables and figures; for real-data benchmarks we use $N$ to denote the training budget. The canonical four-dimensional ordering is $(1,2,3,4)$. Robustness to ordering is assessed by averaging over all $4! = 24$ permutations. We adopt the natural column order for real datasets. We fix seeds $\{11, 13, 17, 19, 23\}$ for data generation and model fitting, and we average repeated runs with standard errors to quantify stochastic variability. Figure~\ref{fig:autoregressive-joint-calibration} displays the $20\%$ test split for the synthetic calibration study.
+For synthetic runs we hold seeds $\{11, 13, 17, 19, 23\}$ fixed across models and report means with $\pm 2$ standard errors when averaging replicates. Ordering experiments reuse the lower-triangular factorization and vary only the coordinate order; the permutation sweeps in the four-dimensional study currently pin $\texttt{SEED}=42$ unless overridden so that every ordering shares the same draws. Unless noted otherwise, our canonical ordering remains $(1,2,3,4)$ for the four-dimensional generator; Section~\ref{sec:synthetic-results} reports the permutation studies.
 
-The Half-Moon dataset provides a curved, bimodal joint in $K=2$. We draw a class $Y \sim \mathrm{Bernoulli}(0.5)$, an angle $\Theta \sim \mathrm{Unif}[0,\pi]$, and additive noise $\varepsilon \sim \mathcal{N}(0, \sigma^2 I_2)$ with $\sigma = 0.10$. For $Y = 0$ we set $m(\Theta) = (\cos \Theta, \sin \Theta)$. For $Y = 1$ we set $m(\Theta) = (1 - \cos \Theta, -\sin \Theta + 0.5)$. The observed $X = m(\Theta) + \varepsilon$. The ``True joint'' oracle evaluates the mixture density by numerical quadrature over $\Theta$ with the known Gaussian noise, and the ``True conditional'' oracle conditions on $Y$. Figure~\ref{fig:halfmoon-panels} (p.~\pageref{fig:halfmoon-panels}) shows representative contour plots at $n=250$, which align with this generator. Table~\ref{tab:halfmoon-nll} (p.~\pageref{tab:halfmoon-nll}) reports the corresponding NLLs.
+\subsection{Half-Moon ($K=2$)}
+Half-Moon is a curved, bimodal joint designed to surface dependence beyond linear correlation. We evaluate joint log-density contours per model and compare results to the true joint. Figure~\ref{fig:halfmoon-panels} and Table~\ref{tab:halfmoon-nll} later in this chapter instantiate the diagnostics. For the copula baseline we fit blue/red class-conditional copulas and mix them by empirical class priors when reporting the unlabeled density. No other estimator uses labels.
 
-The four-dimensional autoregressive generator combines Gaussian, exponential, beta, and gamma components to induce heteroskedasticity, skew, and conditional multimodality. The first coordinate is $X_1 \sim \mathcal{N}(0,1)$. The second coordinate is independent $X_2 \sim \mathrm{Exp}(\lambda_0)$ with rate $\lambda_0 = 1$. The third coordinate lies on $(0,1)$ and is a context-gated mixture of two beta laws, $X_3 \mid X_{1:2} \sim w\,\mathrm{Beta}(\alpha_1, \beta_1) + (1 - w)\,\mathrm{Beta}(\alpha_2, \beta_2)$. We set $(\alpha_1, \beta_1) = (2.5, 5.0)$ and $(\alpha_2, \beta_2) = (5.0, 2.5)$. The mixing weight is $w = \operatorname{logistic}(\gamma_0 + \gamma_1 X_1 + \gamma_2(X_2 - 1))$ with $\operatorname{logistic}(\cdot)$ the logistic function and $(\gamma_0, \gamma_1, \gamma_2) = (0, 1.5, 1.0)$. The fourth coordinate is positive and conditionally heteroskedastic, $X_4 \mid X_{1:3} \sim \tilde{w}\,\mathrm{Gamma}(k_1, r_1(X_2)) + (1 - \tilde{w})\,\mathrm{Gamma}(k_2, r_2(X_2))$. We set shapes $(k_1, k_2) = (3, 6)$, rates $r_1(X_2) = 1 + 0.5 X_2$ and $r_2(X_2) = 0.75 + 0.25 X_2$, and gate $\tilde{w} = \operatorname{logistic}(\delta_0 + \delta_1 X_1 + \delta_3(X_3 - 0.5))$ with $(\delta_0, \delta_1, \delta_3) = (0, 1.0, 3.0)$. The ``True joint'' baseline uses these closed-form conditionals to evaluate the exact joint density, while the ``True marginal'' baseline uses the corresponding univariate marginals and ignores dependence.
+\subsection{Four-dimensional Autoregressive Generator ($K=4$)}
+The synthetic autoregressive generator matches the lower-triangular factorization while stressing skewness, heavy tails, and context-dependent shape:
+\begin{itemize}
+  \item $X_1 \sim \mathcal{N}(0,1)$.
+  \item $X_2 \sim \mathrm{Exponential}(\lambda_0)$ with $\lambda_0 = 1$.
+  \item $X_3 \mid X_{1:2}$ is a mixture of two beta laws on $(0,1)$, e.g. $\mathrm{Beta}(2.5, 5.0)$ versus $\mathrm{Beta}(5.0, 2.5)$, with gate
+  \[ 
+    w_3(X_{1:2}) = \operatorname{logistic}\big(\gamma_0 + \gamma_1 X_1 + \gamma_2 (X_2 - 1)\big), \qquad \gamma = (\gamma_0, \gamma_1, \gamma_2).
+  \]
+  \item $X_4 \mid X_{1:3}$ is a mixture of two gamma laws on $(0, \infty)$ with distinct shape/scale pairs, gated by
+  \[ 
+    w_4(X_{1:3}) = \operatorname{logistic}\big(\delta_0 + \delta_1 X_1 + \delta_3 (X_3 - 0.5)\big), \qquad \delta = (\delta_0, \delta_1, \delta_3).
+  \]
+\end{itemize}
+Mixture weights are normalized through the usual softmax over component logits so that Jacobian terms stay well behaved under shared standardization. This design keeps $X_4$ conditionally heteroskedastic with positive support and aligns with the triangular evaluation cost $\mathcal{O}(K)$.
 
-% Checklist: summarize generator config, define softmax usage.
-\begin{table}[t]
-  \centering
-  \caption{Configuration for the four-dimensional autoregressive generator used in the synthetic study. The beta and gamma coordinates are two-component mixtures with logistic gates; fixed parameters and gates match the prose above.}
-  \label{tab:autoregressive-config}
-  \begin{tabular}{lll}
-    \hline
-    Coordinate & Distribution & Parameters / gate \\
-    \hline
-    $X_1$ & Normal & $\mathcal{N}(0,1)$ \\
-    $X_2$ & Exponential & $\mathrm{rate} = \lambda_0 = 1$ \\
-    $X_3 \mid X_{1:2}$ & Mixture Beta & $\mathrm{Beta}(2.5,5.0)$ / $\mathrm{Beta}(5.0,2.5)$; $w = \operatorname{logistic}(\gamma_0 + \gamma_1 X_1 + \gamma_2(X_2-1))$, $\gamma=(0,1.5,1.0)$ \\
-    $X_4 \mid X_{1:3}$ & Mixture Gamma & $\mathrm{Gamma}(k_1{=}3, r_1{=}1+0.5X_2)$ / $\mathrm{Gamma}(k_2{=}6, r_2{=}0.75+0.25X_2)$; $\tilde{w} = \operatorname{logistic}(\delta_0 + \delta_1 X_1 + \delta_3(X_3-0.5))$, $\delta=(0,1.0,3.0)$ \\
-    \hline
-  \end{tabular}
-\end{table}
+\paragraph{Why these generators?}
+They match the triangular modeling assumptions yet stress estimators with skewness, heavy tails, and context-dependent variation. The true joint density and conditionals are known, which enables direct comparisons without confounding from Monte Carlo error.
 
-Mixture weights use the logistic gate $\operatorname{logistic}(a)=\exp(a)/(1+\exp(a))$, which coincides with the two-component softmax and therefore keeps probabilities in $(0,1)$ that sum to one. For completeness, the general softmax takes a vector $a$ and returns $\mathrm{softmax}(a)_i = \exp(a_i) / \sum_j \exp(a_j)$. This normalization is essential for the beta and gamma mixtures because it translates linear predictors into valid probability weights while preserving differentiability.
+\paragraph{Reproducibility note.}
+All random seeds, splits, and generator parameters are fixed in the code release. Negative NLL values appear for bounded or highly concentrated marginals (e.g., beta or gamma mass near zero); this behavior is expected and does not signal an error.
 
-Table~\ref{tab:autoregressive-config} (p.~\pageref{tab:autoregressive-config}) summarizes the mixture families, gates, and fixed parameters by dimension. Tables~\ref{tab:autoregressive-perm} (p.~\pageref{tab:autoregressive-perm}) and~\ref{tab:autoregressive-perm-avg} (p.~\pageref{tab:autoregressive-perm-avg}) then summarize the permutation and sample-size studies used later in this chapter.
+\bigskip
+\noindent\emph{Next: Section~\ref{sec:models-implementation} details the estimators and training settings that make these likelihoods and diagnostics comparable across methods.}
 
-The MiniBooNE benchmark follows the published preprocessing to ensure comparability with flow-based baselines. We remove 11 outliers with value $-1000$, drop seven features with extreme mass at a single value, and retain $K = 43$ attributes. We use the fixed train, validation, and test splits from the benchmark, apply train-only standardization, and avoid any extra pruning of correlated features. We report all log-likelihoods in nats and retain the published naming for flow comparators in later tables. Section~\ref{sec:realdata} records these steps and provides the dataset context. Table~\ref{tab:uci-loglik} reproduces the flow baselines that motivate our TRTF runs.
-
-Additional UCI datasets appear only when we retain them for real-data context. POWER keeps household electricity attributes after jittering the minute-of-day encoding, dropping the calendar date and reactive-power column, and adding uniform noise to break ties. GAS keeps the \texttt{ethylene\_CO} subset, treats the series as i.i.d., removes strongly correlated attributes, and retains an eight-dimensional representation. HEPMASS keeps only the positive class from the ``1000'' split and discards five variables with repeated values to avoid density spikes. These preprocessing steps follow the same train-only standardization and reporting conventions described above. Section~\ref{sec:realdata} provides the corresponding background and positions these datasets within our evaluation.
-
-All models use the same standardized frame and direction for evaluation, which keeps objectives, diagnostics, and reported quantities interoperable across triangular transports, TRTF, and copula baselines. This alignment is necessary for the conditional decompositions, probability integral transform (PIT) calibration checks, and compute summaries presented later in this chapter.
 
 \section{Models and Implementation}\label{sec:models-implementation}
 
 % Checklist: align references, enforce US spelling, ensure active voice.
-This section specifies the estimators and implementation details that keep likelihoods, calibration, and compute directly comparable across models. All estimators share the transport direction $S:u \rightarrow z$, operate in standardized coordinates, and report log densities on the original scale using the affine correction from Chapter~\ref{ch:background}. Figure~\ref{fig:transport-schematic} in Appendix~\ref{ch:appendix} and Table~\ref{tab:transport-notation} summarize the shared pipeline and notation.
+\begin{quote}
+\textbf{Scope.} This section specifies the estimators and the implementation details that keep our likelihoods, diagnostics, and plots comparable. We reuse the preprocessing and transport notation in Table~\ref{tab:transport-notation}, draw background from Chapter~\ref{ch:background}, follow the data handling in Section~\ref{sec:datasets-preprocessing}, and lean on the auxiliary pseudo-code in Appendix~\ref{ch:appendix}.
+\end{quote}
 
-We implement separable lower-triangular transport maps denoted TTM-Sep. Component $k$ decomposes into a context shift and a univariate monotone shape,
+\subsection{Separable Triangular Transport Maps (TTM-Sep)}
+
+We use lower-triangular, separable transport maps
 \begin{equation}
-  S_k(u_{1:k}) = g_k(u_{1:k-1}) + h_k(u_k), \qquad \partial_{u_k} S_k(u_{1:k}) = h_k'(u_k) > 0,
+  S_k(u_{1:k}) = g_k(u_{1:k-1}) + h_k(u_k), \qquad \partial_{u_k} S_k(u_{1:k}) = h'_k(u_k) > 0,
   \label{eq:ttm-separable-def}
 \end{equation}
-so the Jacobian contribution depends only on $u_k$. The structure yields linear per-sample complexity in $K$ and exact inversion by back-substitution.
+so the Jacobian contribution at stage $k$ depends only on $u_k$. This structure yields $\mathcal{O}(K)$ per-sample cost and exact inversion by back-substitution.
 
-We minimize the Gaussian pullback objective induced by the shared reference,
+\textbf{Objective.} We minimize the Gaussian pullback induced by the shared reference (Equations~\eqref{eq:transport-pullback}--\eqref{eq:transport-det}):
 \begin{equation}
-  \mathcal{L}(u) = \sum_{k=1}^K \Big[ \tfrac{1}{2} S_k(u_{1:k})^2 - \log h_k'(u_k) \Big],
+  \mathcal{L}(u) = \sum_{k=1}^K \Big[ \tfrac{1}{2} S_k(u_{1:k})^2 - \log h'_k(u_k) \Big].
   \label{eq:ttm-separable-loss}
 \end{equation}
-which follows from the change-of-variables identity in Equation~\eqref{eq:transport-pullback} combined with the triangular determinant factorization in Equation~\eqref{eq:transport-det}. The quadratic term pulls the transformed coordinates toward the reference, and the log-derivative term prevents degenerate solutions. We solve the regularized problem with bound-constrained optimization and enforce monotone structure by construction.
+We solve this objective with constrained optimization and enforce monotonicity by construction.
 
-We construct $h_k$ with monotone one-dimensional bases that combine identity, integrated sigmoids, softplus-like edge terms, and integrated radial basis functions. Nonnegativity constraints on the derivative coefficients guarantee $h_k'(u_k) \ge 0$. We linearize tails to stabilize likelihoods as $|u_k|$ grows. Ridge penalties apply to all basis coefficients, and optional sparsity penalties shrink context shifts when multicollinearity inflates variance. During training and evaluation we clip log-derivatives to $[-H, H]$ to avoid numerical overflow in the Jacobian sum; the bound $H$ is tuned on the validation split.
+\textbf{Parameterization.}
+\begin{itemize}
+  \item $h_k$: one-dimensional monotone bases (integrated radial basis functions, splines, and linear tails) with derivative nonnegativity so that $h'_k > 0$; all coefficients are learned jointly under the positivity constraint enforced by the optimizer.
+  \item $g_k$: low-degree polynomial features of $u_{1:k-1}$ with light ridge regularization to keep $\nabla_u S(u)$ stable.
+\end{itemize}
 
-We build $g_k$ from low-degree polynomial features of $u_{1:k-1}$ and drop predecessors whose inclusion does not improve validation likelihood. This pruning keeps $\nabla_u S(u)$ sparse and improves stability in small-sample regimes. Ordering matters for finite bases, so headline results use the natural variable order while robustness studies vary the order as described in Section~\ref{sec:datasets-preprocessing}. When heuristics are applied, we evaluate two candidates on the validation split—identity and a Cholesky-pivoted ordering with optional Gaussianization—and select the ordering with the lower validation NLL. Appendix~\ref{ch:appendix} records how the ordering is stored and reapplied at prediction time.
+\paragraph{Ordering.} Feature ordering matters for triangular models. We store the learned order and reuse it at prediction time. For permutation studies (Section~\ref{sec:synthetic-results}) we apply the same bookkeeping so that permutations are reproducible.
 
-We reference a cross-term variant, denoted TTM-X, only to delimit scope. The variant augments the separable component with low-rank interactions,
+\subsection{Cross-term Variant (TTM-X)}
+
+We reference a low-rank interaction variant only to delimit the class used in the synthetic analyses:
 \begin{equation}
-  S_k(u_{1:k}) = g_k(u_{1:k-1}) + h_k(u_k) + \sum_{j<k} \alpha_{kj}\,q_j(u_j)\,r_k(u_k),
+  S_k(u_{1:k}) = g_k(u_{1:k-1}) + h_k(u_k) + \sum_{j<k} \alpha_{kj} \, q_j(u_j) \, r_k(u_k),
   \label{eq:ttm-cross}
 \end{equation}
-where $q_j$ and $r_k$ are monotone features and constraints ensure $\partial_{u_k} S_k(u_{1:k}) > 0$. We exclude TTM-X from headline tables because the interactions alter identifiability and complicate calibration. The definition clarifies the naming used in the synthetic analyses.
+where $q_j$ and $r_k$ are monotone features. Constraints ensure $\partial_{u_k} S_k > 0$ despite the cross-term. We do not promote TTM-X as a baseline; the definition clarifies the naming and scope used in the synthetic results.
 
-We implement Transformation Random Forests with additive predictors and denote the model TRTF. Implementations rely on the \texttt{partykit} toolkit for recursive partitioning \citep{partykit2015} together with the transformation-model framework \citep{hothorn2017transformation,hothorn2018conditional}. Let $\widehat{F}_k(\cdot \mid u_{1:k-1})$ denote the strictly increasing conditional CDF returned by the forest. The induced triangular component is
+\subsection{Transformation Random Forests (TRTF)}
+
+We use Transformation Random Forests (TRTF) as an alternative route to a triangular component from conditional CDFs \citep{hothorn2017transformation,hothorn2018conditional}. Let $\widehat{F}_k(\cdot \mid u_{1:k-1})$ denote the forest CDF. We define
 \begin{equation}
   S_k(u_{1:k}) = \Phi^{-1}\!\big(\widehat{F}_k(u_k \mid u_{1:k-1})\big),
   \label{eq:trtf-transport}
 \end{equation}
-and differentiation yields $\varphi\big(S_k(u_{1:k})\big)\,\partial_{u_k} S_k(u_{1:k}) = \widehat{\pi}_k(u_k \mid u_{1:k-1})$. Under the additive predictor $\widehat{F}_k(u_k \mid u_{1:k-1}) = \Phi\big(h_k(u_k) + g_k(u_{1:k-1})\big)$ we obtain $S_k = h_k + g_k$ and $\partial_{u_k} S_k = h_k'(u_k)$, which matches Equation~\eqref{eq:ttm-separable-def} exactly in the transport frame. Consequently TRTF shares the likelihood in Equation~\eqref{eq:ttm-separable-loss}, inherits exact inversion, and differs operationally through forest training and aggregation.
+which maps $u_k$ into the standard normal reference conditional on $u_{1:k-1}$. By the chain rule,
+\[
+  \varphi\big(S_k(u_{1:k})\big)\, \partial_{u_k} S_k(u_{1:k}) = \widehat{f}_k(u_k \mid u_{1:k-1}),
+\]
+so the TRTF-induced Jacobian matches the forest’s conditional density. The triangular structure mirrors TTM-Sep; the difference is operational (forest training and aggregation) rather than conceptual.
 
-We keep copulas as dependence baselines with explicit scope. We fit only low-dimensional nonparametric copulas for $K \le 3$, using probit-transformed pseudo-observations and kernel density estimation on the Gaussian scale before mapping back to the unit cube with the appropriate Jacobian. The independence baseline evaluates the product of fitted marginals. We omit a Gaussian copula from the main experiments to preserve consistency with the low-$K$ nonparametric dependence analyzed in Section~\ref{sec:realdata}.
+\subsection{Copula Baseline with Estimated Marginals}
 
-We adopt a single inversion and evaluation convention across estimators. Training, Jacobians, and conditional evaluations occur in standardized coordinates. Sampling draws $z \sim \mathcal{N}(0, I)$, applies $S^{-1}$ by back-substitution, and converts to the original scale with the stored affine parameters. This convention prevents mixed objectives and keeps all reported quantities interoperable.
+We keep copulas as dependence baselines with explicit scope. Marginals are estimated on the training split, and we report the joint density on the original $x$-scale. Concretely, we fit $\widehat{F}_k$ and $\widehat{f}_k$ for each coordinate, transform to pseudo-observations $U_k = \widehat{F}_k(X_k)$, and, for Gaussian copulas, set $Z_k = \Phi^{-1}(U_k)$ to model dependence in a latent normal space. We evaluate the copula density $c(U)$ and multiply by $\prod_{k=1}^K \widehat{f}_k(x_k)$ to obtain the reported joint density.
 
-We ensure reproducibility and comparability with fixed seeds, cached standardization parameters, and shared reporting utilities. Appendix~\ref{ch:appendix} provides pseudo-code for TRTF fitting and prediction, nonparametric copulas, marginal and separable triangular maps, and the shared transport core that implements ordering, bases, derivatives, and evaluation. The appendix also records optimizer choices, timing hooks, and object layouts used in the experiments.
+\paragraph{Label use (Half-Moon only).} For $K=2$ in the Half-Moon study we fit class-conditional copulas for the blue/red classes and mix them by empirical class priors when reporting the unlabeled joint. No other model uses labels. Details and diagnostics appear in Section~\ref{sec:synthetic-results}.
 
+\subsection{Shared Inversion and Evaluation}
+
+We adopt a single inversion and evaluation convention across estimators using Equations~\eqref{eq:transport-pullback}--\eqref{eq:transport-det}. The alignment is necessary for conditional decomposition checks in Section~\ref{sec:synthetic-results} and for the compute summaries in Section~\ref{sec:realdata}.
+
+\paragraph{Reproducibility.} We fix random seeds, cache splits, and expose the same object layouts for transport maps, TRTF, and copulas. Appendix~\ref{ch:appendix} provides pseudo-code for TRTF fitting and prediction; we reuse the same logging, timing hooks, and file formats across models.
 \section{Evaluation Metrics and Protocol}\label{sec:evaluation-protocol}
 
 % Checklist: align references, keep active voice, reuse existing notation.
-This section defines the metrics and procedures applied across all models so likelihoods, calibration, and compute remain directly comparable. We evaluate every estimator in standardized coordinates, apply the triangular determinant, and report log densities on the original scale using the affine correction from Chapter~\ref{ch:background}. Figure~\ref{fig:transport-schematic} in Appendix~\ref{ch:appendix} and Table~\ref{tab:transport-notation} summarize the shared pipeline and notation.
+\begin{quote}
+\textbf{Goal.} Define the metrics and the evaluation routine applied across all estimators. We reuse the notation and preprocessing conventions from Table~\ref{tab:transport-notation}, with background in Chapter~\ref{ch:background} and dataset preparation in Section~\ref{sec:datasets-preprocessing}. All log-likelihood (LL) and negative log-likelihood (NLL) values are reported in nats; figures and tables state $\text{LL}~(\uparrow~\text{better})$ and $\text{NLL}~(\downarrow~\text{better})$ explicitly.
+\end{quote}
 
-We distinguish pointwise log density from dataset averages. The test log likelihood (LL) is the mean of $\log \hat{\pi}_X(x)$ over the test split, and the test negative log likelihood (NLL) is its negative. Tables note “LL (higher is better)” or “NLL (lower is better)” to avoid ambiguity. Reported log densities on the original scale equal the standardized quantity minus $\sum_k \log \sigma_k$ as given by Equation~\eqref{eq:transport-affine}. Consequently, datasets with larger training scales introduce large constant offsets that the affine correction removes.
+\subsection{Joint and Conditional Decomposition}
 
-Triangular models exploit the separable pullback in standardized coordinates. With $u = T_{\mathrm{std}}(x)$, the log density decomposes as
+Triangular models evaluate densities in standardized coordinates and then report on the original scale. With $u = T_{\mathrm{std}}(x)$ determined by the training-split $(\mu, \sigma)$, any estimator with lower-triangular $S$ satisfies
 \begin{equation}
   \log \hat{\pi}_U(u) = \sum_{k=1}^{K} \Big[ \log \varphi\big(S_k(u_{1:k})\big) + \log \partial_{u_k} S_k(u_{1:k}) \Big],
   \label{eq:evaluation-triangular}
 \end{equation}
-so the determinant factorization in Equation~\eqref{eq:transport-det} yields linear per-sample cost in $K$. In plain language, the model checks how Gaussian each transformed coordinate looks, then adds the exact log-Jacobian contribution from its one-dimensional derivative. The affine correction in Equation~\eqref{eq:transport-affine} converts $\log \hat{\pi}_U$ to $\log \hat{\pi}_X$ for reporting.
+so the determinant factorization from Equations~\eqref{eq:transport-pullback}--\eqref{eq:transport-det} applies componentwise. We transform back to $x$ once per evaluation via the affine correction in Equation~\eqref{eq:transport-affine}.
 
-We report per-dimension conditional NLLs for triangular models to localize error. For each coordinate,
+We localize error with per-dimension conditional NLLs. For coordinate $k$,
 \begin{equation}
   \mathrm{NLL}_k = -\frac{1}{N_{\mathrm{test}}} \sum_{i=1}^{N_{\mathrm{test}}} \log \hat{\pi}\big(x_{ik} \mid x_{i,1:k-1}\big),
   \label{eq:evaluation-conditional-nll}
 \end{equation}
-and the joint NLL equals $\sum_{k=1}^{K} \mathrm{NLL}_k$ by construction. Copulas lack a unique triangular factorization, so we report only their joint NLL. Negative per-dimension NLL values can occur because valid densities may exceed one on subdomains. These conventions align with Equations~\eqref{eq:transport-trtf-likelihood} and~\eqref{eq:transport-trtf-separable}, which link separable transports and Transformation Random Forests inside the common frame under the additive-predictor and monotone-smoothing assumptions stated in Section~\ref{sec:transport-trtf}.
+and the joint NLL satisfies $\mathrm{NLL}_{\mathrm{joint}} = \sum_{k=1}^{K} \mathrm{NLL}_k$ by the triangular factorization. Negative per-dimension NLLs can occur on bounded or highly concentrated supports (e.g., beta or gamma margins); we revisit this behaviour in Section~\ref{sec:synthetic-results}.
 
-Calibration assesses whether predictive probabilities align with empirical frequencies. For triangular models we form conditional probability integral transform (PIT) values $V_{ik} = \widehat{F}_k(u_{ik} \mid u_{i,1:k-1})$ on the test split and expect independent $\mathrm{Unif}(0,1)$ draws under correct calibration \citep{gneiting2007probabilistic}. We summarize departures from uniformity with the Kolmogorov--Smirnov statistic $D_n = \sup_t \lvert \widehat{F}_n(t) - t \rvert$ and report the associated $p$-value \citep{massey1951kolmogorov}. We complement the scalar summary with brief PIT distribution descriptions when patterns recur across seeds. For copulas we assess marginal PITs and low-dimensional slices where dependence is transparent. Systematic U-shaped or inverted-U PIT indicates under- or over-dispersion and motivates richer parameterizations.
+\subsection{Compute Metrics}
 
-Compute metrics quantify practical cost alongside fit. We record wall-clock training time on the training split and per-sample evaluation time on the test split. Triangular transports scale linearly in $K$ and approximately linearly in the number of basis functions. Transformation Random Forests scale with the number and depth of trees per conditional during training, while prediction remains linear after aggregation. Copula training is dominated by correlation estimation or kernel density fitting, followed by fast evaluation. We also track peak resident memory when caching affects runtime. All timings use the deterministic pipeline defined in Chapter~\ref{ch:dataanalysis} and are averaged over seeds with standard errors.
+We report practical costs alongside fit:
+\begin{itemize}
+  \item \textbf{Train time per epoch} and total wall-clock to the chosen early-stopping criterion when applicable.
+  \item \textbf{Evaluation throughput} (test points per second) together with per-sample latency.
+  \item \textbf{Model size,} recorded as effective parameter counts when the backend exposes them.
+\end{itemize}
+Compute summaries accompany the real-data tables in Section~\ref{sec:realdata}; extended profiles appear in Appendix~\ref{ch:appendix} when needed.
 
-Protocol choices keep comparisons stable and reproducible:
+\subsection{Protocol (Fixed Across Methods)}
+
 \begin{enumerate}
-  \item Standardize with training-split statistics, fit a single map $S:u \rightarrow z$, and evaluate Jacobians in standardized space.
-  \item Compute LL, NLL, and conditional decompositions in standardized coordinates, then apply the affine correction once for reporting.
-  \item Evaluate PIT diagnostics, Kolmogorov--Smirnov statistics, and compute metrics on the fixed test split with seeds $\{11, 13, 17, 19, 23\}$ and quote means with $\pm$ two standard errors across seeds (SE $= s/\sqrt{m}$ over $m$ seeds).
+  \item \textbf{Preprocessing.} Standardize features with training-split $(\mu, \sigma)$, evaluate derivatives and Jacobians in $u$, and convert to $x$ with Equation~\eqref{eq:transport-affine} once per evaluation.
+  \item \textbf{Evaluation in standardized space.} Compute LL, NLL, and conditional decompositions with Equation~\eqref{eq:evaluation-triangular}; map results to the original scale for reporting.
+  \item \textbf{Aggregation and uncertainty.} Average metrics across seeds and report $\pm$ two standard errors (SE $= s/\sqrt{m}$ over $m$ seeds).
+  \item \textbf{Reproducibility hooks.} Cache splits and random seeds, and log objective values together with compute metrics using shared file schemas across estimators.
 \end{enumerate}
-Appendix~\ref{ch:appendix} lists routine interfaces that support exact re-execution; figure captions and table notes repeat units, splits, and the “higher/lower is better” convention for clarity.
 
-Numerical safeguards prevent unstable likelihoods from dominating summaries. We enforce strictly monotone derivatives by construction and clip log-derivative contributions to $[-H, H]$ during training and evaluation. We tune $H$ and regularization on the validation split and reuse the selected bound on the test split. We report clipping status inline per study and keep the exact bound values with the corresponding experiment logs to avoid duplication. This practice controls overflow in the Jacobian sum without masking systematic misfit that PIT diagnostics would reveal.
-
-Scope limits clarify non-goals. We do not report AIC or BIC because effective parameter counts are not comparable across estimators in this frame. We also do not adjust $p$-values for multiple PIT checks; instead, we treat Kolmogorov--Smirnov results as diagnostics and corroborate them with effect sizes and plots. These limits keep the evaluation focused on likelihood, calibration, and compute under a single, transparent protocol.
-
+These choices keep likelihood reporting in standardized coordinates, align diagnostics, and make compute measurements comparable. Appendix~\ref{ch:appendix} lists the supporting routine interfaces and object layouts used in the experiments.
 \section{Synthetic Results and Diagnostics}\label{sec:synthetic-results}
 
 % Checklist: cite dynamic refs, align units, maintain topic-bridge sentences.
-This section reports synthetic results for the Half-Moon and four-dimensional generators under the protocol in Section~\ref{sec:evaluation-protocol}. We summarize mean test negative log likelihoods, per-dimension conditional NLLs, calibration evidence, and ordering robustness, referencing the corresponding tables and figures.
+This section reports synthetic results for the Half-Moon and four-dimensional generators under the protocol in Section~\ref{sec:evaluation-protocol}. We summarize mean test negative log likelihoods, per-dimension conditional NLLs, and ordering robustness, referencing the corresponding tables and figures.
 
-The Half-Moon generator stresses conditional shape in two dimensions. Table~\ref{tab:halfmoon-nll} lists mean joint NLLs with $\pm$ two standard errors: TRTF achieved $1.71 \pm 0.09$ nats, TTM-Sep achieved $1.93 \pm 0.08$ nats, and TTM-Marg achieved $2.02 \pm 0.07$ nats. The copula baseline reached $1.54 \pm 0.09$ nats and bracketed the triangular transports. The oracle references set $0.78 \pm 0.10$ nats for the true marginal density and $0.70 \pm 0.12$ nats for the true joint. Per-dimension NLLs confirm that the first coordinate is harder: TRTF reported $(1.23, 0.47)$, while TTM-Sep reported $(1.28, 0.65)$. Figure~\ref{fig:halfmoon-panels} shows contours consistent with these rankings and with the standardized pipeline in Figure~\ref{fig:transport-schematic} of Appendix~\ref{ch:appendix}.\;Clipping status: not triggered in these runs (no log-derivative terms reached the bound).
+The Half-Moon generator stresses conditional shape in two dimensions. Table~\ref{tab:halfmoon-nll} lists mean joint NLLs with $\pm$ two standard errors: TRTF achieved $1.71 \pm 0.09$ nats, TTM-Sep achieved $1.93 \pm 0.08$ nats, and TTM-Marg achieved $2.02 \pm 0.07$ nats. The copula baseline reached $1.54 \pm 0.09$ nats and bracketed the triangular transports. The oracle references set $0.78 \pm 0.10$ nats for the true marginal density and $0.70 \pm 0.12$ nats for the true joint. Per-dimension NLLs confirm that the first coordinate is harder: TRTF reported $(1.23, 0.47)$, while TTM-Sep reported $(1.28, 0.65)$. Figure~\ref{fig:halfmoon-panels} shows contours consistent with these rankings and with the standardized pipeline described earlier in Chapter~\ref{ch:background}.\;Clipping status: not triggered in these runs (no log-derivative terms reached the bound).
 
 \begin{table}[htbp]
   \centering
@@ -259,31 +305,7 @@ Sample size influenced stability and ranking, especially in the sparse regime. T
   \caption*{Note: The TTM-Sep entry at $n=25$ is omitted from the main table due to numerical overflow; see Appendix Table~\ref{tab:ttmsep-n25-overflow}, where it is marked with an asterisk ($^{\ast}$) as out of scope.}
 \end{table}
 
-Calibration assessments align with the likelihood evidence. Figure~\ref{fig:autoregressive-joint-calibration} (p.~\pageref{fig:autoregressive-joint-calibration}) shows joint log-density calibration against the oracle, with residual structure visible for triangular transports in the canonical ordering. Conditional PIT diagnostics and Kolmogorov--Smirnov distances, computed as in Section~\ref{sec:evaluation-protocol}, exhibited the same qualitative patterns across seeds, so we omit redundant tables.
-
 These studies indicate that TRTF closes part of the gap to oracle likelihoods while preserving the triangular evaluation frame. Separable maps remain competitive at moderate sample sizes but exhibit ordering sensitivity and sparse-regime fragility, and copulas provide competitive baselines in low dimensions. Section~\ref{sec:realdata} turns to real-data benchmarks and compute summaries under the same protocol.
-
-\paragraph{Calibration numbers.} To complement the visual diagnostics, Table~\ref{tab:ks-synth} reports median Kolmogorov--Smirnov (KS) distances of probability-integral-transform (PIT) values per coordinate, aggregated across seeds ($\pm$ 2SE). Lower is better. We include entries for methods with an accessible marginal CDF in our implementation.
-
-<<ks_synth, results='asis', echo=FALSE>>=
-fmt <- function(m, se) sprintf("%.3f $\\pm$ %.3f", as.numeric(m), 2 * as.numeric(se))
-read_sum <- function(path) if (file.exists(path)) utils::read.csv(path, stringsAsFactors = FALSE) else NULL
-hm <- read_sum(file.path('..','code','experiments','halfmoon','results','ks_halfmoon_summary.csv'))
-d4 <- read_sum(file.path('..','code','experiments','4d','results','ks_4d_summary.csv'))
-models <- c('True (Joint)','True (marginal)','Random Forest','Marginal Map','Separable Map','Copula NP')
-val <- function(df, model) {
-  if (is.null(df)) return('--')
-  row <- df[df$model == model, , drop = FALSE]
-  if (!nrow(row)) return('--')
-  fmt(row$ks_median_mean, row$ks_median_se)
-}
-make_row <- function(name, df) paste(c(name, vapply(models, function(m) val(df, m), character(1))), collapse = ' & ')
-cat("\\begin{table}[htbp]\n  \\centering\n  \\textit{(median KS of PIT per coordinate; lower is better).}\\\n\n")
-cat("  \\begin{tabular}{lrrrrrr}\\\n    \\hline\\\n    Dataset & True (Joint) & True (marginal) & Random Forest & Marginal Map & Separable Map & Copula NP \\\\\\n     \\hline\\\n")
-cat("    ", make_row('Half-Moon', hm), " \\\\\n", sep = '')
-cat("    ", make_row('4D generator', d4), " \\\\\n", sep = '')
-cat("    \\hline\\\n  \\end{tabular}\n  \\caption{Calibration via PIT--KS on synthetic datasets: median KS distance per coordinate (mean $\\pm$ 2SE across seeds). Entries marked `--' indicate that the CDF was not available in the corresponding backend.}\n  \\label{tab:ks-synth}\n\\end{table}\n")
-@
 
 \section{Real-Data Benchmarks and Compute}\label{sec:realdata}
 
@@ -315,7 +337,7 @@ This section presents real-data evidence on MiniBooNE and the UCI tabular benchm
   \end{tabular}
 \end{table}
 
-\paragraph{MiniBooNE.} Table~\ref{tab:uci-loglik} shows that the Gaussian reference yields $-37.24 \pm 1.07$ nats, providing a weak baseline. MADE reaches $-15.59 \pm 0.50$ nats, the Real NVP variants lie near $-13.7$ nats, and MAF MoG improves to $-11.68 \pm 0.44$ nats. Our TRTF result attains $-30.01 \pm 1.26$ nats at $N=2500$, improving over the Gaussian baseline yet trailing the flow families by a wide margin. This ranking is consistent with the separable Jacobian and additive predictors discussed in Section~\ref{sec:models-implementation}. The high dimensionality of MiniBooNE amplifies residual misfit through the triangular determinant.\;Clipping: validation-tuned bound $H$ applied; the exact value is recorded with the experiment logs.
+\paragraph{MiniBooNE.} Table~\ref{tab:uci-loglik} shows that the Gaussian reference yields $-37.24 \pm 1.07$ nats, providing a weak baseline. MADE reaches $-15.59 \pm 0.50$ nats, the Real NVP variants lie near $-13.7$ nats, and MAF MoG improves to $-11.68 \pm 0.44$ nats. Our TRTF result attains $-30.01 \pm 1.26$ nats at $N=2500$, improving over the Gaussian baseline yet trailing the flow families by a wide margin. This ranking is consistent with the separable Jacobian and the forest aggregation discussed in Section~\ref{sec:models-implementation}. The high dimensionality of MiniBooNE amplifies residual misfit through the triangular determinant.\;Clipping: validation-tuned bound $H$ applied; the exact value is recorded with the experiment logs.
 
 \paragraph{POWER.} POWER offers a milder conditional structure and lower dimensionality. Table~\ref{tab:uci-loglik} reports that TRTF records $-7.17 \pm 0.39$ nats at $N=2500$, which falls short of the flow baselines. Real NVP with ten steps reaches $0.17 \pm 0.01$ nats, while MAF MoG attains $0.30 \pm 0.01$ nats. The gap indicates that the current TRTF configuration underutilizes structure in this benchmark; additional seeds or hyperparameter tuning may recover the performance previously observed at smaller sample sizes.\;Clipping: validation-tuned bound $H$ applied; the exact value is recorded with the experiment logs.
 
@@ -363,12 +385,12 @@ We avoid AIC or BIC because effective parameter counts differ across estimators,
 
 - Standardization and evaluation
   - Standardize features with training-split $(\mu,\sigma)$ only; compute all derivatives/Jacobians in $u$; report on $x$ via the affine correction in Eq.~\eqref{eq:transport-affine}.
-  - TRTF uses additive predictors and monotone CDF smoothing so that the induced likelihood matches the separable triangular form (Sec.~\ref{sec:transport-trtf}).
+  - TRTF uses forest aggregation and monotone CDF smoothing so that the induced likelihood matches the separable triangular form (Sec.~\ref{sec:transport-trtf}).
 
 - Hyperparameters and tuning
   - TTM-Sep: monotone one-dimensional bases for $h_k$ (identity, integrated sigmoids, softplus-like edge terms, integrated RBFs); low-degree polynomial features for $g_k$; ridge regularization on all coefficients; log-derivative clipping to $[-H,H]$ (bound $H$ tuned on validation). Degree and penalty strengths are selected by validation; ordering is fixed to the natural order in headline tables and varied in robustness checks.
   - TTM-Sep: monotone one-dimensional bases for $h_k$ (identity, integrated sigmoids, softplus-like edge terms, integrated RBFs); low-degree polynomial features for $g_k$; ridge regularization on all coefficients; log-derivative clipping to $[-H,H]$ (bound $H$ tuned on validation). Degree and penalty strengths are selected by validation; ordering is fixed to the natural order in headline tables and, when heuristics are enabled, chosen as the better of identity vs. Cholesky-pivoted (with optional Gaussianization) according to validation NLL.
-  - TRTF: additive predictor with forest aggregation; strictly increasing conditional CDFs after standard monotone smoothing; remaining fit options follow package defaults unless stated; we record the number of trees, depth and split rules in the experiment logs.
+  - TRTF: forest aggregation with strictly increasing conditional CDFs after standard monotone smoothing; remaining fit options follow package defaults unless stated; we record the number of trees, depth and split rules in the experiment logs.
   - Copulas (diagnostics only for $K\le 3$): probit pseudo-observations and kernel density copula via \texttt{kdecopula} with default bandwidth selection; independence and Gaussian baselines are used only for reference in text where noted.
   - Exact choices (e.g., basis sizes, ridge penalties, selected $H$) are captured alongside each run in the experiment logs and summarized inline where relevant; we avoid duplicate tables in the PDF.
 
@@ -376,7 +398,7 @@ Final safeguard settings used for the reported results. For Half-Moon ($n=250$) 
 
 - Software and hardware
   - R with packages: \texttt{tram}, \texttt{trtf}, \texttt{partykit}, \texttt{mlt}, \texttt{dplyr}, \texttt{parallel}, and \texttt{knitr}/LaTeX for the report. We record package versions via \texttt{sessionInfo()} in run logs.
-  - Single-threaded BLAS by default; optional parallel training for TRTF via \texttt{options(trtf.train_cores=4)} when available.
+  - Single-threaded BLAS by default; optional parallel training for TRTF via \texttt{options(trtf.train\_cores = 4)} when available.
   - CPU-only runs on a laptop-class machine; logs include hardware notes (CPU model, RAM) and wall-clock timings (Table~\ref{tab:real-compute}).
 
 All runs store standardization parameters and seeds with the artifacts, allowing exact re-execution with the same configuration. Appendix~\ref{ch:appendix} provides routine interfaces and object layouts to support this.

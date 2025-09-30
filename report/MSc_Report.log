@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023) (preloaded format=pdflatex 2023.5.22)  29 SEP 2025 00:29
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023) (preloaded format=pdflatex 2023.5.22)  1 OCT 2025 00:04
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -931,13 +931,13 @@ File: t1cmss.fd 2022/07/10 v2.5l Standard LaTeX font definitions
 
 {/usr/local/texlive/2023/texmf-var/fonts/map/pdftex/updmap/pdftex.map}{/usr/loc
 al/texlive/2023/texmf-dist/fonts/enc/dvips/cm-super/cm-super-t1.enc}])
-LaTeX Font Info:    Trying to load font information for U+msa on input line 69.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 71.
 
 
 (/usr/local/texlive/2023/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 69.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 71.
 
 
 (/usr/local/texlive/2023/texmf-dist/tex/latex/amsfonts/umsb.fd
@@ -967,1392 +967,186 @@ Chapter 1.
 
 
 ]
-Underfull \vbox (badness 10000) has occurred while \output is active []
+LaTeX Font Info:    Trying to load font information for T1+cmtt on input line 1
+15.
+ (/usr/local/texlive/2023/texmf-dist/tex/latex/base/t1cmtt.fd
+File: t1cmtt.fd 2022/07/10 v2.5l Standard LaTeX font definitions
+) [2]
+Overfull \hbox (51.74269pt too wide) in paragraph at lines 129--130
+[]\T1/cmr/bx/n/10.95 Triangular log de-ter-mi-nant. \T1/cmr/m/n/10.95 Lower-tri
+angular Ja-co-bians im-ply $[] [] \OML/cmm/m/it/10.95 J[]\OT1/cmr/m/n/10.95 (\O
+ML/cmm/m/it/10.95 u\OT1/cmr/m/n/10.95 ) = [][] [] \OML/cmm/m/it/10.95 @[]T[]\OT
+1/cmr/m/n/10.95 (\OML/cmm/m/it/10.95 u[]\OT1/cmr/m/n/10.95 )$\T1/cmr/m/n/10.95 
+,
+ []
 
- [2]
-[3] [4]
+[3{/usr/local/texlive/2023/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc
+}]
+Overfull \hbox (8.83183pt too wide) in paragraph at lines 161--173
+ [][] 
+ []
+
+[4]
 Chapter 2.
 [5
 
 ]
-Overfull \hbox (19.41486pt too wide) in paragraph at lines 235--235
+Overfull \hbox (19.41486pt too wide) in paragraph at lines 254--254
 []\T1/cmr/bx/n/14.4 Separable Tri-an-gu-lar Maps and Trans-for-ma-tion Ran-dom 
-Forests
+Forests 
  []
 
-[6]
-Overfull \hbox (83.73799pt too wide) has occurred while \output is active
-\T1/cmr/m/sl/10.95 2.2.  SEPARABLE TRIANGULAR MAPS AND TRANSFORMATION RANDOM FO
-RESTS AS TRANSPORT \T1/cmr/m/n/10.95 7
- []
-
-[7{/usr/local/texlive/2023/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc
-}] [8] [9]
-LaTeX Font Info:    Trying to load font information for T1+cmtt on input line 3
-34.
- (/usr/local/texlive/2023/texmf-dist/tex/latex/base/t1cmtt.fd
-File: t1cmtt.fd 2022/07/10 v2.5l Standard LaTeX font definitions
-)
-[10]
-Chapter 3.
-
-Underfull \vbox (badness 1377) has occurred while \output is active []
-
- [11
+[6] [7] [8] [9] [10
 
 ]
-Overfull \hbox (294.923pt too wide) in paragraph at lines 372--382
- [][] 
+Chapter 3.
+[11] [12]
+Overfull \hbox (4.18356pt too wide) in paragraph at lines 457--458
+[]\T1/cmr/bx/n/10.95 Objective. \T1/cmr/m/n/10.95 We min-i-mize the Gaus-sian p
+ull-back in-duced by the shared ref-er-ence (Equa-tions []--
  []
 
-
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [12]
 [13] [14] [15] [16]
-<figure/halfmoon_panels_seed007_N250.png, id=487, 3212.0pt x 2409.0pt>
+<figure/halfmoon_panels_seed007_N250.png, id=425, 3212.0pt x 2409.0pt>
 File: figure/halfmoon_panels_seed007_N250.png Graphic file (type png)
 <use figure/halfmoon_panels_seed007_N250.png>
 Package pdftex.def Info: figure/halfmoon_panels_seed007_N250.png  used on input
- line 502.
+ line 576.
 (pdftex.def)             Requested size: 387.0088pt x 290.24379pt.
- [17]
-<figure/logdensity_joint_N250.png, id=499, 4818.0pt x 4215.75pt>
+
+
+LaTeX Warning: Reference `tab:ttmsep-n25-overflow' on page 17 undefined on inpu
+t line 581.
+
+[17 <./figure/halfmoon_panels_seed007_N250.png>]
+<figure/logdensity_joint_N250.png, id=437, 4818.0pt x 4215.75pt>
 File: figure/logdensity_joint_N250.png Graphic file (type png)
 <use figure/logdensity_joint_N250.png>
 Package pdftex.def Info: figure/logdensity_joint_N250.png  used on input line 5
-11.
+85.
 (pdftex.def)             Requested size: 387.0088pt x 338.61777pt.
- [18 <./figure/halfmoon_panels_seed007_N250.png>]
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [19 <./figure/logdensity_joint_N250.png>] [20]
-
-LaTeX Warning: Reference `tab:ks-synth' on page 21 undefined on input line 601.
 
 
-
-Overfull \hbox (28.6277pt too wide) in paragraph at lines 601--602
- []\T1/cmr/bx/n/10.95 Calibration num-bers.[] \T1/cmr/m/n/10.95 To com-ple-ment
- the vi-sual di-ag-nos-tics, Ta-ble [] re-ports me-dian Kolmogorov--
- []
-
-! Misplaced \noalign.
-\hline ->\noalign 
-                  {\ifnum 0=`}\fi \hrule \@height \arrayrulewidth \futurelet...
-l.608     \hline
-                \
-I expect to see \noalign only after the \cr of
-an alignment. Proceed, and I'll ignore this case.
-
-! You can't use `\hrule' here except with leaders.
-\hline ->\noalign {\ifnum 0=`}\fi \hrule 
-                                         \@height \arrayrulewidth \futurelet...
-l.608     \hline
-                \
-To put a horizontal rule in an hbox or an alignment,
-you should use \leaders or \hrulefill (see The TeXbook).
-
-! Missing number, treated as zero.
-<to be read again> 
-                   \futurelet 
-l.608     \hline
-                \
-A number should have been here; I inserted `0'.
-(If you can't figure out why I needed to see a number,
-look up `weird error' in the index to The TeXbook.)
-
-! Illegal unit of measure (pt inserted).
-<to be read again> 
-                   \futurelet 
-l.608     \hline
-                \
-Dimensions can be in units of em, ex, in, pt, pc,
-cm, mm, dd, cc, nd, nc, bp, or sp; but yours is a new one!
-I'll assume that you meant to say pt, for printer's points.
-To recover gracefully from this error, it's best to
-delete the erroneous units; e.g., type `2' to delete
-two letters. (See Chapter 27 of The TeXbook.)
-
-! Undefined control sequence.
-<recently read> \n 
-                   
-l.609 ...inal Map & Separable Map & Copula NP \\\n
-                                                       \hline\
-The control sequence at the end of the top line
-of your error message was never \def'ed. If you have
-misspelled it (e.g., `\hobx'), type `I' and the correct
-spelling (e.g., `I\hbox'). Otherwise just continue,
-and I'll forget about whatever was undefined.
+LaTeX Warning: Reference `fig:ordering-heuristics-4d' on page 18 undefined on i
+nput line 608.
 
 
-Overfull \hbox (113.38077pt too wide) in paragraph at lines 607--614
- [][] 
- []
+LaTeX Warning: Reference `tab:ttmsep-n25-overflow' on page 18 undefined on inpu
+t line 649.
 
-[21] [22]
-<figure/N_sensitivity_all.png, id=581, 4015.0pt x 2690.05pt>
+[18 <./figure/logdensity_joint_N250.png>]
+
+LaTeX Warning: Reference `tab:ttmsep-n25-overflow' on page 19 undefined on inpu
+t line 668.
+
+
+LaTeX Warning: Reference `tab:ttmsep-n25-overflow' on page 19 undefined on inpu
+t line 668.
+
+[19] [20] [21]
+<figure/N_sensitivity_all.png, id=499, 4015.0pt x 2690.05pt>
 File: figure/N_sensitivity_all.png Graphic file (type png)
 <use figure/N_sensitivity_all.png>
-Package pdftex.def Info: figure/N_sensitivity_all.png  used on input line 659.
+Package pdftex.def Info: figure/N_sensitivity_all.png  used on input line 713.
 (pdftex.def)             Requested size: 387.0088pt x 259.29266pt.
-
-Underfull \vbox (badness 4713) has occurred while \output is active []
-
- [23 <./figure/N_sensitivity_all.png>] [24]
-! Missing $ inserted.
-<inserted text> 
-                $
-l.710 ... via \texttt{options(trtf.train_cores=4)}
-                                                   when available.
-I've inserted a begin-math/end-math symbol since I think
-you left one out. Proceed, with fingers crossed.
-
-! Extra }, or forgotten $.
-<recently read> \egroup 
-                        
-l.710 ... via \texttt{options(trtf.train_cores=4)}
-                                                   when available.
-I've deleted a group-closing symbol because it seems to be
-spurious, as in `$x}$'. But perhaps the } is legitimate and
-you forgot something else, as in `\hbox{$x}'. In such cases
-the way to recover is to insert both the forgotten and the
-deleted material, e.g., by typing `I$}'.
-
-! Missing $ inserted.
-<inserted text> 
-                $
-l.712 
-      
-I've inserted a begin-math/end-math symbol since I think
-you left one out. Proceed, with fingers crossed.
-
-
-Overfull \hbox (114.01811pt too wide) in paragraph at lines 708--712
-\OT1/cmr/m/n/10.95 4)\OML/cmm/m/it/10.95 whenavailable: \OMS/cmsy/m/n/10.95 ^^@
- \OML/cmm/m/it/10.95 CPU \OMS/cmsy/m/n/10.95 ^^@ \OML/cmm/m/it/10.95 onlyrunson
-alaptop \OMS/cmsy/m/n/10.95 ^^@ \OML/cmm/m/it/10.95 classmachine\OT1/cmr/m/n/10
-.95 ; \OML/cmm/m/it/10.95 logsincludehardwarenotes\OT1/cmr/m/n/10.95 (\OML/cmm/
-m/it/10.95 CPUmodel; RAM\OT1/cmr/m/n/10.95 )\OML/cmm/m/it/10.95 andwall \OMS/cm
-sy/m/n/10.95 ^^@
+ [22 <./figure/N_sensitivity_all.png>] [23]
+Overfull \hbox (0.59235pt too wide) in paragraph at lines 767--768
+[]\T1/cmr/m/n/10.95 All runs store stan-dard-iza-tion pa-ram-e-ters and seeds w
+ith the ar-ti-facts, al-low-ing ex-act re-execution
  []
 
-
-Overfull \hbox (31.3187pt too wide) in paragraph at lines 713--714
-[]\T1/cmtt/m/n/10.95 All runs store standardization parameters and seeds with t
-he artifacts, allowing exact
- []
-
-
-Overfull \hbox (3.02684pt too wide) in paragraph at lines 713--714
-\T1/cmtt/m/n/10.95 re-execution with the same configuration. Appendix [][]A[][]
- provides routine interfaces
- []
-
-
-Overfull \hbox (11.50479pt too wide) in paragraph at lines 715--716
- []\T1/cmr/bx/n/10.95 Bridge to Chap-ter [][]4[][].[] \T1/cmtt/m/n/10.95 The re
-al-data study closes Chapter [][]3[][] by positioning separable
- []
-
-
-Overfull \hbox (14.34358pt too wide) in paragraph at lines 715--716
-\T1/cmtt/m/n/10.95 triangular transports and TRTF within the UCI and MiniBooNE 
-landscape. TRTF offers
- []
-
-
-Overfull \hbox (25.66032pt too wide) in paragraph at lines 715--716
-\T1/cmtt/m/n/10.95 exact inversion, linear evaluation, and transparent conditio
-nal structure, yet trails
- []
-
-
-Overfull \hbox (31.3187pt too wide) in paragraph at lines 715--716
-\T1/cmtt/m/n/10.95 modern flows on MiniBooNE. Chapter [][]4[][] interprets thes
-e trade-offs and distills guidance
- []
-
-
-Overfull \hbox (20.00195pt too wide) in paragraph at lines 715--716
-\T1/cmtt/m/n/10.95 for practitioners choosing between separable transports, tra
-nsformation forests, and
- []
-
-[25] [26
+[24]
+Chapter 4.
+[25
 
 ]
-Chapter 4.
-
-Overfull \hbox (3.02684pt too wide) in paragraph at lines 725--726
-\T1/cmtt/m/n/10.95 This chapter synthesizes the empirical evidence gathered in 
-Chapter [][]3[][], interprets
- []
-
-
-Overfull \hbox (14.34358pt too wide) in paragraph at lines 725--726
-\T1/cmtt/m/n/10.95 the behavior of the estimators within the unified transport 
-frame, and prepares the
- []
-
-
-Overfull \hbox (3.02684pt too wide) in paragraph at lines 725--726
-\T1/cmtt/m/n/10.95 concluding guidance that follows. We retain the shared prepr
-ocessing, likelihood
- []
-
-
-Overfull \hbox (31.3187pt too wide) in paragraph at lines 725--726
-\T1/cmtt/m/n/10.95 conventions, and diagnostic procedures so that numerical com
-parisons remain meaningful
- []
-
-
-Overfull \hbox (20.00195pt too wide) in paragraph at lines 725--726
-\T1/cmtt/m/n/10.95 across synthetic and real datasets. Copulas enter our study 
-only as low-dimensional
- []
-
-
-Overfull \hbox (11.3262pt too wide) in paragraph at lines 725--726
-\T1/cmtt/m/n/10.95 ($\OML/cmm/m/it/10.95 K  \OMS/cmsy/m/n/10.95 ^^T  \OT1/cmr/m
-/n/10.95 3$\T1/cmtt/m/n/10.95 ) diagnostic baselines (e.g., Half-Moon, 4D) and 
-are not evaluated on high-$\OML/cmm/m/it/10.95 K$
- []
-
-
-Overfull \hbox (3.02684pt too wide) in paragraph at lines 728--729
-\T1/cmtt/m/n/10.95 This section interprets the empirical evidence under the uni
-fied transport frame.
- []
-
-
-Overfull \hbox (36.97707pt too wide) in paragraph at lines 728--729
-\T1/cmtt/m/n/10.95 We focus on TRTF (additive predictor), TTM-Sep, and, where a
-pplicable, copula baselines
- []
-
-
-Overfull \hbox (23.87657pt too wide) in paragraph at lines 728--729
-\T1/cmtt/m/n/10.95 (only for $\OML/cmm/m/it/10.95 K  \OMS/cmsy/m/n/10.95 ^^T  \
-OT1/cmr/m/n/10.95 3$\T1/cmtt/m/n/10.95 ) evaluated with matched preprocessing, 
-metrics, and units. Synthetic
- []
-
-
-Overfull \hbox (36.97707pt too wide) in paragraph at lines 728--729
-\T1/cmtt/m/n/10.95 studies report NLL, real datasets report LL, and we apply th
-e shared affine correction.
- []
-
-
-Overfull \hbox (65.26892pt too wide) in paragraph at lines 728--729
-\T1/cmtt/m/n/10.95 These commitments keep objectives, diagnostics, and compute 
-interoperable across estimators. 
- []
-
-
-Overfull \hbox (53.95218pt too wide) in paragraph at lines 730--731
-[]\T1/cmtt/m/n/10.95 TRTF often leads within the separable family because addit
-ive predictors shift conditional
- []
-
-
-Overfull \hbox (36.97707pt too wide) in paragraph at lines 730--731
-\T1/cmtt/m/n/10.95 location while the underlying monotone shapes remain stable.
- The likelihood identities
- []
-
-
-Overfull \hbox (53.95218pt too wide) in paragraph at lines 730--731
-\T1/cmtt/m/n/10.95 equate TRTF with separable triangular maps, so observed gaps
- arise from how each estimator
- []
-
-
-Overfull \hbox (19.32674pt too wide) in paragraph at lines 730--731
-\T1/cmtt/m/n/10.95 achieved an NLL of $\OT1/cmr/m/n/10.95 1\OML/cmm/m/it/10.95 
-:\OT1/cmr/m/n/10.95 71$ \T1/cmtt/m/n/10.95 while TTM-Sep reached $\OT1/cmr/m/n/
-10.95 1\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 93$\T1/cmtt/m/n/10.95 , and the 
-first coordinate remained
- []
-
-
-Overfull \hbox (25.66032pt too wide) in paragraph at lines 730--731
-\T1/cmtt/m/n/10.95 the main source of residual error. Table [][]3.2[][] records
- the per-dimension decomposition
- []
-
-
-Overfull \hbox (53.95218pt too wide) in paragraph at lines 730--731
-\T1/cmtt/m/n/10.95 and associated uncertainty bands, showing that location adju
-stments dominate the remaining
- []
-
-
-Overfull \hbox (20.00195pt too wide) in paragraph at lines 732--733
-[]\T1/cmtt/m/n/10.95 The four-dimensional generator sharpens this interpretatio
-n by isolating coordinates
- []
-
-
-Overfull \hbox (14.34358pt too wide) in paragraph at lines 732--733
-\T1/cmtt/m/n/10.95 with different conditional structure. TRTF matched the expon
-ential coordinate with
- []
-
-
-Overfull \hbox (19.32674pt too wide) in paragraph at lines 732--733
-\T1/cmtt/m/n/10.95 an NLL of $\OT1/cmr/m/n/10.95 1\OML/cmm/m/it/10.95 :\OT1/cmr
-/m/n/10.95 51$ \T1/cmtt/m/n/10.95 compared with $\OT1/cmr/m/n/10.95 1\OML/cmm/m
-/it/10.95 :\OT1/cmr/m/n/10.95 49$ \T1/cmtt/m/n/10.95 for the oracle, whereas TT
-M-Sep over-penalized that
- []
-
-
-Overfull \hbox (25.66032pt too wide) in paragraph at lines 732--733
-\T1/cmtt/m/n/10.95 coordinate. The beta coordinate produced negative NLLs for t
-he oracles because valid
- []
-
-
-Overfull \hbox (15.73497pt too wide) in paragraph at lines 732--733
-\T1/cmtt/m/n/10.95 densities can exceed one on $\OT1/cmr/m/n/10.95 (0\OML/cmm/m
-/it/10.95 ; \OT1/cmr/m/n/10.95 1)$\T1/cmtt/m/n/10.95 ; TRTF approached those va
-lues at $\OMS/cmsy/m/n/10.95 ^^@\OT1/cmr/m/n/10.95 0\OML/cmm/m/it/10.95 :\OT1/c
-mr/m/n/10.95 25$\T1/cmtt/m/n/10.95 . The gamma
- []
-
-
-Overfull \hbox (30.64348pt too wide) in paragraph at lines 732--733
-\T1/cmtt/m/n/10.95 coordinate remained the most challenging, with TRTF at $\OT1
-/cmr/m/n/10.95 1\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 99$ \T1/cmtt/m/n/10.95 
-and TTM-Sep at $\OT1/cmr/m/n/10.95 2\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 41$
-\T1/cmtt/m/n/10.95 . Joint
- []
-
-
-Overfull \hbox (75.91045pt too wide) in paragraph at lines 732--733
-\T1/cmtt/m/n/10.95 sums favored TRTF at $\OT1/cmr/m/n/10.95 4\OML/cmm/m/it/10.9
-5 :\OT1/cmr/m/n/10.95 53$ \T1/cmtt/m/n/10.95 versus $\OT1/cmr/m/n/10.95 5\OML/c
-mm/m/it/10.95 :\OT1/cmr/m/n/10.95 66$\T1/cmtt/m/n/10.95 , consistent with conce
-ntrated gains on location-dominated
- []
-
-
-Overfull \hbox (8.68521pt too wide) in paragraph at lines 732--733
-\T1/cmtt/m/n/10.95 coordinates. Table [][]3.3[][] lists these values, and Figur
-e [][]3.2[][] visualizes the residual
- []
-
-[27]
-Overfull \hbox (31.3187pt too wide) in paragraph at lines 734--735
-[]\T1/cmtt/m/n/10.95 These comparisons reveal where separability fails to adapt
- to context-dependent shape.
- []
-
-
-Overfull \hbox (31.3187pt too wide) in paragraph at lines 734--735
-\T1/cmtt/m/n/10.95 Under a separable map, conditional variance, skewness, and m
-odality remain fixed after
- []
-
-
-Overfull \hbox (14.34358pt too wide) in paragraph at lines 734--735
-\T1/cmtt/m/n/10.95 the location shift. Probability-integral-transform diagnosti
-cs display U-shaped or
- []
-
-
-Overfull \hbox (14.34358pt too wide) in paragraph at lines 734--735
-\T1/cmtt/m/n/10.95 inverted-U patterns when dispersion misaligns, indicating un
-der- or over-dispersion
- []
-
-
-Overfull \hbox (25.66032pt too wide) in paragraph at lines 734--735
-\T1/cmtt/m/n/10.95 rather than pure location error. The calibration plots corro
-borate the per-dimension
- []
-
-
-Overfull \hbox (59.61055pt too wide) in paragraph at lines 734--735
-\T1/cmtt/m/n/10.95 NLLs and localize remaining structure to the beta and gamma 
-coordinates, where separability
- []
-
-
-Overfull \hbox (3.02684pt too wide) in paragraph at lines 734--735
-\T1/cmtt/m/n/10.95 is least appropriate. Figure [][]3.2[][] summarizes these de
-viations under the canonical
- []
-
-
-Overfull \hbox (3.02684pt too wide) in paragraph at lines 736--737
-[]\T1/cmtt/m/n/10.95 Ordering sensitivity stems from finite parameterizations, 
-not from the triangular
- []
-
-
-Overfull \hbox (14.34358pt too wide) in paragraph at lines 736--737
-\T1/cmtt/m/n/10.95 theory itself. A Knothe--Rosenblatt rearrangement exists for
- any order, yet limited
- []
-
-
-Overfull \hbox (42.2687pt too wide) in paragraph at lines 736--737
-\T1/cmtt/m/n/10.95 bases introduce anisotropy that affects fit. Averaging over 
-all $\OT1/cmr/m/n/10.95 24$ \T1/cmtt/m/n/10.95 permutations yielded
- []
-
-
-Overfull \hbox (27.47668pt too wide) in paragraph at lines 736--737
-\T1/cmtt/m/n/10.95 joint NLLs of $\OT1/cmr/m/n/10.95 4\OML/cmm/m/it/10.95 :\OT1
-/cmr/m/n/10.95 65$ \T1/cmtt/m/n/10.95 for TRTF and $\OT1/cmr/m/n/10.95 5\OML/cm
-m/m/it/10.95 :\OT1/cmr/m/n/10.95 62$ \T1/cmtt/m/n/10.95 for TTM-Sep, leaving a 
-$\OT1/cmr/m/n/10.95 0\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 97$ \T1/cmtt/m/n/1
-0.95 nat gap that persisted
- []
-
-
-Overfull \hbox (33.81027pt too wide) in paragraph at lines 736--737
-\T1/cmtt/m/n/10.95 despite order changes, while the copula baseline averaged $\
-OT1/cmr/m/n/10.95 5\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 45$\T1/cmtt/m/n/10.9
-5 . Table [][]3.4[][] consolidates
- []
-
-
-Overfull \hbox (20.00195pt too wide) in paragraph at lines 736--737
-\T1/cmtt/m/n/10.95 these permutation-averaged results and underlines the value 
-of data-driven orderings
- []
-
-
-Overfull \hbox (48.29381pt too wide) in paragraph at lines 738--739
-[]\T1/cmtt/m/n/10.95 Small-sample regimes amplified numerical fragility through
- the log-Jacobian accumulation.
- []
-
-
-Overfull \hbox (70.06609pt too wide) in paragraph at lines 738--739
-\T1/cmtt/m/n/10.95 TRTF decreased from $\OT1/cmr/m/n/10.95 38\OML/cmm/m/it/10.9
-5 :\OT1/cmr/m/n/10.95 18$ \T1/cmtt/m/n/10.95 to $\OT1/cmr/m/n/10.95 4\OML/cmm/m
-/it/10.95 :\OT1/cmr/m/n/10.95 64$ \T1/cmtt/m/n/10.95 joint NLL as $\OML/cmm/m/i
-t/10.95 n$ \T1/cmtt/m/n/10.95 grew from $\OT1/cmr/m/n/10.95 25$ \T1/cmtt/m/n/10
-.95 to $\OT1/cmr/m/n/10.95 250$\T1/cmtt/m/n/10.95 , reflecting stabilization
- []
-
-
-Overfull \hbox (12.33249pt too wide) in paragraph at lines 738--739
-\OML/cmm/m/it/10.95 n \OT1/cmr/m/n/10.95 = 250$\T1/cmtt/m/n/10.95 , indicating 
-overflow rather than intrinsic misfit. Table [][]3.6[][] reports these
- []
-
-
-Overfull \hbox (14.34358pt too wide) in paragraph at lines 738--739
-\T1/cmtt/m/n/10.95 trajectories, and Section [][]3.2[][] documents the derivati
-ve clipping and ridge penalties
- []
-
-
-Overfull \hbox (42.63544pt too wide) in paragraph at lines 740--741
-[]\T1/cmtt/m/n/10.95 High dimensionality converts small calibration errors into
- large likelihood gaps because
- []
-
-
-Overfull \hbox (25.66032pt too wide) in paragraph at lines 740--741
-\T1/cmtt/m/n/10.95 the triangular determinant accumulates coordinate-wise discr
-epancies. MINIBOONE with
- []
-
-
-Overfull \hbox (4.70966pt too wide) in paragraph at lines 740--741
-\OML/cmm/m/it/10.95 K \OT1/cmr/m/n/10.95 = 43$ \T1/cmtt/m/n/10.95 illustrates t
-his accumulation: published flows achieved LL values between
- []
-
-
-Overfull \hbox (46.8183pt too wide) in paragraph at lines 740--741
-\OMS/cmsy/m/n/10.95 ^^@\OT1/cmr/m/n/10.95 15\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/1
-0.95 59$ \T1/cmtt/m/n/10.95 and $\OMS/cmsy/m/n/10.95 ^^@\OT1/cmr/m/n/10.95 11\O
-ML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 68$\T1/cmtt/m/n/10.95 , whereas TRTF reac
-hed $\OMS/cmsy/m/n/10.95 ^^@\OT1/cmr/m/n/10.95 30\OML/cmm/m/it/10.95 :\OT1/cmr/
-m/n/10.95 01$ \T1/cmtt/m/n/10.95 under the shared preprocessing. Table [][]3.7[
-][]
- []
-
-
-Overfull \hbox (48.29381pt too wide) in paragraph at lines 740--741
-\T1/cmtt/m/n/10.95 positions TRTF beside the flow baselines and shows that the 
-improvement over the Gaussian
- []
-
-
-Overfull \hbox (47.92708pt too wide) in paragraph at lines 740--741
-\T1/cmtt/m/n/10.95 reference remains clear even though an approximately $\OT1/c
-mr/m/n/10.95 18$ \T1/cmtt/m/n/10.95 nat gap persists to the strongest
- []
-
-
-Overfull \hbox (36.97707pt too wide) in paragraph at lines 742--743
-[]\T1/cmtt/m/n/10.95 Compute profiles contextualize these accuracy patterns wit
-hout changing the qualitative
- []
-
-
-Overfull \hbox (18.34286pt too wide) in paragraph at lines 742--743
-\T1/cmtt/m/n/10.95 ranking at large $\OML/cmm/m/it/10.95 K$\T1/cmtt/m/n/10.95 .
- At $\OML/cmm/m/it/10.95 N \OT1/cmr/m/n/10.95 = 1000$\T1/cmtt/m/n/10.95 , TRTF 
-required $\OT1/cmr/m/n/10.95 115$ \T1/cmtt/m/n/10.95 s on POWER, $\OT1/cmr/m/n/
-10.95 138$ \T1/cmtt/m/n/10.95 s on GAS, $\OT1/cmr/m/n/10.95 153$ \T1/cmtt/m/n/1
-0.95 s
- []
-
-
-Overfull \hbox (13.79349pt too wide) in paragraph at lines 742--743
-\T1/cmtt/m/n/10.95 on HEPMASS, and $\OT1/cmr/m/n/10.95 202$ \T1/cmtt/m/n/10.95 
-s on MINIBOONE, matching the near-linear growth in the training
- []
-
-
-Overfull \hbox (24.98988pt too wide) in paragraph at lines 742--743
-\T1/cmtt/m/n/10.95 budget and $\OMS/cmsy/m/n/10.95 O\OT1/cmr/m/n/10.95 (\OML/cm
-m/m/it/10.95 K\OT1/cmr/m/n/10.95 )$ \T1/cmtt/m/n/10.95 evaluation cost. Table [
-][]3.8[][] summarizes these wall-clock measurements
- []
-
-
-Overfull \hbox (3.02684pt too wide) in paragraph at lines 742--743
-\T1/cmtt/m/n/10.95 and highlights that separable estimators remain practical in
- moderate dimensions,
- []
-
-
-Overfull \hbox (8.68521pt too wide) in paragraph at lines 744--745
-[]\T1/cmtt/m/n/10.95 Taken together, the transport frame delineates when separa
-bility suffices and when
- []
-
-
-Overfull \hbox (25.66032pt too wide) in paragraph at lines 744--745
-\T1/cmtt/m/n/10.95 richer models become necessary. TRTF leads within the separa
-ble family when location
- []
-
-
-Overfull \hbox (36.97707pt too wide) in paragraph at lines 744--745
-\T1/cmtt/m/n/10.95 shifts capture most structure, exhibits ordering sensitivity
- only through finite bases,
- []
-
-
-Overfull \hbox (48.29381pt too wide) in paragraph at lines 744--745
-\T1/cmtt/m/n/10.95 and stabilizes with modest sample sizes under the safeguards
- of Section [][]3.2[][]. Performance
- []
-
-
-Overfull \hbox (3.02684pt too wide) in paragraph at lines 744--745
-\T1/cmtt/m/n/10.95 degrades in high dimensions where shape changes and interact
-ions matter, at which
- []
-
-
-Overfull \hbox (20.00195pt too wide) in paragraph at lines 744--745
-\T1/cmtt/m/n/10.95 point non-separable models offer clear likelihood gains. The
-se conclusions motivate
+Overfull \hbox (2.4961pt too wide) in paragraph at lines 792--793
+[]\T1/cmr/m/n/10.95 Small-sample regimes am-pli-fied nu-mer-i-cal fragility thr
+ough the log-Jacobian ac-cu-mu-la-tion. TRTF
  []
 
 
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
- [28]
-Overfull \hbox (8.68521pt too wide) in paragraph at lines 747--748
-\T1/cmtt/m/n/10.95 We conclude that separable transports remain competitive whe
-n conditional location
- []
-
-
-Overfull \hbox (5.51842pt too wide) in paragraph at lines 747--748
-\T1/cmtt/m/n/10.95 shifts dominate and dimensionality is modest. TRTF led TTM-S
-ep on Half-Moon ($\OT1/cmr/m/n/10.95 1\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 7
-1$
- []
-
-
-Overfull \hbox (50.78539pt too wide) in paragraph at lines 747--748
-\T1/cmtt/m/n/10.95 versus $\OT1/cmr/m/n/10.95 1\OML/cmm/m/it/10.95 :\OT1/cmr/m/
-n/10.95 93$ \T1/cmtt/m/n/10.95 NLL) and matched the exponential coordinate in t
-he four-dimensional generator,
- []
-
-
-Overfull \hbox (3.02684pt too wide) in paragraph at lines 747--748
-\T1/cmtt/m/n/10.95 supporting this interpretation. Conditional decompositions a
-nd calibration plots
- []
-
-
-Overfull \hbox (14.34358pt too wide) in paragraph at lines 747--748
-\T1/cmtt/m/n/10.95 indicate that residual error concentrates in context-depende
-nt shapes, particularly
- []
-
-
-Overfull \hbox (3.02684pt too wide) in paragraph at lines 747--748
-\T1/cmtt/m/n/10.95 on the beta and gamma components. These findings align with 
-permutation averages
- []
-
-
-Overfull \hbox (14.34358pt too wide) in paragraph at lines 747--748
-\T1/cmtt/m/n/10.95 that favor TRTF and quantify finite-basis anisotropy. Tables
- [][]3.2[][]--[][]3.4[][] together with
- []
-
-
-Overfull \hbox (20.00195pt too wide) in paragraph at lines 749--750
-[]\T1/cmtt/m/n/10.95 Performance on MINIBOONE reveals the cost of separability 
-at higher dimension. TRTF
- []
-
-
-Overfull \hbox (19.63522pt too wide) in paragraph at lines 749--750
-\T1/cmtt/m/n/10.95 improved the Gaussian reference yet remained about $\OT1/cmr
-/m/n/10.95 18$ \T1/cmtt/m/n/10.95 nats behind the best published
- []
-
-
-Overfull \hbox (42.2687pt too wide) in paragraph at lines 749--750
-\T1/cmtt/m/n/10.95 flow, consistent with accumulated Jacobian error across $\OT
-1/cmr/m/n/10.95 43$ \T1/cmtt/m/n/10.95 coordinates. POWER exhibited
- []
-
-
-Overfull \hbox (20.00195pt too wide) in paragraph at lines 749--750
-\T1/cmtt/m/n/10.95 the opposite regime: under identical preprocessing, the repo
-rted flows outperformed
- []
-
-
-Overfull \hbox (13.3599pt too wide) in paragraph at lines 749--750
-\T1/cmtt/m/n/10.95 TRTF (Table [][]3.7[][] lists TRTF at $\OMS/cmsy/m/n/10.95 ^
-^@\OT1/cmr/m/n/10.95 7\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 17$ \T1/cmtt/m/n/
-10.95 versus flow baselines near $\OT1/cmr/m/n/10.95 0\OML/cmm/m/it/10.95 :\OT1
-/cmr/m/n/10.95 17$ \T1/cmtt/m/n/10.95 to $\OT1/cmr/m/n/10.95 0\OML/cmm/m/it/10.
-95 :\OT1/cmr/m/n/10.95 30$\T1/cmtt/m/n/10.95 ). These
- []
-
-
-Overfull \hbox (53.95218pt too wide) in paragraph at lines 749--750
-\T1/cmtt/m/n/10.95 contrasts suggest that conditional shape and dimension joint
-ly determine whether separable
- []
-
-
-Overfull \hbox (31.3187pt too wide) in paragraph at lines 751--752
-[]\T1/cmtt/m/n/10.95 Compute profiles remained practical and scaled near-linear
-ly with the training budget.
- []
-
-
-Overfull \hbox (20.12659pt too wide) in paragraph at lines 751--752
-\T1/cmtt/m/n/10.95 Training plus evaluation required $\OT1/cmr/m/n/10.95 115$ \
-T1/cmtt/m/n/10.95 s at $\OML/cmm/m/it/10.95 N \OT1/cmr/m/n/10.95 = 1000$ \T1/cm
-tt/m/n/10.95 on POWER and $\OT1/cmr/m/n/10.95 202$ \T1/cmtt/m/n/10.95 s on MINI
-BOONE,
- []
-
-
-Overfull \hbox (4.25166pt too wide) in paragraph at lines 751--752
-\T1/cmtt/m/n/10.95 with longer totals at $\OML/cmm/m/it/10.95 N \OT1/cmr/m/n/10
-.95 = 2500$ \T1/cmtt/m/n/10.95 that preserved the same trend. These measurement
-s
- []
-
-
-Overfull \hbox (59.61055pt too wide) in paragraph at lines 751--752
-\T1/cmtt/m/n/10.95 keep separable transports viable for exploratory analysis an
-d model diagnostics. Table [][]3.8[][]
- []
-
-
-Overfull \hbox (20.00195pt too wide) in paragraph at lines 753--754
-[]\T1/cmtt/m/n/10.95 Several limitations qualify these conclusions. Separable m
-aps fix conditional shape
- []
-
-
-Overfull \hbox (36.97707pt too wide) in paragraph at lines 753--754
-\T1/cmtt/m/n/10.95 and therefore cannot resolve heteroskedasticity or condition
-al multimodality. Ordering
- []
-
-
-Overfull \hbox (11.17679pt too wide) in paragraph at lines 753--754
-\T1/cmtt/m/n/10.95 remained a material source of variance under finite bases, a
-s shown by the $\OT1/cmr/m/n/10.95 0\OML/cmm/m/it/10.95 :\OT1/cmr/m/n/10.95 97$
- \T1/cmtt/m/n/10.95 nat
- []
-
-
-Overfull \hbox (1.01575pt too wide) in paragraph at lines 753--754
-\T1/cmtt/m/n/10.95 permutation gap despite stable rankings at moderate sample s
-izes. In our $\OML/cmm/m/it/10.95 n \OT1/cmr/m/n/10.95 = 250$
- []
-
-
-Overfull \hbox (47.92708pt too wide) in paragraph at lines 753--754
-\T1/cmtt/m/n/10.95 synthetic runs, the TRTF versus TTM-Sep ranking did not chan
-ge across the $\OT1/cmr/m/n/10.95 24$ \T1/cmtt/m/n/10.95 permutations
- []
-
-
-Overfull \hbox (59.61055pt too wide) in paragraph at lines 753--754
-\T1/cmtt/m/n/10.95 (Table [][]3.4[][]); ordering affected magnitudes rather tha
-n the lead. Simple ordering heuristics
- []
-
-
-Overfull \hbox (25.66032pt too wide) in paragraph at lines 753--754
-\T1/cmtt/m/n/10.95 (identity or Cholesky-pivoted with optional Gaussianization;
- see Section [][]3.2[][]) reduced
- []
-
-
-Overfull \hbox (53.95218pt too wide) in paragraph at lines 753--754
-\T1/cmtt/m/n/10.95 variance but did not alter this pattern. Small-sample regime
-s created numerical fragility
- []
-
-
-Overfull \hbox (8.68521pt too wide) in paragraph at lines 753--754
-\T1/cmtt/m/n/10.95 through steep log-Jacobian terms, which clipping and ridge r
-egularization mitigate
- []
-
-
-Overfull \hbox (31.3187pt too wide) in paragraph at lines 753--754
-\T1/cmtt/m/n/10.95 but do not eliminate. Real-data tables still contain missing
- GAS and HEPMASS entries,
- []
-
-
-Overfull \hbox (87.9024pt too wide) in paragraph at lines 753--754
-\T1/cmtt/m/n/10.95 and single-seed settings persist for some runs, limiting ext
-ernal comparability. Tables [][]3.4[][]--[][]3.8[][]
- []
-
-
-Overfull \hbox (3.02684pt too wide) in paragraph at lines 755--756
-[]\T1/cmtt/m/n/10.95 The outlook follows directly from the evidence. Data-drive
-n orderings are likely
- []
-
-
-Overfull \hbox (36.97707pt too wide) in paragraph at lines 755--756
-\T1/cmtt/m/n/10.95 to reduce anisotropy without abandoning the lower-triangular
- map. Low-rank cross-terms
- []
-
-
-Overfull \hbox (8.68521pt too wide) in paragraph at lines 755--756
-\T1/cmtt/m/n/10.95 in triangular transports and non-additive predictors in TRTF
- may adapt conditional
- []
-
-
-Overfull \hbox (8.68521pt too wide) in paragraph at lines 755--756
-\T1/cmtt/m/n/10.95 shapes while preserving monotone structure, exact inversion,
- and linear per-sample
- []
-
-
-Overfull \hbox (3.02684pt too wide) in paragraph at lines 755--756
-\T1/cmtt/m/n/10.95 evaluation. We excluded these richer variants by design in C
-hapter [][]1[][] (Non-goals)
- []
-
-
-Overfull \hbox (48.29381pt too wide) in paragraph at lines 755--756
-\T1/cmtt/m/n/10.95 due to compute and calibration overhead; they remain promisi
-ng future work once resources
- []
-
-
-Overfull \hbox (3.02684pt too wide) in paragraph at lines 755--756
-\T1/cmtt/m/n/10.95 permit. Expanded calibration reporting, including probabilit
-y-integral-transform
- []
-
-
-Overfull \hbox (31.3187pt too wide) in paragraph at lines 755--756
-\T1/cmtt/m/n/10.95 summaries and Kolmogorov--Smirnov distances, should remain p
-art of any deployment-grade
- []
-
-
-Overfull \hbox (36.97707pt too wide) in paragraph at lines 755--756
-\T1/cmtt/m/n/10.95 evaluation. Completing GAS and HEPMASS under the same protoc
-ol will improve generality
- []
-
-
-Overfull \hbox (48.29381pt too wide) in paragraph at lines 755--756
-\T1/cmtt/m/n/10.95 and sharpen the accuracy-versus-compute trade-off. These ste
-ps target smaller likelihood
- []
-
-
-Overfull \hbox (1.79321pt too wide) in paragraph at lines 755--756
-\T1/cmtt/m/n/10.95 gaps on high-$\OML/cmm/m/it/10.95 K$ \T1/cmtt/m/n/10.95 data
-sets while retaining the interpretability and reproducibility
- []
-
-
-Underfull \vbox (badness 2326) has occurred while \output is active []
-
- [29]
+ [26]
 (./MSc_Report.bbl (./MSc_Report.brf)
 \tf@brf=\write7
 \openout7 = `MSc_Report.brf'.
 
- [30]
-Underfull \hbox (badness 3930) in paragraph at lines 14--14
-[]\T1/cmtt/m/n/10.95 Vladimir I. Bogachev, Alexander V. Kolesnikov, and Kirill 
-Medvedev.  Triangular
- []
 
+Underfull \vbox (badness 10000) has occurred while \output is active []
 
-Underfull \hbox (badness 10000) in paragraph at lines 19--19
-[]\T1/cmtt/m/n/10.95 Laurent Dinh, David Krueger, and Yoshua Bengio.  Density e
-stimation using real
- []
+ [27]
+[28] [29
 
-
-Underfull \hbox (badness 10000) in paragraph at lines 34--34
-[]\T1/cmtt/m/n/10.95 Tilmann Gneiting, Fadoua Balabdaoui, and Adrian E. Raftery
-.  Probabilistic
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 34--34
-\T1/cmtt/m/n/10.95 forecasts, calibration and sharpness.  \T1/cmtt/m/it/10.95 J
-ournal of the Royal Statistical
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 34--34
-\T1/cmtt/m/it/10.95 Society: Series B (Statistical Methodology)\T1/cmtt/m/n/10.
-95 , 69(2):243--268, 2007.  doi:
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 47--47
-[]\T1/cmtt/m/n/10.95 Torsten Hothorn and Achim Zeileis.  Transformation forests
-: A framework for
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 47--47
-\T1/cmtt/m/n/10.95 parametric, nonparametric, and semiparametric regression and
- distributional
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 53--53
-[]\T1/cmtt/m/n/10.95 Torsten Hothorn, Kurt Hornik, and Achim Zeileis.  partykit
-: A modular toolkit
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 53--53
-\T1/cmtt/m/n/10.95 for recursive partitioning in r.  \T1/cmtt/m/it/10.95 Journa
-l of Machine Learning Research\T1/cmtt/m/n/10.95 , 16:
- []
-
-
-Underfull \hbox (badness 3930) in paragraph at lines 61--61
-[]\T1/cmtt/m/n/10.95 Torsten Hothorn, Thomas Kneib, and Peter B"uhlmann.  Condi
-tional transformation
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 61--61
-\T1/cmtt/m/n/10.95 models.  \T1/cmtt/m/it/10.95 Journal of the Royal Statistica
-l Society: Series B (Statistical
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 77--77
-[]\T1/cmtt/m/n/10.95 Heinz Knothe.  Contributions to the theory of convex bodie
-s.  \T1/cmtt/m/it/10.95 Mathematische
- []
-
-
-Underfull \hbox (badness 2088) in paragraph at lines 84--84
-\T1/cmtt/m/it/10.95 American Statistical Association\T1/cmtt/m/n/10.95 , 46(253
-):68--78, 1951.  doi: $\T1/cmr/m/n/10.95 10 . 1080 / 01621459 .
- []
-
+]) [30]
+Appendix A.
+LaTeX Font Info:    Font shape `T1/cmtt/bx/n' in size <10.95> not available
+(Font)              Font shape `T1/cmtt/m/n' tried instead on input line 844.
 [31
 
-]
-Underfull \hbox (badness 3930) in paragraph at lines 91--91
-[]\T1/cmtt/m/n/10.95 Thomas Nagler.  kdecopula: An r package for the kernel est
-imation of bivariate
+] [32]
+Overfull \hbox (21.97534pt too wide) in paragraph at lines 919--922
+[]\T1/cmr/m/n/10.95 Otherwise solve the reg-u-lar-ized op-ti-miza-tion prob-lem
+ $[][] []\OMS/cmsy/m/n/10.95 k\OT1/cmr/m/n/10.95 (\OML/cmm/m/it/10.95 I \OMS/cm
+sy/m/n/10.95 ^^@ \OT1/cmr/m/n/10.95 ^^H[]\OML/cmm/m/it/10.95 M\OT1/cmr/m/n/10.9
+5 )\OML/cmm/m/it/10.95 c\OMS/cmsy/m/n/10.95 k[] ^^@ [] []\OT1/cmr/m/n/10.95 (\O
+ML/cmm/m/it/10.95 Bc\OT1/cmr/m/n/10.95 ) +
  []
 
-
-Underfull \hbox (badness 10000) in paragraph at lines 111--111
-[]\T1/cmtt/m/n/10.95 George Papamakarios, Eric Nalisnick, Danilo Jimenez Rezend
-e, Shakir Mohamed,
+[33]
+Overfull \hbox (0.11183pt too wide) in paragraph at lines 924--925
+[]\T1/cmr/m/n/10.95 Assemble the model list with stan-dard-iza-tion pa-ram-e-te
+rs, co-ef-fi-cients, and meta-data; record
  []
 
-
-Underfull \hbox (badness 10000) in paragraph at lines 117--117
-[]\T1/cmtt/m/n/10.95 Danilo Jimenez Rezende and Shakir Mohamed.  Variational in
-ference with
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 117--117
-\T1/cmtt/m/n/10.95 normalizing flows.  In \T1/cmtt/m/it/10.95 Proceedings of th
-e 32nd International Conference on
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 124--124
-[]\T1/cmtt/m/n/10.95 Murray Rosenblatt.  Remarks on a multivariate transformati
-on.  \T1/cmtt/m/it/10.95 The Annals of
- []
-
-) [32]
-Appendix A.
-
-Overfull \hbox (14.34358pt too wide) in paragraph at lines 772--773
-\T1/cmtt/m/n/10.95 Figure [][]A.1[][] provides the full schematic of the unifie
-d transport pipeline referenced
- []
-
-
-Overfull \hbox (14.34358pt too wide) in paragraph at lines 772--773
-\T1/cmtt/m/n/10.95 throughout the thesis. The landscape layout preserves readab
-ility for the granular
- []
-
-[33
-
-]
-
-LaTeX Warning: Float too large for page by 321.13342pt on input line 850.
-
-[34]
-Overfull \hbox (8.68521pt too wide) in paragraph at lines 855--856
-\T1/cmtt/m/n/10.95 This appendix records consolidated pseudo-code for the core 
-R implementations used
- []
-
-
-Overfull \hbox (31.3187pt too wide) in paragraph at lines 855--856
-\T1/cmtt/m/n/10.95 in the experiments. Each summary captures inputs, main proce
-ssing stages, and outputs
- []
-
-LaTeX Font Info:    Font shape `T1/cmtt/bx/n' in size <10.95> not available
-(Font)              Font shape `T1/cmtt/m/n' tried instead on input line 859.
-
-Overfull \hbox (30.4019pt too wide) in paragraph at lines 862--863
-[]\T1/cmtt/m/n/10.95 Validate that the training matrix is numeric, set the RNG 
-seed, and label columns
- []
-
-
-Overfull \hbox (33.29588pt too wide) in paragraph at lines 863--864
-[]\T1/cmtt/m/n/10.95 Fit an intercept-only transformation model BoxCox for each
- $\OML/cmm/m/it/10.95 X[]$ \T1/cmtt/m/n/10.95 to provide baseline
- []
-
-
-Overfull \hbox (20.5417pt too wide) in paragraph at lines 867--868
-[]\T1/cmtt/m/n/10.95 Choose mtry = max(1, floor((k-1)/2)) and standard ctree co
-ntrols (minsplit,
- []
-
-
-Overfull \hbox (14.88333pt too wide) in paragraph at lines 868--869
-[]\T1/cmtt/m/n/10.95 Fit a transformation forest with traforest and store the c
-onditional model
- []
-
-
-Overfull \hbox (24.74353pt too wide) in paragraph at lines 870--871
-[]\T1/cmtt/m/n/10.95 Return a mytrtf object containing baseline transformations
-, conditional forests,
- []
-
-
-Overfull \hbox (11.73006pt too wide) in paragraph at lines 874--875
-[]\T1/cmtt/m/n/10.95 Convert new data to the same column naming scheme and eval
-uate $\OML/cmm/m/it/10.95 X[]$ \T1/cmtt/m/n/10.95 through
- []
-
-
-Overfull \hbox (4.28896pt too wide) in paragraph at lines 875--876
-[]\T1/cmtt/m/n/10.95 For each conditional forest ($\OML/cmm/m/it/10.95 k \OMS/c
-msy/m/n/10.95 ^^U \OT1/cmr/m/n/10.95 2$\T1/cmtt/m/n/10.95 ) evaluate the log de
-nsity of $\OML/cmm/m/it/10.95 X[]$ \T1/cmtt/m/n/10.95 given
- []
-
-
-Overfull \hbox (36.20262pt too wide) in paragraph at lines 875--876
-\OML/cmm/m/it/10.95 X[]$\T1/cmtt/m/n/10.95 , extracting the diagonal when the f
-orest returns a log density matrix. 
- []
-
-
-Overfull \hbox (3.56659pt too wide) in paragraph at lines 876--877
-[]\T1/cmtt/m/n/10.95 Stack the per-dimension log densities (logdensity_by_dim) 
-or sum them to
- []
-
-
-Overfull \hbox (41.71864pt too wide) in paragraph at lines 885--886
-[]\T1/cmtt/m/n/10.95 Inspect the training matrix and optional class labels; det
-ect whether the dedicated
- []
-
-
-Overfull \hbox (43.58482pt too wide) in paragraph at lines 886--887
-[]\T1/cmtt/m/n/10.95 If prerequisites fail (dimension $\OML/cmm/m/it/10.95 K \O
-MS/cmsy/m/n/10.95 6\OT1/cmr/m/n/10.95 = 2$ \T1/cmtt/m/n/10.95 or labels missing
-), fall back to independent
- []
-
-
-Overfull \hbox (75.66887pt too wide) in paragraph at lines 886--887
-\T1/cmtt/m/n/10.95 univariate kernel density estimates per dimension and store 
-them for later interpolation. 
- []
-
-[35
-
-
-]
-Overfull \hbox (9.22496pt too wide) in paragraph at lines 890--891
-[]\T1/cmtt/m/n/10.95 Convert training samples to pseudo-observations using mid-
-ranks scaled by
- []
-
-
-Overfull \hbox (9.22496pt too wide) in paragraph at lines 891--892
-[]\T1/cmtt/m/n/10.95 Fit a two-dimensional kernel copula with kdecopula::kdecop
- (method TLL2). 
- []
-
-
-Overfull \hbox (9.22496pt too wide) in paragraph at lines 898--899
-[]\T1/cmtt/m/n/10.95 In fallback mode evaluate each univariate KDE at the reque
-sted points and
- []
-
-
-Overfull \hbox (14.88333pt too wide) in paragraph at lines 899--900
-[]\T1/cmtt/m/n/10.95 In copula mode compute marginal log densities and CDF valu
-es, evaluate the
- []
-
-
-Overfull \hbox (7.06796pt too wide) in paragraph at lines 901--902
-[]\T1/cmtt/m/n/10.95 Average over class-specific log densities weighted by prio
-rs (mixture
- []
-
-
-Overfull \hbox (14.88333pt too wide) in paragraph at lines 904--905
-[]\T1/cmtt/m/n/10.95 Return per-dimension log densities or their sum depending 
-on the requested
- []
-
-
-Overfull \hbox (24.74353pt too wide) in paragraph at lines 913--914
-[]\T1/cmtt/m/n/10.95 Provide train-only standardization helpers that cache feat
-ure means and standard
- []
-
-
-Overfull \hbox (46.42201pt too wide) in paragraph at lines 914--915
-[]\T1/cmtt/m/n/10.95 Define basis builders: polynomial features for predecessor
- coordinates $\OML/cmm/m/it/10.95 g[]$\T1/cmtt/m/n/10.95 , monotone
- []
-
-
-Overfull \hbox (41.71864pt too wide) in paragraph at lines 915--916
-[]\T1/cmtt/m/n/10.95 Implement optional ordering heuristics (identity or Choles
-ky pivoting with optional
- []
-
-
-Overfull \hbox (6.7011pt too wide) in paragraph at lines 920--921
-[]\T1/cmtt/m/n/10.95 For separable maps constructs $\OML/cmm/m/it/10.95 g[]$ \T
-1/cmtt/m/n/10.95 and $\OML/cmm/m/it/10.95 f[]$\T1/cmtt/m/n/10.95 , computes $\O
-ML/cmm/m/it/10.95 S[] \OT1/cmr/m/n/10.95 = \OML/cmm/m/it/10.95 g[] \OT1/cmr/m/n
-/10.95 + \OML/cmm/m/it/10.95 f[]$\T1/cmtt/m/n/10.95 , and records
- []
-
-
-Overfull \hbox (7.76842pt too wide) in paragraph at lines 922--923
-[]\T1/cmtt/m/n/10.95 Provide ttm_ld_by_dim to combine the forward map with the 
-Gaussian reference,
- []
-
-[36]
-Overfull \hbox (30.4019pt too wide) in paragraph at lines 930--931
-[]\T1/cmtt/m/n/10.95 Split data into train/test subsets if only a matrix is pro
-vided; otherwise accept
- []
-
-
-Overfull \hbox (2.497pt too wide) in paragraph at lines 931--932
-[]\T1/cmtt/m/n/10.95 Standardize training features and, for each dimension $\OM
-L/cmm/m/it/10.95 k$\T1/cmtt/m/n/10.95 , compute closed-form
- []
-
-
-Overfull \hbox (2.30847pt too wide) in paragraph at lines 931--932
-\T1/cmtt/m/n/10.95 coefficients $\OT1/cmr/m/n/10.95 (\OML/cmm/m/it/10.95 a[]; b
-[]\OT1/cmr/m/n/10.95 )$ \T1/cmtt/m/n/10.95 that minimize the Gaussian pullback 
-objective subject to
- []
-
-
-Overfull \hbox (13.42679pt too wide) in paragraph at lines 932--933
-[]\T1/cmtt/m/n/10.95 Store model parameters (standardization, per-dimension coe
-fficients, ordering)
- []
-
-
-Overfull \hbox (7.76842pt too wide) in paragraph at lines 933--934
-[]\T1/cmtt/m/n/10.95 During prediction call ttm_forward with the marginal coeff
-icients and convert
- []
-
-
-Overfull \hbox (13.42679pt too wide) in paragraph at lines 933--934
-\T1/cmtt/m/n/10.95 Jacobian diagonals to log densities via ttm_ld_by_dim; aggre
-gate per-dimension
- []
-
-
-Overfull \hbox (13.42679pt too wide) in paragraph at lines 941--942
-[]\T1/cmtt/m/n/10.95 Prepare train/test splits and standardize training feature
-s as in the marginal
- []
-
-
-Overfull \hbox (36.56181pt too wide) in paragraph at lines 944--945
-[]\T1/cmtt/m/n/10.95 Build polynomial features $\OML/cmm/m/it/10.95 g[]$ \T1/cm
-tt/m/n/10.95 on previous coordinates (degree set by degree_g). 
- []
-
-
-Overfull \hbox (59.33347pt too wide) in paragraph at lines 945--946
-[]\T1/cmtt/m/n/10.95 Build monotone basis functions $\OML/cmm/m/it/10.95 f[]$ \
-T1/cmtt/m/n/10.95 on the current coordinate and their derivatives. 
- []
-
-
-Overfull \hbox (3.56659pt too wide) in paragraph at lines 946--947
-[]\T1/cmtt/m/n/10.95 If degree_g = 0, use the marginal closed-form solution to 
-recover affine
- []
-
-
-Overfull \hbox (11.59775pt too wide) in paragraph at lines 947--950
-[]\T1/cmtt/m/n/10.95 Otherwise solve the regularized optimization problem $[][]
- []\OMS/cmsy/m/n/10.95 k\OT1/cmr/m/n/10.95 (\OML/cmm/m/it/10.95 I \OMS/cmsy/m/n
-/10.95 ^^@ \OT1/cmr/m/n/10.95 ^^H[]\OML/cmm/m/it/10.95 M\OT1/cmr/m/n/10.95 )\OM
-L/cmm/m/it/10.95 c\OMS/cmsy/m/n/10.95 k[] ^^@
- []
-
-
-Overfull \hbox (15.28818pt too wide) in paragraph at lines 947--950
-[] []\OT1/cmr/m/n/10.95 (\OML/cmm/m/it/10.95 Bc\OT1/cmr/m/n/10.95 ) + \OML/cmm/
-m/it/10.95 ^^U []\OT1/cmr/m/n/10.95 (\OML/cmm/m/it/10.95 c\OT1/cmr/m/n/10.95 )$
- \T1/cmtt/m/n/10.95 using optim with L-BFGS-B while enforcing positivity
- []
-
-
-Overfull \hbox (47.37701pt too wide) in paragraph at lines 952--953
-[]\T1/cmtt/m/n/10.95 Assemble the model list with standardization parameters, c
-oefficients, and metadata;
- []
-
-
-Overfull \hbox (19.08516pt too wide) in paragraph at lines 953--954
-[]\T1/cmtt/m/n/10.95 At prediction time re-use ttm_forward and ttm_ld_by_dim to
- obtain per-dimension
- []
-
-
-Overfull \hbox (64.35213pt too wide) in paragraph at lines 961--962
-[]\T1/cmtt/m/n/10.95 Define convenience helpers such as stderr(x) and add_sum_r
-ow for table post-processing. 
- []
-
-[37]
-Overfull \hbox (36.06027pt too wide) in paragraph at lines 962--963
-[]\T1/cmtt/m/n/10.95 prepare_data(n, config, seed) samples from the configured 
-data-generating process,
- []
-
-
-Overfull \hbox (13.42679pt too wide) in paragraph at lines 962--963
-\T1/cmtt/m/n/10.95 splits the sample into train/validation/test sets, and retur
-ns both the matrix
- []
-
-
-Overfull \hbox (7.76842pt too wide) in paragraph at lines 963--964
-[]\T1/cmtt/m/n/10.95 fit_models(S, config) fits the oracle TRUE density and the
- TRTF baseline on a
- []
-
-
-Overfull \hbox (2.11005pt too wide) in paragraph at lines 963--964
-\T1/cmtt/m/n/10.95 split, times their evaluations, and returns the fitted objec
-ts together with
- []
-
-
-Overfull \hbox (36.06027pt too wide) in paragraph at lines 964--965
-[]\T1/cmtt/m/n/10.95 calc_loglik_tables(models, config, X_te, ...) aggregates n
-egative log-likelihoods
- []
-
-
-Overfull \hbox (19.08516pt too wide) in paragraph at lines 964--965
-\T1/cmtt/m/n/10.95 (nats) for TRUE (marginal and joint), TRTF, TTM, and separab
-le TTM, formats the
- []
-
-
-Overfull \hbox (7.76842pt too wide) in paragraph at lines 964--965
-\T1/cmtt/m/n/10.95 results with standard-error bands, appends a summary row, an
-d renames columns
- []
-
-
-Overfull \hbox (30.4019pt too wide) in paragraph at lines 965--966
-[]\T1/cmtt/m/n/10.95 eval_halfmoon(mods, S, out_csv) ensures all requisite mode
-ls are available (TRTF,
- []
-
-
-Overfull \hbox (47.37701pt too wide) in paragraph at lines 965--966
-\T1/cmtt/m/n/10.95 TTM variants, copula baseline), evaluates them on the half-m
-oon test split, computes
- []
-
-
-Overfull \hbox (7.76842pt too wide) in paragraph at lines 965--966
-\T1/cmtt/m/n/10.95 joint and per-dimension negative log-likelihoods, and option
-ally persists the
- []
-
-
-Overfull \hbox (36.97707pt too wide) in paragraph at lines 968--969
-[]\T1/cmtt/m/n/10.95 These structured summaries allow reproducing the algorithm
-ic flow of each model without
- []
-
-[38] [39] (./MSc_Report.aux)
+[34] (./MSc_Report.aux)
 
 LaTeX Warning: There were undefined references.
 
-
-LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
-
 Package rerunfilecheck Info: File `MSc_Report.out' has not changed.
-(rerunfilecheck)             Checksum: 3E44FB92686C5700F571A2AFD2CE8098;1530.
-
-Package rerunfilecheck Warning: File `MSc_Report.brf' has changed.
-(rerunfilecheck)                Rerun to get bibliographical references right.
-
-Package rerunfilecheck Info: Checksums for `MSc_Report.brf':
-(rerunfilecheck)             Before: B85E9E235C7EF165A5A52FD1D6462777;1880
-(rerunfilecheck)             After:  493F5F8CD2A7E90EFD6B15F7514D43CA;1880.
- )
-(\end occurred inside a group at level 1)
-
-### simple group (level 1) entered at line 710 ({)
-### bottom level 
+(rerunfilecheck)             Checksum: 5E47851F9105FA873EBCBC1B198FB961;1446.
+Package rerunfilecheck Info: File `MSc_Report.brf' has not changed.
+(rerunfilecheck)             Checksum: DB8D27AC2F9B544584BA6830F46A2D50;2177.
+ ) 
 Here is how much of TeX's memory you used:
- 26498 strings out of 476025
- 499105 string characters out of 5790017
- 1873388 words of memory out of 5000000
- 46251 multiletter control sequences out of 15000+600000
- 537386 words of font info for 86 fonts, out of 8000000 for 9000
+ 26193 strings out of 476025
+ 492190 string characters out of 5790017
+ 1870388 words of memory out of 5000000
+ 45941 multiletter control sequences out of 15000+600000
+ 534388 words of font info for 79 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 95i,16n,93p,1483b,1411s stack positions out of 10000i,1000n,20000p,200000b,200000s
-
-pdfTeX warning (dest): name{table.caption.23} has been referenced but does not 
-exist, replaced by a fixed one
-
-
-pdfTeX warning (dest): name{figure.caption.21} has been referenced but does not
- exist, replaced by a fixed one
-
-
-pdfTeX warning (dest): name{table.caption.28} has been referenced but does not 
-exist, replaced by a fixed one
-
-
-pdfTeX warning (dest): name{table.caption.16} has been referenced but does not 
-exist, replaced by a fixed one
-
-
-pdfTeX warning (dest): name{figure.caption.27} has been referenced but does not
- exist, replaced by a fixed one
-
-</usr/local/texlive/2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb><
-/usr/local/texlive/2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></
-usr/local/texlive/2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb></us
-r/local/texlive/2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/
-local/texlive/2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/lo
-cal/texlive/2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/loca
-l/texlive/2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/local/t
-exlive/2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/local/texl
-ive/2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/texlive
-/2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/
-2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/local/texlive/20
-23/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texlive/2023
-/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb></usr/local/texlive/
-2023/texmf-dist/fonts/type1/public/cm-super/sfbx1000.pfb></usr/local/texlive/20
-23/texmf-dist/fonts/type1/public/cm-super/sfbx1095.pfb></usr/local/texlive/2023
-/texmf-dist/fonts/type1/public/cm-super/sfbx1200.pfb></usr/local/texlive/2023/t
-exmf-dist/fonts/type1/public/cm-super/sfbx1440.pfb></usr/local/texlive/2023/tex
-mf-dist/fonts/type1/public/cm-super/sfbx2074.pfb></usr/local/texlive/2023/texmf
--dist/fonts/type1/public/cm-super/sfbx2488.pfb></usr/local/texlive/2023/texmf-d
-ist/fonts/type1/public/cm-super/sfcc1095.pfb></usr/local/texlive/2023/texmf-dis
-t/fonts/type1/public/cm-super/sfit1095.pfb></usr/local/texlive/2023/texmf-dist/
-fonts/type1/public/cm-super/sfrm0800.pfb></usr/local/texlive/2023/texmf-dist/fo
-nts/type1/public/cm-super/sfrm1000.pfb></usr/local/texlive/2023/texmf-dist/font
-s/type1/public/cm-super/sfrm1095.pfb></usr/local/texlive/2023/texmf-dist/fonts/
-type1/public/cm-super/sfsl1095.pfb></usr/local/texlive/2023/texmf-dist/fonts/ty
-pe1/public/cm-super/sfss1000.pfb></usr/local/texlive/2023/texmf-dist/fonts/type
-1/public/cm-super/sfss1095.pfb></usr/local/texlive/2023/texmf-dist/fonts/type1/
-public/cm-super/sfss1200.pfb></usr/local/texlive/2023/texmf-dist/fonts/type1/pu
-blic/cm-super/sfsx1440.pfb></usr/local/texlive/2023/texmf-dist/fonts/type1/publ
-ic/cm-super/sfti1095.pfb></usr/local/texlive/2023/texmf-dist/fonts/type1/public
-/cm-super/sftt0800.pfb></usr/local/texlive/2023/texmf-dist/fonts/type1/public/c
-m-super/sftt1000.pfb></usr/local/texlive/2023/texmf-dist/fonts/type1/public/cm-
-super/sftt1095.pfb>
-Output written on MSc_Report.pdf (44 pages, 2000923 bytes).
+ 95i,11n,93p,1474b,526s stack positions out of 10000i,1000n,20000p,200000b,200000s
+</usr/local/texlive/2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb
+></usr/local/texlive/2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb>
+</usr/local/texlive/2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb><
+/usr/local/texlive/2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb></u
+sr/local/texlive/2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr
+/local/texlive/2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/l
+ocal/texlive/2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/loc
+al/texlive/2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/local/
+texlive/2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/tex
+live/2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texl
+ive/2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texliv
+e/2023/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb></usr/local/te
+xlive/2023/texmf-dist/fonts/type1/public/cm-super/sfbx1095.pfb></usr/local/texl
+ive/2023/texmf-dist/fonts/type1/public/cm-super/sfbx1200.pfb></usr/local/texliv
+e/2023/texmf-dist/fonts/type1/public/cm-super/sfbx1440.pfb></usr/local/texlive/
+2023/texmf-dist/fonts/type1/public/cm-super/sfbx2074.pfb></usr/local/texlive/20
+23/texmf-dist/fonts/type1/public/cm-super/sfbx2488.pfb></usr/local/texlive/2023
+/texmf-dist/fonts/type1/public/cm-super/sfrm0800.pfb></usr/local/texlive/2023/t
+exmf-dist/fonts/type1/public/cm-super/sfrm1095.pfb></usr/local/texlive/2023/tex
+mf-dist/fonts/type1/public/cm-super/sfsl1095.pfb></usr/local/texlive/2023/texmf
+-dist/fonts/type1/public/cm-super/sfss1000.pfb></usr/local/texlive/2023/texmf-d
+ist/fonts/type1/public/cm-super/sfss1095.pfb></usr/local/texlive/2023/texmf-dis
+t/fonts/type1/public/cm-super/sfss1200.pfb></usr/local/texlive/2023/texmf-dist/
+fonts/type1/public/cm-super/sfsx1440.pfb></usr/local/texlive/2023/texmf-dist/fo
+nts/type1/public/cm-super/sfti1095.pfb></usr/local/texlive/2023/texmf-dist/font
+s/type1/public/cm-super/sftt1095.pfb>
+Output written on MSc_Report.pdf (39 pages, 1855368 bytes).
 PDF statistics:
- 995 PDF objects out of 1000 (max. 8388607)
- 857 compressed objects within 9 object streams
- 206 named destinations out of 1000 (max. 500000)
- 196 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 849 PDF objects out of 1000 (max. 8388607)
+ 736 compressed objects within 8 object streams
+ 216 named destinations out of 1000 (max. 500000)
+ 188 words of extra memory for PDF output out of 10000 (max. 10000000)
 

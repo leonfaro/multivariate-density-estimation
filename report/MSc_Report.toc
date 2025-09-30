@@ -1,41 +1,60 @@
 \babel@toc {english}{}\relax 
 \contentsline {chapter}{\numberline {1}Introduction}{1}{chapter.1}%
-\contentsline {section}{\numberline {1.1}Thesis and Problem Statement}{1}{section.1.1}%
-\contentsline {paragraph}{Non-goals.}{2}{section*.3}%
-\contentsline {section}{\numberline {1.2}The Transport Frame on One Page}{3}{section.1.2}%
+\contentsline {section}{\numberline {1.1}Thesis and Problem Statement}{2}{section.1.1}%
+\contentsline {section}{\numberline {1.2}The Transport Frame on One Page}{2}{section.1.2}%
 \contentsline {section}{\numberline {1.3}Contributions and Research Questions}{3}{section.1.3}%
 \contentsline {chapter}{\numberline {2}Methodological Background}{5}{chapter.2}%
-\contentsline {section}{\numberline {2.1}Transport Frame and Notation}{5}{section.2.1}%
-\contentsline {section}{\numberline {2.2}Separable Triangular Maps and Transformation Random Forests as Transport}{6}{section.2.2}%
-\contentsline {subsection}{\numberline {2.2.1}Transformation Random Forests within the Transport Frame}{8}{subsection.2.2.1}%
-\contentsline {section}{\numberline {2.3}Copula Baselines}{9}{section.2.3}%
+\contentsline {section}{\numberline {2.1}Transport Framework and Notation}{5}{section.2.1}%
+\contentsline {section}{\numberline {2.2}Separable Triangular Maps and Transformation Random Forests}{6}{section.2.2}%
+\contentsline {subsection}{\numberline {2.2.1}Separable triangular component}{6}{subsection.2.2.1}%
+\contentsline {subsection}{\numberline {2.2.2}Transformation Random Forests in the framework}{7}{subsection.2.2.2}%
+\contentsline {paragraph}{Derivative check.}{7}{section*.5}%
+\contentsline {paragraph}{Numerical note.}{8}{section*.6}%
+\contentsline {section}{\numberline {2.3}Copula Baselines}{8}{section.2.3}%
+\contentsline {subsection}{\numberline {2.3.1}Estimation and reporting}{8}{subsection.2.3.1}%
+\contentsline {subsection}{\numberline {2.3.2}Fallback and scope}{9}{subsection.2.3.2}%
+\contentsline {subsection}{\numberline {2.3.3}Consistency with evaluation frame}{9}{subsection.2.3.3}%
+\contentsline {subsection}{\numberline {2.3.4}Terminology and references}{9}{subsection.2.3.4}%
 \contentsline {chapter}{\numberline {3}Data Analysis and Validation}{11}{chapter.3}%
-\contentsline {section}{\numberline {3.1}Datasets and Preprocessing}{11}{section.3.1}%
+\contentsline {section}{\numberline {3.1}Datasets and Preprocessing}{12}{section.3.1}%
+\contentsline {subsection}{\numberline {3.1.1}Standardization and Splits}{12}{subsection.3.1.1}%
+\contentsline {subsection}{\numberline {3.1.2}Half-Moon ($K=2$)}{12}{subsection.3.1.2}%
+\contentsline {subsection}{\numberline {3.1.3}Four-dimensional Autoregressive Generator ($K=4$)}{12}{subsection.3.1.3}%
+\contentsline {paragraph}{Why these generators?}{13}{section*.7}%
+\contentsline {paragraph}{Reproducibility note.}{13}{section*.8}%
 \contentsline {section}{\numberline {3.2}Models and Implementation}{13}{section.3.2}%
+\contentsline {subsection}{\numberline {3.2.1}Separable Triangular Transport Maps (TTM-Sep)}{13}{subsection.3.2.1}%
+\contentsline {paragraph}{Ordering.}{14}{section*.9}%
+\contentsline {subsection}{\numberline {3.2.2}Cross-term Variant (TTM-X)}{14}{subsection.3.2.2}%
+\contentsline {subsection}{\numberline {3.2.3}Transformation Random Forests (TRTF)}{14}{subsection.3.2.3}%
+\contentsline {subsection}{\numberline {3.2.4}Copula Baseline with Estimated Marginals}{14}{subsection.3.2.4}%
+\contentsline {paragraph}{Label use (Half-Moon only).}{15}{section*.10}%
+\contentsline {subsection}{\numberline {3.2.5}Shared Inversion and Evaluation}{15}{subsection.3.2.5}%
+\contentsline {paragraph}{Reproducibility.}{15}{section*.11}%
 \contentsline {section}{\numberline {3.3}Evaluation Metrics and Protocol}{15}{section.3.3}%
-\contentsline {section}{\numberline {3.4}Synthetic Results and Diagnostics}{17}{section.3.4}%
-\contentsline {paragraph}{Calibration numbers.}{21}{section*.14}%
-\contentsline {section}{\numberline {3.5}Real-Data Benchmarks and Compute}{21}{section.3.5}%
-\contentsline {paragraph}{Preprocessing.}{21}{section*.16}%
-\contentsline {paragraph}{Flow baselines.}{22}{section*.17}%
-\contentsline {paragraph}{MiniBooNE.}{22}{section*.19}%
-\contentsline {paragraph}{POWER.}{22}{section*.20}%
-\contentsline {paragraph}{GAS and HEPMASS.}{22}{section*.21}%
-\contentsline {paragraph}{Sample size sensitivity.}{23}{section*.22}%
-\contentsline {paragraph}{Compute metrics.}{23}{section*.24}%
-\contentsline {paragraph}{Interpretation.}{24}{section*.26}%
-\contentsline {section}{\numberline {3.6}Reproducibility}{24}{section.3.6}%
-\contentsline {paragraph}{Bridge to Chapter~\ref {ch:conclusion}.}{25}{section*.27}%
-\contentsline {chapter}{\numberline {4}Interpretation and Conclusion}{27}{chapter.4}%
-\contentsline {section}{\numberline {4.1}Interpretation of Results}{27}{section.4.1}%
-\contentsline {section}{\numberline {4.2}Conclusions, Limitations, and Outlook}{29}{section.4.2}%
-\contentsline {chapter}{\numberline {A}Appendix}{33}{appendix.A}%
-\contentsline {section}{\numberline {A.1}Unified Transport Schematic}{33}{section.A.1}%
-\contentsline {section}{\numberline {A.2}Pseudo-code Summaries for Model Routines}{35}{section.A.2}%
-\contentsline {subsection}{\numberline {A.2.1}Transformation Random Forest (TRTF)}{35}{subsection.A.2.1}%
-\contentsline {subsection}{\numberline {A.2.2}Nonparametric Copula Baseline}{35}{subsection.A.2.2}%
-\contentsline {subsection}{\numberline {A.2.3}Triangular Transport Core Utilities}{36}{subsection.A.2.3}%
-\contentsline {subsection}{\numberline {A.2.4}Marginal Triangular Transport Map}{37}{subsection.A.2.4}%
-\contentsline {subsection}{\numberline {A.2.5}Separable Triangular Transport Map}{37}{subsection.A.2.5}%
-\contentsline {subsection}{\numberline {A.2.6}Evaluation Utilities}{38}{subsection.A.2.6}%
-\contentsline {subsection}{\numberline {A.2.7}Supplementary Results}{38}{subsection.A.2.7}%
+\contentsline {subsection}{\numberline {3.3.1}Joint and Conditional Decomposition}{15}{subsection.3.3.1}%
+\contentsline {subsection}{\numberline {3.3.2}Compute Metrics}{16}{subsection.3.3.2}%
+\contentsline {subsection}{\numberline {3.3.3}Protocol (Fixed Across Methods)}{16}{subsection.3.3.3}%
+\contentsline {section}{\numberline {3.4}Synthetic Results and Diagnostics}{16}{section.3.4}%
+\contentsline {section}{\numberline {3.5}Real-Data Benchmarks and Compute}{20}{section.3.5}%
+\contentsline {paragraph}{Preprocessing.}{20}{section*.19}%
+\contentsline {paragraph}{Flow baselines.}{20}{section*.20}%
+\contentsline {paragraph}{MiniBooNE.}{21}{section*.22}%
+\contentsline {paragraph}{POWER.}{21}{section*.23}%
+\contentsline {paragraph}{GAS and HEPMASS.}{21}{section*.24}%
+\contentsline {paragraph}{Sample size sensitivity.}{22}{section*.25}%
+\contentsline {paragraph}{Compute metrics.}{22}{section*.27}%
+\contentsline {paragraph}{Interpretation.}{22}{section*.29}%
+\contentsline {section}{\numberline {3.6}Reproducibility}{23}{section.3.6}%
+\contentsline {paragraph}{Bridge to Chapter~\ref {ch:conclusion}.}{24}{section*.30}%
+\contentsline {chapter}{\numberline {4}Interpretation and Conclusion}{25}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Interpretation of Results}{25}{section.4.1}%
+\contentsline {section}{\numberline {4.2}Conclusions, Limitations, and Outlook}{27}{section.4.2}%
+\contentsline {chapter}{\numberline {A}Appendix}{31}{appendix.A}%
+\contentsline {section}{\numberline {A.1}Pseudo-code Summaries for Model Routines}{31}{section.A.1}%
+\contentsline {subsection}{\numberline {A.1.1}Transformation Random Forest (TRTF)}{31}{subsection.A.1.1}%
+\contentsline {subsection}{\numberline {A.1.2}Nonparametric Copula Baseline}{32}{subsection.A.1.2}%
+\contentsline {subsection}{\numberline {A.1.3}Triangular Transport Core Utilities}{32}{subsection.A.1.3}%
+\contentsline {subsection}{\numberline {A.1.4}Marginal Triangular Transport Map}{33}{subsection.A.1.4}%
+\contentsline {subsection}{\numberline {A.1.5}Separable Triangular Transport Map}{33}{subsection.A.1.5}%
+\contentsline {subsection}{\numberline {A.1.6}Evaluation Utilities}{34}{subsection.A.1.6}%
