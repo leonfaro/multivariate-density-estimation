@@ -40,7 +40,6 @@
 \contentsline {section}{\numberline {3.6}Reproducibility}{22}{section.3.6}%
 \contentsline {paragraph}{Final safeguards used.}{23}{section*.28}%
 \contentsline {paragraph}{Software and hardware.}{23}{section*.29}%
-\contentsline {paragraph}{Bridge to Chapter~\ref {ch:conclusion}.}{23}{section*.30}%
 \contentsline {chapter}{\numberline {4}Interpretation and Conclusion}{25}{chapter.4}%
 \contentsline {section}{\numberline {4.1}Interpretation of Results}{25}{section.4.1}%
 \contentsline {section}{\numberline {4.2}Conclusions, Limitations, and Outlook}{26}{section.4.2}%
